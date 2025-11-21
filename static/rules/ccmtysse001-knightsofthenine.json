@@ -1,0 +1,21 @@
+{
+  "weapons": {
+    "typeOverrides": [
+      { "names": "Sword of the Crusader", "type": "Longsword" }
+    ],
+
+    "types": [
+      { "names": "Sword of the Crusader", "speed": 1, "damage": 6 }
+    ],
+
+    "materials": [
+      { "names": "Sword of the Crusader", "critMult": 1 }
+    ]
+  },
+
+  "armor": {
+    "armorModifiers": [
+      { "names": "of the Crusader", "multiplier": 1.2 }
+    ]
+  }
+}

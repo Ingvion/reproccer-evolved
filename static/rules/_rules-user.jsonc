@@ -1,0 +1,19 @@
+/***********************************************************************************************************************
+ *                                                                                                                     *
+ *                                         REPROCER REBORN USER RULES (0.25+)                                          *
+ *                                            KEEP USER CREATED RULES HERE                                             *
+ *                                                                                                                     *
+ ***********************************************************************************************************************
+ *
+ * Note that if updating from a previous version and have custom rules in the last.json you can just overwrite all
+ * contents of this file with the contents of your last.json.
+ * ----------
+ * Use a text editor with the syntax highlight feature (like https://notepad-plus-plus.org/) - it'll make editing much
+ * more convenient. Correct language for this file is JSON5.
+ */
+{
+  "weapons": {},
+  "armor": {},
+  "alchemy": {},
+  "projectiles": {}
+}

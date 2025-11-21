@@ -1,0 +1,15 @@
+{
+  "armor": {
+    "materialOverrides": [
+      { "names": "Gray Cowl of Nocturnal", "material": "Daedric" }
+    ],
+
+    "armorModifiers": [
+      { "names": "Gray Cowl of Nocturnal", "multiplier": 0.8 }
+    ],
+
+    "excludedFromRecipes": [
+      "Gray Cowl of Nocturnal"
+    ]
+  }
+}

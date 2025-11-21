@@ -1,0 +1,16 @@
+{
+  "weapons": {
+    "excludedWeapons": [
+      "Alik'ri Fishing Rod",
+	  "Argonian Fishing Rod",
+      "Dwarven Fishing Rod",
+      "Fishing Rod"
+    ]
+  },
+
+  "armor": {
+    "excludedArmor": [
+      "Vagrant Boots"
+    ]
+  }
+}

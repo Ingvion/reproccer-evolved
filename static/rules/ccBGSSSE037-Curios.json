@@ -1,0 +1,13 @@
+{
+  "projectiles": {  
+    "materialStats": [
+      { "names": "Corkbulb", "gravity": -0.03, "speed": 150,  "damage": 5                        },
+      { "names": "Silver",   "gravity": 0.03,  "speed": -250, "damage": 7,  "id": "mat_silver"   },
+      { "names": "Bonemold", "gravity": -0.04, "speed": 100,  "damage": 11, "id": "mat_bonemold" }
+    ],
+
+    "excludedAmmunitionVariants": [
+      "Corkbulb"
+    ]
+  }
+}

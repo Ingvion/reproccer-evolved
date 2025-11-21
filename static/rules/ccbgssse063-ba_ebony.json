@@ -1,0 +1,8 @@
+{
+  "armor": {
+    "armorModifiers": [
+      { "names": "Blades Ebony Shield", "multiplier": 1.15 },
+      { "names": "Ebony Plate",         "multiplier": 1.15 }
+    ]
+  }
+}

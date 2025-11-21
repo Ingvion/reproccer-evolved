@@ -1,0 +1,13 @@
+{
+  "armor": {
+    "materials": [
+      { "names": "Bloodworm Helm",         "armor": 38 },
+      { "names": "Helm of Oreyn Bearclaw", "armor": 38 }
+    ],
+
+    "excludedFromRecipes": [
+      "Bloodworm Helm",
+      "Helm of Oreyn Bearclaw"
+    ]
+  }
+}

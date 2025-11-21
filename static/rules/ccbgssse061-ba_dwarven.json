@@ -1,0 +1,7 @@
+{
+  "armor": {
+    "armorModifiers": [
+      { "names": "Dwarven Plate", "multiplier": 1.15 } 
+    ]
+  }
+}

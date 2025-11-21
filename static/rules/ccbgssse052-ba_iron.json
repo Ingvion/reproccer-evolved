@@ -1,0 +1,7 @@
+{
+  "armor": {
+    "armorModifiers": [
+      { "names": "Iron Plate", "multiplier": 1.15 } 
+    ]
+  }
+}

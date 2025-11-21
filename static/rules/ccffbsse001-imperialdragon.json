@@ -1,0 +1,22 @@
+{
+  "weapons": {
+    "typeOverrides": [
+      { "names": "Dragon's Oath", "type": "Broadsword" }
+    ],
+
+    "types": [
+      { "names": "Dragon's Oath", "reach": 0.95, "speed": 0.95, "damage": 9 }
+    ]
+  },
+
+  "armor": {
+    "damageModifiers": [
+      { "names": "Imperial Dragon", "multiplier": 1.15 },
+      { "names": "Storm-Bear",      "multiplier": 1.15 }
+    ],
+
+    "masquerade": [
+      { "names": "Storm-Bear", "faction": "Stormcloak" }
+    ]
+  }
+}

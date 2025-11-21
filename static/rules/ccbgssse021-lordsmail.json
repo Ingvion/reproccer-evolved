@@ -1,0 +1,7 @@
+{
+  "armor": {
+    "armorModifiers": [
+      { "names": "Lord's Mail", "multiplier": 1.2 }
+    ]
+  }
+}

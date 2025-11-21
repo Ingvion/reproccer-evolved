@@ -1,0 +1,13 @@
+{
+  "weapons": {
+    "excludedFromRecipes": [
+      "Rulnik's Dagger"
+    ]
+  },
+
+  "armor": {
+    "armorModifiers": [
+      { "names": "Skull-Sabre Shield", "multiplier": 1.15 }
+    ]
+  }
+}

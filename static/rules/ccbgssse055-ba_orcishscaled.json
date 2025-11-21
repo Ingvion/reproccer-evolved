@@ -1,0 +1,11 @@
+{
+  "armor": {
+    "armorModifiers": [
+      { "names": "Orcish Scaled", "multiplier": 0.85 }
+    ],
+
+    "excludedFromRecipes": [
+      "Orcish Scaled"
+    ]
+  }
+}

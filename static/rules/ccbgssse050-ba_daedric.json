@@ -1,0 +1,7 @@
+{
+  "armor": {
+    "armorModifiers": [
+      { "names": "Daedric Plate", "multiplier": 1.15 } 
+    ]
+  }
+}

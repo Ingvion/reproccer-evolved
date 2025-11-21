@@ -1,0 +1,7 @@
+{
+  "armor": {
+    "armorModifiers": [
+      { "names": "Studded Dragonscale", "multiplier": 0.85 } 
+    ]
+  }
+}

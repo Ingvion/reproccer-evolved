@@ -1,0 +1,13 @@
+{
+  "weapons": {
+    "typeOverrides": [
+      { "names": "Sunder", "type": "Maul" }
+    ]
+  },
+
+  "armor": {
+    "armorModifiers": [
+      { "names": "Wraithguard", "multiplier": 1.2 }
+    ]
+  }
+}

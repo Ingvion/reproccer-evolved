@@ -1,0 +1,20 @@
+{
+  "projectiles": {
+    "materialStats": [
+      { "names": "Bone",         "gravity": -0.04, "speed": 200,  "damage": 13 },
+      { "names": "Fire",         "gravity": -0.02, "speed": 300,  "damage": 10 },
+      { "names": "Ice",          "gravity": -0.02, "speed": 300,  "damage": 10 },
+      { "names": "Lightning",    "gravity": -0.02, "speed": 300,  "damage": 10 },
+      { "names": "Soul Stealer", "gravity": 0.03,  "speed": -300, "damage": 11 },
+      { "names": "Telekinesis",  "gravity": -0.2,  "speed": 1000, "damage": 50 }
+    ],
+
+    "excludedAmmunitionVariants": [
+      "Fire",
+      "Ice",
+      "Lightning",
+      "Soul Stealer",
+      "Telekinesis"
+    ]
+  }
+}

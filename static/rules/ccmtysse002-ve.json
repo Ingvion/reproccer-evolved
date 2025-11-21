@@ -1,0 +1,9 @@
+{
+  "armor": {
+    "armorModifiers": [
+      { "names": "Vigil Corrupted",   "multiplier": 0.9  },
+      { "names": "Vigil Silver Hand", "multiplier": 1.1  },	  
+      { "names": "Vigil Veteran",     "multiplier": 1.2  }
+    ]
+  }
+}

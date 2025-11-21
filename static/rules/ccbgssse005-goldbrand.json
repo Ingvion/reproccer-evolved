@@ -1,0 +1,15 @@
+{
+  "weapons": {
+    "typeOverrides": [
+      { "names": "Goldbrand", "type": "Katana" }
+    ],
+
+    "types": [
+      { "names": "Goldbrand", "speed": 1.05,  "damage": 7 }
+    ],
+
+    "materials": [
+      { "names": "Goldbrand", "critMult": 1.5 }
+    ]
+  }
+}

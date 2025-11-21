@@ -1,0 +1,7 @@
+{
+  "armor": {
+    "armorModifiers": [
+      { "names": "Elven Hunter", "multiplier": 0.9 }
+    ]
+  }
+}

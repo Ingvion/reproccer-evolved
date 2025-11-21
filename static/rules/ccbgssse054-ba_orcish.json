@@ -1,0 +1,7 @@
+{
+  "armor": {
+    "armorModifiers": [
+      { "names": "Orcish Plate", "multiplier": 1.15 } 
+    ]
+  }
+}

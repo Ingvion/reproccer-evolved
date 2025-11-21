@@ -1,0 +1,35 @@
+{
+  "weapons": {
+    "typeOverrides": [
+      { "names": "Bow of Betrothal",       "type": "Longbow" },
+      { "names": "Hanegiri",               "type": "Katana"  },
+      { "names": "Tategatana",             "type": "Katana"  },
+      { "names": "Trinity Blade",          "type": "Nodachi" },
+      { "names": "Weakened Trinity Blade", "type": "Nodachi" }
+    ],
+
+    "materials": [
+      { "names": "Weakened Trinity Blade", "speedMod": -0.1, "damage": 1 }
+    ],
+
+    "materialOverrides": [
+      { "names": "Shiv",                   "material": "Iron"  },
+      { "names": "Trinity Blade",          "material": "Ebony" }
+    ]
+  },
+
+  "armor": {
+    "materialOverrides": [
+      { "names": "Griffith",        "material": "Leather" },
+      { "names": "Elenthil",        "material": "Leather" },
+      { "names": "Blood of Skyrim", "material": "Guard"   },
+      { "names": "Gabania Guard",   "material": "Guard"   }
+    ]
+  },
+
+  "projectiles": {
+    "excludedAmmunition": [
+      "Baroness' Arrow"
+    ]
+  }
+}

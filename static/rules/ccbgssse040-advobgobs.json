@@ -1,0 +1,7 @@
+{
+  "armor": {
+    "materialOverrides": [
+      { "names": "Gogh's Skull Mask", "material": "Bonemold Heavy" }
+    ]
+  }
+}

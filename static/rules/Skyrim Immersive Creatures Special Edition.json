@@ -1,0 +1,72 @@
+{
+  "weapons": {
+	"damageModifiers": [
+      { "names": "Goblin", "multiplier": 0.8 }
+    ],
+
+    "excludedFromRecipes": [
+      "Clutterbane",
+	  "Nullsprocket",
+      "Spectral Hunting Shortbow",
+      "Spectral Imperial Shortbow"
+    ],
+
+    "excludedWeapons": [
+      "Giant Brute Axe",
+      "Giant Club",
+      "Giant Double Axe",
+      "Giant Double Brute Axe",
+      "Giant Dwemer Axe",
+      "Giant Executioner Axe",
+      "Giant Fire Club",
+      "Giant Iron Battleaxe",
+      "Giant Iron Club",
+      "Giant Nordic Battleaxe",
+      "Giant Nordic Greatsword",
+      "Giant Old Double Dwemer Axe",
+      "Giant Old Dwemer Axe",
+      "Giant Orcish Warhammer",
+      "Giant Skull Club",
+      "Giant Steel Battleaxe",
+      "Giant Steel Club",
+      "Giant Steel Warhammer",
+      "Giant Steel Battleaxe",
+      "Keeper Mace",
+      "Minotaur Hammer",
+      "Ogre Club",
+      "Ogrim Club"
+    ]
+  },
+
+  "armor": {
+    "armorModifiers": [
+      { "names": "Aged",                    "multiplier": 0.5  },
+      { "names": "Ancient Akaviri",         "multiplier": 0.7  },
+      { "names": "Daedric Lord",            "multiplier": 1.15 },
+      { "names": "Dwarven Armor Light",     "multiplier": 0.66 },
+      { "names": "Dwarven Armor Skirtless", "multiplier": 0.95 },
+      { "names": "Dwarven Dumb Hat",        "multiplier": 0.5  },
+      { "names": "Dwarven Hat",             "multiplier": 0.5  },
+      { "names": "Falmer Seasoned",         "multiplier": 1.1  },
+      { "names": "Falmer Weighty",          "multiplier": 1.2  },
+      { "names": "Forsworn Forager",        "multiplier": 0.95 },
+      { "names": "Forsworn Ravager",        "multiplier": 1.05 },
+      { "names": "Hoary Nord",              "multiplier": 0.9  },
+      { "names": "Iron Draugr",             "multiplier": 0.8  },
+	  { "names": "Imperial Tattered",       "multiplier": 0.6  },
+	  { "names": "of Yngol",                "multiplier": 1.2  }
+    ],
+
+    "excludedArmor": [
+      "Dwarven Backpack",
+      "Dwarven Goggles",
+      "Goblin Dark Cave Tribe Banner",
+      "Goblin Dragontooth Tribe Banner",
+      "Goblin Frost Bite Tribe Banner",
+      "Goblin Ice Blade Tribe Banner",
+      "Goblin Goblin Rock Fall Tribe Banner",
+      "Goblin Skull Basher Tribe Banner",
+      "Goblin Ice Blade Tribe Banner"
+    ]
+  }
+}

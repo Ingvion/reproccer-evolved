@@ -1,0 +1,12 @@
+{
+  "armor": {
+    "armorModifiers": [
+      { "names": "Netch Leather",        "multiplier": 1.15 },
+      { "names": "Boiled Netch Leather", "multiplier": 1.25 }
+    ],
+
+    "excludedFromRecipes": [
+      "Boots of Blinding Speed"
+    ]
+  }
+}

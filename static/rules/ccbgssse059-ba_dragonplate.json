@@ -1,0 +1,8 @@
+{
+  "armor": {
+    "armorModifiers": [
+      { "names": "Dragonbone Mail",       "multiplier": 0.85 },
+      { "names": "Dragonplate Insulated", "multiplier": 1.15 }
+    ]
+  }
+}

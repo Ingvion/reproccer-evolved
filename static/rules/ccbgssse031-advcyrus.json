@@ -1,0 +1,19 @@
+{
+  "weapons": {
+    "typeOverrides": [
+      { "names": "Blackwater Blade", "type": "Longsword" }
+    ],
+
+    "types": [
+      { "names": "Blackwater Blade", "reach": 1.1, "speed": 1, "damage": 6 }
+    ],
+
+    "materials": [
+      { "names": "Cyrus' Sabre", "critMult": 1 }
+    ],
+
+    "damageModifiers": [
+      { "names": "Cyrus' Sabre", "multiplier": 1.2 }
+    ]
+  }
+}

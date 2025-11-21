@@ -1,0 +1,8 @@
+{
+  "armor": {
+    "armorModifiers": [
+      { "names": "Blades Steel",  "multiplier": 0.85 },
+      { "names": "Steel Soldier", "multiplier": 0.85 }
+    ]
+  }
+}

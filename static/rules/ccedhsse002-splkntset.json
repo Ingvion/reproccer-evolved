@@ -1,0 +1,9 @@
+{
+  "armor": {
+    "armorModifiers": [
+      { "names": "Ebony Spell Knight", "multiplier": 0.9 },
+      { "names": "Iron Spell Knight",  "multiplier": 0.9 },	 
+      { "names": "Steel Spell Knight", "multiplier": 0.9 }
+    ]
+  }
+}

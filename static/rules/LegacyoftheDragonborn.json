@@ -1,0 +1,14 @@
+{
+  "weapons": {
+    "excludedWeapons": [
+      "Hand of Glory",
+      "Kilvur"
+    ]
+  },
+
+  "projectiles": {
+    "materialStats": [
+      { "names": "Ancient Falmer", "gravity": 0.02, "speed": -200, "damage": 18 }
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "armor": {
+    "armorModifiers": [
+      { "names": "Dwarven Mail", "multiplier": 0.85 } 
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "weapons": {
+    "materialOverrides": [
+      { "names": "Bard's Dagger", "material": "Dragonbone" }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "weapons": {
+    "excludedFromRecipes": [
+      "Skeleton Minion War Axe",
+      "Skeleton Champion Greatsword",
+      "Undying Ghost Broadsword"
+    ]
+  },
+
+  "projectiles": {
+    "excludedAmmunitionVariants": [
+      "Skeleton Marksman Arrow"
+    ]
+  }
+}

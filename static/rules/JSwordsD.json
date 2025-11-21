@@ -1,0 +1,34 @@
+{
+  "weapons": {
+    "typeOverrides": [
+      { "names": "Akaviri Blade",            "type": "Katana"     },
+      { "names": "Akavirii Battlesaber",     "type": "Wakizashi"  },
+      { "names": "Akavirii Saber",           "type": "Wakizashi"  },
+      { "names": "Akavirii Short Saber",     "type": "Tanto"      },
+      { "names": "Albensword",               "type": "Scimitar"   },
+      { "names": "Baskethilt Sword",         "type": "Longsword"  },
+      { "names": ["Breton", "Sword"],        "type": "Longsword"  },
+      { "names": "Ceremonial Tsaesci Sword", "type": "Longsword"  },
+      { "names": "Dagger of Dibella",        "type": "Longsword"  },
+      { "names": "Dragonslayer Greatsword",  "type": "Bastard"    },
+      { "names": "Dragonsting Sword",        "type": "Shortsword" },
+      { "names": "Legionaire's Sword",       "type": "Shortsword" },
+      { "names": "Magnificent Sword",        "type": "Longsword"  },
+      { "names": "Paladin Gilded Sword",     "type": "Longsword"  },
+      { "names": "Paladin Greatsword",       "type": "Bastard"    },
+      { "names": "Paladin Silver Sword",     "type": "Longsword"  },
+      { "names": "Paladin Sword",            "type": "Longsword"  },
+      { "names": "Poacher Dagger",           "type": "Shortsword" },
+      { "names": "Poacher Sword",            "type": "Longsword"  },
+      { "names": "Smallsword",               "type": "Scimitar"   },
+      { "names": "Steel Bastard Sword",      "type": "Longsword"  },
+      { "names": "Woodsman's Axe",           "type": "Hatchet"    }
+    ],
+
+    "damageModifiers": [
+      { "names": "Ceremonial Tsaesci Sword", "multiplier": 0.9    },
+      { "names": "Legionaire's Sword",       "multiplier": 1.05   },
+      { "names": "Woodsman's Axe",           "multiplier": 0.9    }
+    ]
+  }
+}

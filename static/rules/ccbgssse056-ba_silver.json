@@ -1,0 +1,17 @@
+{
+  "armor": {
+    "materialOverrides": [
+      { "names": "Silver Armor",     "material": "Blades" },
+      { "names": "Silver Boots",     "material": "Blades" },
+      { "names": "Silver Gauntlets", "material": "Blades" },
+      { "names": "Silver Helmet",    "material": "Blades" }
+    ],
+
+	"armorModifiers": [
+      { "names": "Silver Armor",     "multiplier": 0.85 },
+      { "names": "Silver Boots",     "multiplier": 0.85 }, 
+      { "names": "Silver Gauntlets", "multiplier": 0.85 },
+      { "names": "Silver Helmet",    "multiplier": 0.85 }	  
+    ]
+  }
+}

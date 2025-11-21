@@ -1,0 +1,7 @@
+{
+  "armor": {
+    "armorModifiers": [
+      { "names": "Daedric Mail", "multiplier": 0.8 } 
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "armor": {
+    "armorModifiers": [
+      { "names": "Leather Scout", "multiplier": 0.85 }
+    ]
+  }
+}

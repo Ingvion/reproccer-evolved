@@ -1,0 +1,11 @@
+{
+  "weapons": {
+    "typeOverrides": [
+      { "names": "Boneshaver", "type": "Scimitar" }
+    ],
+
+    "types": [
+      { "names": "Boneshaver", "reach": 1, "speed": 0.95, "damage": 7 }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "weapons": {
+    "typeOverrides": [
+      { "names": "Torment", "speed": 0.9, "damage": 8 }
+    ],
+
+    "typeOverrides": [
+      { "names": "Torment", "type": "Broadsword" }
+    ],
+
+    "materials": [
+      { "names": "Torment", "critMult": 1.0 }
+    ]
+  }
+}

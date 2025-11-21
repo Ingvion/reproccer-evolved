@@ -1,0 +1,11 @@
+{
+  "weapons": {
+	"materials": [
+      { "names": "Shortbow of Shadows", "damage": 8, "speedMod": -0.05 }
+    ],
+
+    "excludedFromRecipes": [
+      "Shortbow of Shadows"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "armor": {
+    "materialOverrides": [
+      { "names": "Brawler's Fur Bracers", "material": "Hide" }
+    ],
+
+    "excludedFromRecipes": [
+      "Brawler's Fur Bracers"
+    ]
+  }
+}

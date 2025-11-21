@@ -1,0 +1,44 @@
+{
+  "weapons": {
+    "typeOverrides": [
+      { "names": "Hopesfire",          "type": "Scimitar" },
+      { "names": "Trueflame",          "type": "Scimitar" },
+      { "names": "Unenchanted Weapon", "type": "Scimitar" }
+    ],
+
+    "types": [
+      { "names": "Hopesfire",          "reach": 0.90, "speed": 0.90, "damage": 8 },
+      { "names": "Trueflame",          "reach": 0.90, "speed": 0.95, "damage": 6 },
+      { "names": "Unenchanted Weapon", "reach": 0.90, "speed": 0.90              }
+    ]
+  },
+ 
+  "armor": {
+    "materials": [
+      { "names": "Indoril",  "armor": 34 },
+      { "names": "Her Hand", "armor": 42 }
+    ],
+
+    "materialOverrides": [
+      { "names": "Mask of Almalexia", "material": "Ebony"        },
+      { "names": "Mask of Dagoth Ur", "material": "Ebony"        },
+      { "names": "Mask of Sotha Sil", "material": "Ebony"        },
+      { "names": "Mask of Vivec",     "material": "Ebony"        },
+      { "names": "Kenro's Helmet",    "material": "Chitin Heavy" },
+      { "names": "Ordinator Shield",  "material": "Chitin Heavy" }
+    ],
+
+    "excludedFromRecipes": [
+      "Her Hand Armor",
+      "Her Hand Boots",
+      "Her Hand Gauntlets",
+      "Her Hand Helmet",
+      "Indoril Armor",
+      "Indoril Boots",
+      "Indoril Gauntlets",
+      "Indoril Helmet",
+      "Kenro's Helmet",
+      "Ordinator Shield"
+    ]
+  }
+}

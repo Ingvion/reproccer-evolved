@@ -1,0 +1,19 @@
+{
+ "projectiles": {
+    "materialStats": [
+      { "names": "Noisemaker", "gravity": 0.2,  "speed": -200, "damage": -6, "weightMult": 1,   "priceMult": 0.8 },
+      { "names": "Oil",        "gravity": 0.3,  "speed": -600, "damage": -6, "weightMult": 2.5, "priceMult": 0.8 },
+      { "names": "Rope",       "gravity": 0.4,  "speed": -200, "damage": -6, "weightMult": 1.5, "priceMult": 0.8 },
+      { "names": "Torch",      "gravity": 0.1,  "speed": -150, "damage": -6, "weightMult": 1.1, "priceMult": 0.8 },
+      { "names": "Water",      "gravity": 0.15, "speed": -300, "damage": -6, "weightMult": 1.3, "priceMult": 0.8 }
+    ],
+
+    "excludedAmmunitionVariants": [
+      "Noisemaker",
+      "Oil",
+      "Rope",
+      "Torch",
+      "Water"
+    ]
+  }
+}
