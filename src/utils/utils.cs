@@ -62,4 +62,38 @@ public static class Helpers
 
         return jsonString;
     }
+
+    public static JsonNode DeepMerge(JsonNode targetJson, JsonNode sourceJson)
+    {
+        // There's likely a better way to merge JSONs but I'm limited by lack of experience in C#
+        if (targetJson is JsonObject target0 && sourceJson is JsonObject source0)
+        {
+            foreach (var prop0 in source0)
+            {
+                if (target0[prop0.Key] is JsonObject target1 && prop0.Value is JsonObject source1)
+                {
+                    foreach (var prop1 in source1)
+                    {
+                        if (target1[prop1.Key] is JsonArray target2 && prop1.Value is JsonArray source2)
+                        {
+                            foreach (var element in source2)
+                            {
+                                target2.Add(element!.DeepClone());
+                            }
+                        }
+                        else
+                        {
+                            target1[prop1.Key] = prop1.Value!.DeepClone();
+                        }
+                    }
+                }
+                else
+                {
+                    target0[prop0.Key] = prop0.Value!.DeepClone();
+                }
+            }
+        }
+
+        return targetJson;
+    }
 }
