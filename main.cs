@@ -46,5 +46,25 @@ static class Executor
         }
 
         Strings = stringsJson!.AsObject();
+
+        // building rules
+        var loadOrder = State.LoadOrder;
+
+        JsonNode rulesJson = Utils.Helpers.LoadJson($"{AppContext.BaseDirectory}rules", "_rules-basic.jsonc");
+
+        foreach (var file in loadOrder)
+        {
+            if (!file.Value.Enabled || General.Value.IgnoredFiles!.Any(name => name == file.Key.FileName)) continue;
+
+            string[] match = Directory.GetFiles($"{AppContext.BaseDirectory}rules", $"{file.Key.Name}.json*");
+            if (match.Length == 0) continue;
+
+            JsonNode pluginRules = Utils.Helpers.LoadJson($"{AppContext.BaseDirectory}rules", $"{Path.GetFileName(match[0])}", true);
+            rulesJson = Utils.Helpers.DeepMerge(rulesJson, pluginRules);
+        }
+
+        JsonNode userRules = Utils.Helpers.LoadJson($"{AppContext.BaseDirectory}rules", "_rules-user.jsonc", true);
+        rulesJson = Utils.Helpers.DeepMerge(rulesJson, userRules);
+        Rules = rulesJson!.AsObject();
     }
 }
