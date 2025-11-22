@@ -50,6 +50,16 @@ static class Executor
         // building rules
         var loadOrder = State.LoadOrder;
 
+        if (!loadOrder.Any(file => file.Key.FileName.Equals("Skyrim AE Redone - Core.esm")))
+        {
+            throw new Exception("\n--> Skyrim AE Redone - Core.esm should be active in the load order!\n");
+        }
+
+        if (!loadOrder.Any(file => file.Key.FileName.Equals("Skyrim AE Redone - Main.esp")))
+        {
+            throw new Exception("\n--> The patching is only required if the Main Module is installed\n");
+        }
+
         JsonNode rulesJson = Utils.Helpers.LoadJson($"{AppContext.BaseDirectory}rules", "_rules-basic.jsonc");
 
         foreach (var file in loadOrder)
