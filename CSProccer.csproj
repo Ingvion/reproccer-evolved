@@ -10,6 +10,11 @@
   <ItemGroup>
     <PackageReference Include="Mutagen.Bethesda.Skyrim" Version="0.52.0" />
     <PackageReference Include="Mutagen.Bethesda.Synthesis" Version="0.35.3" />
+    <ToCopy Include="static\**\*" CopyToOutputDirectory="Always" />
+    <ToCopy Include="src\settings\**\*" CopyToOutputDirectory="Always" />
   </ItemGroup>
 
+  <Target Name="CopyFolders" AfterTargets="Build">
+    <Copy SourceFiles="@(ToCopy)" DestinationFolder="$(OutputPath)\%(RecursiveDir)" SkipUnchangedFiles="false" />
+  </Target>
 </Project>
