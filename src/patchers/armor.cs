@@ -12,7 +12,9 @@ public static class Armor
     private static readonly IPatcherState<ISkyrimMod, ISkyrimModGetter> State = Executor.State!;
     private static readonly Lazy<Config.Armor> Settings = new();
     private static readonly JsonObject Rules = Executor.Rules!["armor"]!.AsObject();
-	
+
+    private static Utils.PatchingData RecordData;
+
     public static void Run()
     {
 		

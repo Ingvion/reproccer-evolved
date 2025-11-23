@@ -6,7 +6,17 @@ using System.Text.RegularExpressions;
 
 namespace ReProccer.Utils;
 
-// data maps
+public struct PatchingData(bool NonPlayable = false, bool UniqueKeyword = true, ArmorType ArmorTypeEnum = ArmorType.Clothing)
+{
+    public bool NonPlayableFlag = NonPlayable;
+    public bool HasUniqueKeyword = UniqueKeyword;
+    public ArmorType ArmorType = ArmorTypeEnum;
+
+    public readonly bool IsNonPlayable() => NonPlayableFlag;
+    public readonly bool IsUnique() => HasUniqueKeyword;
+    public readonly ArmorType GetArmorType() => ArmorType;
+}
+
 public record StaticsMap(
     string Id,
     FormKey Formkey
