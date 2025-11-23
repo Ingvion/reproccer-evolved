@@ -96,4 +96,41 @@ public static class Helpers
 
         return targetJson;
     }
+
+    public static FormKey ParseFormKey(string formKeyString)
+    {
+        // 0 - mod key, 1 - hex id, 2 - record type
+        string[] data = formKeyString.Split('|');
+
+        ModKey modName = ModKey.FromFileName(data[0]);
+        uint localId = Convert.ToUInt32(data[1], 16);
+        FormKey formId = new(modName, localId);
+
+        bool isResolved = TryToResolve(formId, data[2]);
+        if (modName == "ccBGSSSE025-AdvDSGS.esm")
+        {
+            var advDSGS = Executor.State!.LoadOrder
+            .FirstOrDefault(plugin => plugin.Key.FileName.Equals(modName) && plugin.Value.Enabled);
+
+            if (advDSGS == null) formId = new FormKey(modName, 0x00000000);
+        }
+        else if (!isResolved)
+        {
+            throw new Exception($"\n--> Unable to resolve {formId} (no such record?)\n");
+        }
+
+        return formId;
+    }
+
+    private static bool TryToResolve(FormKey formId, string type) => type switch
+    {
+        "EXPL" => Executor.State!.LinkCache.TryResolve<IExplosionGetter>(formId, out _),
+        "GMST" => Executor.State!.LinkCache.TryResolve<IGameSettingGetter>(formId, out _),
+        "INGR" => Executor.State!.LinkCache.TryResolve<IIngredientGetter>(formId, out _),
+        "KWDA" => Executor.State!.LinkCache.TryResolve<IKeywordGetter>(formId, out _),
+        "MISC" => Executor.State!.LinkCache.TryResolve<IMiscItemGetter>(formId, out _),
+        "PERK" => Executor.State!.LinkCache.TryResolve<IPerkGetter>(formId, out _),
+        "SLGM" => Executor.State!.LinkCache.TryResolve<ISoulGemGetter>(formId, out _),
+        _ => false,
+    };
 }
