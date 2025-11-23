@@ -79,12 +79,14 @@ static class Executor
         JsonNode userRules = Utils.Helpers.LoadJson($"{AppContext.BaseDirectory}rules", "_rules-user.jsonc", true);
         rulesJson = Utils.Helpers.DeepMerge(rulesJson, userRules);
         Rules = rulesJson!.AsObject();
-    }
-	
-	// parsing statics
-    Statics = BuildStatics();
 
+	    // parsing statics
+        Statics = BuildStatics();
+
+        // running patchers
+        if (General.Value.ArmorPatcher) Patchers.Armor.Run();
     }
+
     private static List<Utils.StaticsMap> BuildStatics() => [
             new(Id: "ArmorScalingFactor",                     Formkey: Utils.Helpers.ParseFormKey("Skyrim.esm|00021a72|GMST")                  ),
             new(Id: "MaxArmorRating",                         Formkey: Utils.Helpers.ParseFormKey("Skyrim.esm|00037deb|GMST")                  ),

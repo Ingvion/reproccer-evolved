@@ -6,6 +6,12 @@ using System.Text.RegularExpressions;
 
 namespace ReProccer.Utils;
 
+// data maps
+public record StaticsMap(
+    string Id,
+    FormKey Formkey
+);
+
 public static class Helpers
 {
     public static JsonNode LoadJson(string path, string filename, bool noSkip = false)
