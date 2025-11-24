@@ -20,7 +20,17 @@ public static class Armor
     {
         UpdateGMST();
         List<IArmorGetter> records = GetRecords();
-	}
+		
+        foreach (var armor in records)
+        {
+            // storing some data publicly to avoid sequential passing of arguments
+            RecordData = new PatchingData(
+                NonPlayable: armor.MajorFlags.HasFlag(Mutagen.Bethesda.Skyrim.Armor.MajorFlag.NonPlayable),
+                UniqueKeyword: armor.Keywords!.HasKeyword("NoMeltdownRecipes"),
+                ArmorTypeEnum: armor.BodyTemplate!.ArmorType);
+        }
+		
+    }
 
     private static List<IArmorGetter> GetRecords()
     {

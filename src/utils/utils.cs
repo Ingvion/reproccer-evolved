@@ -150,3 +150,11 @@ public static class Helpers
         _ => false,
     };
 }
+
+public static class Extensions
+{
+    public static bool HasKeyword(this IReadOnlyList<IFormLinkGetter<IKeywordGetter>> keywordsArr, string keyword)
+    {
+        return keywordsArr.Any(kw => kw.FormKey == Executor.Statics!.First(elem => elem.Id == keyword).Formkey);
+    }
+}
