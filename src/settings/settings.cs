@@ -2,20 +2,37 @@ using Mutagen.Bethesda.WPF.Reflection.Attributes;
 
 namespace ReProccer.Config;
 
-public class SettingsUI
+public enum Language
+{
+    English,
+    French, 
+    German, 
+    Italian, 
+    Japanese, 
+    Polish, 
+    Russian, 
+    Spanish,
+    Chinese
+}
+public class AllSettings
 {
     [SettingName("General")]
-    public General GeneralSettings { get; set; } = new();
+    public GeneralSettings General { get; set; } = new();
 
     [SettingName("Armor Patcher")]
-    public Armor ArmorSettings { get; set; } = new();
+    public ArmorSettings Armor { get; set; } = new();
 
     [SettingName("Logger")]
-    public Debug DebugSettings { get; set; } = new();
+    public DebugSettings Debug { get; set; } = new();
 }
 
-public class General
+public class GeneralSettings
 {
+    [SettingName("Game language")]
+    [Tooltip("Keep in mind, that you need a translated strings file in the \"locales\" folder for languages other than English;\n"
+    + "if none, default English strings will be used.")]
+    public Language GameLanguage { get; set; } = Language.English;
+
     [SettingName("Ignored Files")]
     [Tooltip("Plugins listed here will be fully ignored - records will be ignored, rules will not be loaded,\n"
         + "and winning overrides from these plugins will be skipped.")]
@@ -47,14 +64,18 @@ public class General
     public bool ExclByEdID { get; set; } = true;
 }
 
-public class Debug
+public class DebugSettings
 {
     [SettingName("Report excluded records")]
     [Tooltip("A message will be shown when a record is found the excluded records list.")]
     public bool ShowExcluded { get; set; } = true;
+
+    [SettingName("Report renaming actions")]
+    [Tooltip("A message will be shown when a record is renamed in accordance with \"renamer\" rules.")]
+    public bool ShowRenamed { get; set; } = false;
 }
 
-public class Armor
+public class ArmorSettings
 {
     [SettingName("Damage reduction per point of armor")]
     [Tooltip("Physical damage blocked per 1 point of armor, in %.\n"
