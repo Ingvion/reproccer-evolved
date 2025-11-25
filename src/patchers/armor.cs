@@ -16,6 +16,8 @@ public static class Armor
 
     private static PatchingData RecordData;
 
+    private static FormKey GetFormKey(string id) => Executor.Statics!.First(elem => elem.Id == id).Formkey;
+
     public static void Run()
     {
         UpdateGMST();
@@ -27,7 +29,7 @@ public static class Armor
             // storing some data publicly to avoid sequential passing of arguments
             RecordData = new PatchingData(
                 NonPlayable: armor.MajorFlags.HasFlag(Mutagen.Bethesda.Skyrim.Armor.MajorFlag.NonPlayable),
-                UniqueKeyword: armor.Keywords!.HasKeyword("NoMeltdownRecipes"),
+                UniqueKeyword: armor.Keywords!.HasKeyword("skyre__NoMeltdownRecipes"),
                 ArmorTypeEnum: armor.BodyTemplate!.ArmorType);
 
             /* armor records with templates inherit their data from the template, but have unique names;
@@ -39,7 +41,6 @@ public static class Armor
                 continue;
             };
         }
-		
     }
 
     private static void PatchRecordNames(IArmorGetter armor, List<string> renamingBlacklist)
@@ -116,11 +117,11 @@ public static class Armor
         List<IArmorGetter> records = [];
         List<string> excludedArmor = [.. Rules["excludedArmor"]!.AsArray().Select(value => value!.GetValue<string>())];
         FormKey[] mustHave = [
-            Executor.Statics!.First(elem => elem.Id == "ArmorHeavy").Formkey,
-            Executor.Statics!.First(elem => elem.Id == "ArmorLight").Formkey,
-            Executor.Statics!.First(elem => elem.Id == "ArmorShield").Formkey,
-            Executor.Statics!.First(elem => elem.Id == "ArmorClothing").Formkey,
-            Executor.Statics!.First(elem => elem.Id == "ArmorJewelry").Formkey
+            GetFormKey("ArmorHeavy"),
+            GetFormKey("ArmorLight"),
+            GetFormKey("ArmorShield"),
+            GetFormKey("ArmorClothing"),
+            GetFormKey("ArmorJewelry")
         ];
 
         var conflictWinners = State.LoadOrder.PriorityOrder
@@ -173,7 +174,7 @@ public static class Armor
     private static void UpdateGMST()
     {
         FormKey armorScalingFactor = Executor.Statics!
-        .First(elem => elem.Id == "ArmorScalingFactor")
+        .First(elem => elem.Id == "fArmorScalingFactor")
         .Formkey;
 
         IGameSettingGetter conflictWinner = State.LinkCache.Resolve<IGameSettingGetter>(armorScalingFactor);
@@ -185,7 +186,7 @@ public static class Armor
         }
 
         FormKey maxArmorRating = Executor.Statics!
-        .First(elem => elem.Id == "MaxArmorRating")
+        .First(elem => elem.Id == "fMaxArmorRating")
         .Formkey;
 
         conflictWinner = State.LinkCache.Resolve<IGameSettingGetter>(maxArmorRating);
