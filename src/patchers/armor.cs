@@ -20,7 +20,8 @@ public static class Armor
     {
         UpdateGMST();
         List<IArmorGetter> records = GetRecords();
-		
+        List<string> renamingBlacklist = [.. Rules["excludedFromRenaming"]!.AsArray().Select(value => value!.GetValue<string>())];
+
         foreach (var armor in records)
         {
             // storing some data publicly to avoid sequential passing of arguments
@@ -28,8 +29,86 @@ public static class Armor
                 NonPlayable: armor.MajorFlags.HasFlag(Mutagen.Bethesda.Skyrim.Armor.MajorFlag.NonPlayable),
                 UniqueKeyword: armor.Keywords!.HasKeyword("NoMeltdownRecipes"),
                 ArmorTypeEnum: armor.BodyTemplate!.ArmorType);
+
+            /* armor records with templates inherit their data from the template, but have unique names;
+               jewelry type clothing items require no other patching */
+            if (!armor.TemplateArmor.IsNull || (RecordData.GetArmorType() == ArmorType.Clothing
+                && armor.Keywords!.HasKeyword("ArmorJewelry")))
+            {
+                PatchRecordNames(armor, renamingBlacklist);
+                continue;
+            };
         }
 		
+    }
+
+    private static void PatchRecordNames(IArmorGetter armor, List<string> renamingBlacklist)
+    {
+        if (renamingBlacklist.Count > 0)
+        {
+            if (Settings.General.ExclByEdID && renamingBlacklist.Any(value => value.Equals(armor.EditorID))) return;
+            if (renamingBlacklist.Any(value => armor.Name!.ToString()!.Contains(value))) return;
+        }
+
+        string name = armor.Name!.ToString()!;
+
+        /* Options:
+         * i - case-insensitive search
+         * g - replace all matches
+         * p - string as part of a word
+         * c - retain capitalization
+         * n - search for the next rule
+         */
+
+        if (Rules["renamer"] is JsonArray renamer)
+        {
+            for (int i = renamer.Count - 1; i >= 0; i--)
+            {
+                string options = renamer[i]!["options"]?.ToString() ?? "ic";
+                char[] flags = options.ToCharArray();
+
+                // processing armor type filter
+                string filter = renamer[i]!["filter"]?.ToString() ?? "";
+                if (filter != "")
+                {
+                    string[] filterArr = filter.Split(',');
+                    if (!filterArr.Any(type => RecordData.GetArmorType().ToString() == type.Replace(" ", "")))
+                    {
+                        continue;
+                    }
+                }
+
+                if (!flags.Contains('p'))
+                {
+                    // check if name contains all words from replace in any order
+                    string replace = renamer[i]!["replace"]?.ToString() ?? "";
+                    string[] blacklist = replace.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (replace != "" && blacklist.All(name.Contains)) continue;
+
+                    // check if name contains any word from skipIf
+                    string skipIf = renamer[i]!["skipIf"]?.ToString() ?? "";
+                    blacklist = skipIf.Split(',');
+                    if (skipIf != "" && blacklist.Any(word => name.Contains(word.Trim()))) continue;
+                }
+
+                string newName = Extensions.FindReplace(name, renamer[i]!["find"]!.ToString(), renamer[i]!["replace"]!.ToString(), flags);
+                if (newName == name) continue;
+
+                name = newName;
+                if (!flags.Contains('n')) break;
+            }
+        }
+
+        if (name != armor.Name.ToString())
+        {
+            if (Settings.Debug.ShowRenamed)
+            {
+                Console.WriteLine($"--> {armor.Name} is renamed to {name}.");
+            }
+
+            var thisArmor = State.PatchMod.Armors.GetOrAddAsOverride(armor);
+            thisArmor.Name = name;
+        }
     }
 
     private static List<IArmorGetter> GetRecords()

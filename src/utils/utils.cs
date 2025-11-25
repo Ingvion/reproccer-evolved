@@ -157,4 +157,45 @@ public static class Extensions
     {
         return keywordsArr.Any(kw => kw.FormKey == Executor.Statics!.First(elem => elem.Id == keyword).Formkey);
     }
+
+    public static string FindReplace(string name, string findStr, string replaceStr, char[] flags)
+    {
+        string pattern = !flags.Contains('p') ?
+             $@"(?<=^|(?<=\s))" + Regex.Escape(findStr) + @"(?=$|(?=\s))" :
+             $"{Regex.Escape(findStr)}";
+
+        RegexOptions options = flags.Contains('i') ? RegexOptions.IgnoreCase : RegexOptions.None;
+        MatchCollection matches = Regex.Matches(name, pattern, options);
+
+        if (matches.Count == 0) return name;
+
+        bool sameCase = flags.Contains('c');
+        if (flags.Contains('g'))
+        {
+            // iterating from the end to avoid indeces mismatch
+            for (int i = matches.Count - 1; i >= 0; i--)
+            {
+                if (sameCase) replaceStr = replaceStr.MatchCase(matches[i].Value);
+                name = name.Remove(matches[i].Index, matches[i].Length).Insert(matches[i].Index, replaceStr);
+            }
+        }
+        else
+        {
+            if (sameCase) replaceStr = replaceStr.MatchCase(matches[0].Value);
+            name = name.Remove(matches[0].Index, matches[0].Length).Insert(matches[0].Index, replaceStr);
+        }
+        ;
+
+        return name;
+    }
+
+    private static string MatchCase(this string target, string source)
+    {
+        char[] targetLetters = target.ToCharArray();
+        targetLetters[0] = char.IsUpper(source[0]) ?
+            char.ToUpper(targetLetters[0]) :
+            char.ToLower(targetLetters[0]);
+
+        return string.Concat(targetLetters);
+    }
 }
