@@ -34,13 +34,13 @@ public static class ArmorPatcher
             // storing some data publicly to avoid sequential passing of arguments
             RecordData = new PatchingData(
                 NonPlayable: armor.MajorFlags.HasFlag(Armor.MajorFlag.NonPlayable),
-                HasUniqueKeyword: armor.Keywords!.HasKeyword("skyre__NoMeltdownRecipes"),
+                HasUniqueKeyword: armor.Keywords!.Contains(GetFormKey("skyre__NoMeltdownRecipes")),
                 ArmorType: armor.BodyTemplate!.ArmorType);
 
             /* armor records with templates inherit their data from the template, but have unique names;
                jewelry type clothing items require no other patching */
             if (!armor.TemplateArmor.IsNull || (RecordData.GetArmorType() == ArmorType.Clothing
-                && armor.Keywords!.HasKeyword("ArmorJewelry")))
+                && armor.Keywords!.Contains(GetFormKey("ArmorJewelry"))))
             {
                 PatchRecordNames(armor, renamingBlacklist);
                 continue;
@@ -168,7 +168,7 @@ public static class ArmorPatcher
         if (!armor.TemplateArmor.IsNull) return true;
 
         // invalid if has no keywords or have empty kw array (rare)
-        if (armor.Keywords == null || armor.Keywords.ToArray().Length == 0) return false;
+        if (armor.Keywords == null || armor.Keywords.Count == 0) return false;
 
         // invalid if it does not have any required keywords
         if (!mustHave.Any(keyword => armor.Keywords.Contains(keyword))) return false;
@@ -178,9 +178,7 @@ public static class ArmorPatcher
 
     private static void UpdateGMST()
     {
-        FormKey armorScalingFactor = Executor.Statics!
-        .First(elem => elem.Id == "fArmorScalingFactor")
-        .Formkey;
+        FormKey armorScalingFactor = new("Skyrim.esm", 0x021a72);
 
         IGameSettingGetter conflictWinner = State.LinkCache.Resolve<IGameSettingGetter>(armorScalingFactor);
         GameSetting record = State.PatchMod.GameSettings.GetOrAddAsOverride(conflictWinner);
@@ -190,9 +188,7 @@ public static class ArmorPatcher
             gmstArmorScalingFactor.Data = Settings.Armor.ArmorScalingFactor;
         }
 
-        FormKey maxArmorRating = Executor.Statics!
-        .First(elem => elem.Id == "fMaxArmorRating")
-        .Formkey;
+        FormKey maxArmorRating = new("Skyrim.esm", 0x037deb);
 
         conflictWinner = State.LinkCache.Resolve<IGameSettingGetter>(maxArmorRating);
         record = State.PatchMod.GameSettings.GetOrAddAsOverride(conflictWinner);
