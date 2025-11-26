@@ -156,11 +156,6 @@ public static class Helpers
 
 public static class Extensions
 {
-    public static bool HasKeyword(this IReadOnlyList<IFormLinkGetter<IKeywordGetter>> keywordsArr, string keyword)
-    {
-        return keywordsArr.Any(kw => kw.FormKey == Executor.Statics!.First(elem => elem.Id == keyword).Formkey);
-    }
-
     public static string FindReplace(string name, string findStr, string replaceStr, char[] flags)
     {
         string pattern = !flags.Contains('p') ?
