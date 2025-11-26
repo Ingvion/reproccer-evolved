@@ -128,7 +128,7 @@ public static class Helpers
             var advDSGS = Executor.State!.LoadOrder
             .FirstOrDefault(plugin => plugin.Key.FileName.Equals(modName) && plugin.Value.Enabled);
 
-            if (advDSGS == null) formId = new FormKey(modName, 0x00000000);
+            if (advDSGS == null) formId = new("Skyrim.esm", 00000000);
         }
         else if (!isResolved)
         {
@@ -184,7 +184,6 @@ public static class Extensions
             if (sameCase) replaceStr = replaceStr.MatchCase(matches[0].Value);
             name = name.Remove(matches[0].Index, matches[0].Length).Insert(matches[0].Index, replaceStr);
         }
-        ;
 
         return name;
     }
