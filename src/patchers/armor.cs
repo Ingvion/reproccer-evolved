@@ -8,15 +8,20 @@ using System.Text.Json.Nodes;
 
 namespace ReProccer.Patchers;
 
-public static class Armor
+public static class ArmorPatcher
 {
     private static readonly IPatcherState<ISkyrimMod, ISkyrimModGetter> State = Executor.State!;
     private static readonly AllSettings Settings = Executor.Settings!;
     private static readonly JsonObject Rules = Executor.Rules!["armor"]!.AsObject();
 
+    private static Armor? CurrentRecord = null;
     private static PatchingData RecordData;
 
     private static FormKey GetFormKey(string id) => Executor.Statics!.First(elem => elem.Id == id).Formkey;
+    private static void GetAsOverride(this IArmorGetter armor)
+    {
+        if (CurrentRecord?.FormKey != armor.FormKey) CurrentRecord = State.PatchMod.Armors.GetOrAddAsOverride(armor);
+    }
 
     public static void Run()
     {
@@ -28,7 +33,7 @@ public static class Armor
         {
             // storing some data publicly to avoid sequential passing of arguments
             RecordData = new PatchingData(
-                NonPlayable: armor.MajorFlags.HasFlag(Mutagen.Bethesda.Skyrim.Armor.MajorFlag.NonPlayable),
+                NonPlayable: armor.MajorFlags.HasFlag(Armor.MajorFlag.NonPlayable),
                 UniqueKeyword: armor.Keywords!.HasKeyword("skyre__NoMeltdownRecipes"),
                 ArmorTypeEnum: armor.BodyTemplate!.ArmorType);
 
@@ -107,8 +112,8 @@ public static class Armor
                 Console.WriteLine($"--> {armor.Name} is renamed to {name}.");
             }
 
-            var thisArmor = State.PatchMod.Armors.GetOrAddAsOverride(armor);
-            thisArmor.Name = name;
+            armor.GetAsOverride();
+            CurrentRecord!.Name = name;
         }
     }
 
