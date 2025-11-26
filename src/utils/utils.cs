@@ -25,6 +25,13 @@ public record StaticsMap(
     FormKey Formkey
 );
 
+public record DataMap(
+    string Id,
+    FormKey? Kwda = null,
+    FormKey? Item = null,
+    List<FormKey>? Perk = null
+);
+
 public static class Helpers
 {
     public static JsonNode LoadJson(string path, string filename, bool noSkip = false)
@@ -194,5 +201,106 @@ public static class Extensions
             char.ToLower(targetLetters[0]);
 
         return string.Concat(targetLetters);
+    }
+
+    public static dynamic? RuleByName(string name, JsonArray rules, string data1, string data2, bool strict = false)
+    {
+        // iterating rules from the end for LIFO entries priority
+        for (int i = rules.Count - 1; i >= 0; i--)
+        {
+            if (rules[i]![data1] == null || rules[i]![data2] == null) continue;
+
+            List<string> stringsList = GetStringsList(rules[i]![data1]);
+            if (stringsList.Count == 0) continue;
+
+            if (stringsList.All(str => str.RegexMatch(name, strict)))
+            {
+                return rules[i]![data2]!;
+            }
+        }
+
+        return null;
+    }
+
+    private static List<string> GetStringsList(JsonNode? node)
+    {
+        List<string> result = [];
+
+        if (node is JsonArray jsonArr)
+        {
+            foreach (var elem in jsonArr)
+            {
+                if (elem is JsonValue asVal
+                    && asVal.TryGetValue<string>(out var str))
+                    result.Add(str);
+            }
+        }
+        else if (node is JsonValue jsonVal)
+        {
+            if (jsonVal.TryGetValue<string>(out var str)) result.Add(str);
+        }
+
+        return result;
+    }
+
+    private static bool RegexMatch(this string str, string name, bool strict)
+    {
+        if (str.Length < 2) return false;
+
+        string pattern = strict ?
+             $@"(?<=^|(?<=\s))" + Regex.Escape(str) + @"(?=$|(?=\s))" :
+             $"{Regex.Escape(str)}";
+
+        Match match = Regex.Match(name, pattern, RegexOptions.IgnoreCase);
+
+        return match.Success;
+    }
+
+    public static string GetT9n(this string id, string lang = "", string name = "")
+    {
+        if (lang == "") lang = Executor.Settings!.General.GameLanguage.ToString();
+
+        JsonNode? node = Executor.Strings![lang.ToLower()]![id];
+        if (node == null && lang != "English") node = Executor.Strings["english"]![id];
+        if (node == null) throw new Exception($"\n\n--> Unable to find a string for \"{id}\"\n");
+
+        if (node is JsonValue jsonVal && jsonVal.TryGetValue<string>(out var str))
+        {
+            return str;
+        }
+        else if (node is JsonArray jsonArr)
+        {
+            string fallback = Executor.Strings![lang.ToLower()]!["name_refined"]!.ToString();
+            if (jsonArr.Count == 0) return fallback;
+
+            node = Executor.Strings![lang.ToLower()]!["genderedNouns"];
+            if (node is JsonObject jsonObj)
+            {
+                if (jsonObj.Count == 0) return fallback;
+
+                foreach (var gender in jsonObj)
+                {
+                    if (gender.Value!.AsArray().Any(word => name.Contains(word!.ToString())))
+                    {
+                        return gender.Key switch
+                        {
+                            "m" => jsonArr.IsInRange(0) ?? fallback,
+                            "f" => jsonArr.IsInRange(1) ?? fallback,
+                            "n" => jsonArr.IsInRange(2) ?? fallback,
+                            _ => fallback,
+                        };
+                    }
+                }
+            }
+
+            return fallback;
+        }
+
+        throw new Exception($"\n\n--> The value for \"{id}\" should be a string or an array of strings.\n");
+    }
+
+    private static string? IsInRange(this JsonArray jsonArr, int index = 0)
+    {
+        return index <= jsonArr.Count - 1 && jsonArr[index]!.ToString() != "" ? jsonArr[index]!.ToString() : null;
     }
 }
