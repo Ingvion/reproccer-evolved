@@ -34,8 +34,8 @@ public static class ArmorPatcher
             // storing some data publicly to avoid sequential passing of arguments
             RecordData = new PatchingData(
                 NonPlayable: armor.MajorFlags.HasFlag(Armor.MajorFlag.NonPlayable),
-                UniqueKeyword: armor.Keywords!.HasKeyword("skyre__NoMeltdownRecipes"),
-                ArmorTypeEnum: armor.BodyTemplate!.ArmorType);
+                HasUniqueKeyword: armor.Keywords!.HasKeyword("skyre__NoMeltdownRecipes"),
+                ArmorType: armor.BodyTemplate!.ArmorType);
 
             /* armor records with templates inherit their data from the template, but have unique names;
                jewelry type clothing items require no other patching */
