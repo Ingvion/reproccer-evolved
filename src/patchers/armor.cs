@@ -120,7 +120,7 @@ public static class ArmorPatcher
                     if (skipIf != "" && blacklist.Any(word => name.Contains(word.Trim()))) continue;
                 }
 
-                string newName = Extensions.FindReplace(name, renamer[i]!["find"]!.ToString(), renamer[i]!["replace"]!.ToString(), flags);
+                string newName = Helpers.FindReplace(name, renamer[i]!["find"]!.ToString(), renamer[i]!["replace"]!.ToString(), flags);
                 if (newName == name) continue;
 
                 name = newName;
@@ -142,7 +142,7 @@ public static class ArmorPatcher
 
     private static void SetOverriddenData(IArmorGetter armor)
     {
-        dynamic? matOverride = Extensions.RuleByName(
+        dynamic? matOverride = Helpers.RuleByName(
             armor.Name!.ToString()!, Rules["materialOverrides"]!.AsArray(), data1: "names", data2: "material");
         if (matOverride == null) return;
 
@@ -242,7 +242,7 @@ public static class ArmorPatcher
         return true;
     }
 
-    // armor patcher helpers
+    // local patcher helpers
     private static FormKey GetFormKey(string id, bool local = false)
     {
         return (local ? LocalStatics! : Executor.Statics!).First(elem => elem.Id == id).Formkey;
