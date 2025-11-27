@@ -38,7 +38,7 @@ public static class Helpers
     {
         if (!Directory.Exists($"{path}"))
         {
-            throw new Exception($"\n--> Unable to find the \"{path}\" directory.\n");
+            throw new Exception($"--> Unable to find the \"{path}\" directory.\n");
         }
 
         string jsonString;
@@ -49,7 +49,7 @@ public static class Helpers
         }
         catch (FileNotFoundException)
         {
-            return noSkip ? throw new Exception($"\n--> Unable to find \"{filename}\" in the \"\\{path}\" directory.\n") : JsonNode.Parse("{}")!;
+            return noSkip ? throw new Exception($"--> Unable to find \"{filename}\" in the \"\\{path}\" directory.\n") : JsonNode.Parse("{}")!;
         }
 
         JsonNode? jsonFile;
@@ -63,11 +63,11 @@ public static class Helpers
         {
             if (noSkip)
             {
-                throw new Exception($"\n--> Unable to parse \"{filename}\" in the \"\\{path}\" directory.\n");
+                throw new Exception($"--> Unable to parse \"{filename}\" in the \"\\{path}\" directory.\n");
             }
             else
             {
-                Console.WriteLine($"--> WARNING: \"{filename}\" in the \"\\{path}\" directory has syntax errors and will be skipped.");
+                Console.WriteLine($"---> WARNING: \"{filename}\" in the \"\\{path}\" directory has syntax errors and will be skipped.");
                 return JsonNode.Parse("{}")!;
             }
         }
@@ -139,7 +139,7 @@ public static class Helpers
         }
         else if (!isResolved)
         {
-            throw new Exception($"\n--> Unable to resolve {formKey} (no such record?)\n");
+            throw new Exception($"--> Unable to resolve {formKey} (no such record?)\n");
         }
 
         return formKey;
@@ -156,10 +156,7 @@ public static class Helpers
         "SLGM" => Executor.State!.LinkCache.TryResolve<ISoulGemGetter>(formKey, out _),
         _ => false,
     };
-}
 
-public static class Extensions
-{
     public static string FindReplace(string name, string findStr, string replaceStr, char[] flags)
     {
         string pattern = !flags.Contains('p') ?
@@ -259,7 +256,7 @@ public static class Extensions
 
         JsonNode? node = Executor.Strings![lang.ToLower()]![id];
         if (node == null && lang != "English") node = Executor.Strings["english"]![id];
-        if (node == null) throw new Exception($"\n\n--> Unable to find a string for \"{id}\"\n");
+        if (node == null) throw new Exception($"--> Unable to find a string for \"{id}\"\n");
 
         if (node is JsonValue jsonVal && jsonVal.TryGetValue<string>(out var str))
         {
@@ -293,7 +290,7 @@ public static class Extensions
             return fallback;
         }
 
-        throw new Exception($"\n\n--> The value for \"{id}\" should be a string or an array of strings.\n");
+        throw new Exception($"--> The value for \"{id}\" should be a string or an array of strings.\n");
     }
 
     private static string? IsInRange(this JsonArray jsonArr, int index = 0)
