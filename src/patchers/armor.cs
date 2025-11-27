@@ -13,17 +13,13 @@ public static class ArmorPatcher
     private static readonly IPatcherState<ISkyrimMod, ISkyrimModGetter> State = Executor.State!;
     private static readonly AllSettings Settings = Executor.Settings!;
     private static readonly JsonObject Rules = Executor.Rules!["armor"]!.AsObject();
+    private static readonly List<StaticsMap>? LocalStatics = BuildStatics();
 
-    private static Armor? CurrentRecord = null;
-    private static PatchingData RecordData;
     private static readonly List<DataMap> HeavyMaterials = BuildHeavyMaterialsMap();
     private static readonly List<DataMap> LightMaterials = BuildLightMaterialsMap();
     private static readonly List<DataMap> AllMaterials = [.. HeavyMaterials.Union(LightMaterials)];
-    private static FormKey GetFormKey(string id) => Executor.Statics!.First(elem => elem.Id == id).Formkey;
-    private static void GetAsOverride(this IArmorGetter armor)
-    {
-        if (CurrentRecord?.FormKey != armor.FormKey) CurrentRecord = State.PatchMod.Armors.GetOrAddAsOverride(armor);
-    }
+    private static Armor? CurrentRecord = null;
+    private static PatchingData RecordData;
 
     public static void Run()
     {
@@ -42,13 +38,36 @@ public static class ArmorPatcher
             /* armor records with templates inherit their data from the template, but have unique names;
                jewelry type clothing items require no other patching */
             if (!armor.TemplateArmor.IsNull || (RecordData.GetArmorType() == ArmorType.Clothing
-                && armor.Keywords!.Contains(GetFormKey("ArmorJewelry"))))
+                && armor.Keywords!.Contains(GetFormKey("ArmorJewelry", true))))
             {
                 PatchRecordNames(armor, renamingBlacklist);
                 continue;
             }
 
             SetOverriddenData(armor);
+        }
+    }
+
+    private static void UpdateGMST()
+    {
+        FormKey armorScalingFactor = new("Skyrim.esm", 0x021a72);
+
+        IGameSettingGetter conflictWinner = State.LinkCache.Resolve<IGameSettingGetter>(armorScalingFactor);
+        GameSetting record = State.PatchMod.GameSettings.GetOrAddAsOverride(conflictWinner);
+
+        if (record is GameSettingFloat gmstArmorScalingFactor)
+        {
+            gmstArmorScalingFactor.Data = Settings.Armor.ArmorScalingFactor;
+        }
+
+        FormKey maxArmorRating = new("Skyrim.esm", 0x037deb);
+
+        conflictWinner = State.LinkCache.Resolve<IGameSettingGetter>(maxArmorRating);
+        record = State.PatchMod.GameSettings.GetOrAddAsOverride(conflictWinner);
+
+        if (record is GameSettingFloat gmstMaxArmorRating)
+        {
+            gmstMaxArmorRating.Data = Settings.Armor.MaxArmorRating;
         }
     }
 
@@ -133,7 +152,7 @@ public static class ArmorPatcher
             return;
         }
 
-        FormKey nullRef = new("Skyrim.esm", 00000000);
+        FormKey nullRef = new("Skyrim.esm", 0x000000);
         foreach (var entry1 in AllMaterials)
         {
             string id = entry1.Id.ToString();
@@ -168,12 +187,12 @@ public static class ArmorPatcher
     {
         List<IArmorGetter> records = [];
         List<string> excludedArmor = [.. Rules["excludedArmor"]!.AsArray().Select(value => value!.GetValue<string>())];
-        FormKey[] mustHave = [
-            GetFormKey("ArmorHeavy"),
-            GetFormKey("ArmorLight"),
-            GetFormKey("ArmorShield"),
-            GetFormKey("ArmorClothing"),
-            GetFormKey("ArmorJewelry")
+        List<FormKey> mustHave = [
+            GetFormKey("ArmorHeavy", true),
+            GetFormKey("ArmorLight", true),
+            GetFormKey("ArmorShield", true),
+            GetFormKey("ArmorClothing", true),
+            GetFormKey("ArmorJewelry", true)
         ];
 
         var conflictWinners = State.LoadOrder.PriorityOrder
@@ -189,7 +208,7 @@ public static class ArmorPatcher
         return records;
     }
 
-    private static bool IsValid(IArmorGetter armor, List<string> excludedArmor, FormKey[] mustHave)
+    private static bool IsValid(IArmorGetter armor, List<string> excludedArmor, List<FormKey> mustHave)
     {
         // invalid if found in the excluded records list by edid
         if (Settings.General.ExclByEdID && excludedArmor.Any(value => value.Equals(armor.EditorID)))
@@ -223,27 +242,15 @@ public static class ArmorPatcher
         return true;
     }
 
-    private static void UpdateGMST()
+    // armor patcher helpers
+    private static FormKey GetFormKey(string id, bool local = false)
     {
-        FormKey armorScalingFactor = new("Skyrim.esm", 0x021a72);
+        return (local ? LocalStatics! : Executor.Statics!).First(elem => elem.Id == id).Formkey;
+    }
 
-        IGameSettingGetter conflictWinner = State.LinkCache.Resolve<IGameSettingGetter>(armorScalingFactor);
-        GameSetting record = State.PatchMod.GameSettings.GetOrAddAsOverride(conflictWinner);
-
-        if (record is GameSettingFloat gmstArmorScalingFactor)
-        {
-            gmstArmorScalingFactor.Data = Settings.Armor.ArmorScalingFactor;
-        }
-
-        FormKey maxArmorRating = new("Skyrim.esm", 0x037deb);
-
-        conflictWinner = State.LinkCache.Resolve<IGameSettingGetter>(maxArmorRating);
-        record = State.PatchMod.GameSettings.GetOrAddAsOverride(conflictWinner);
-
-        if (record is GameSettingFloat gmstMaxArmorRating)
-        {
-            gmstMaxArmorRating.Data = Settings.Armor.MaxArmorRating;
-        }
+    private static void GetAsOverride(this IArmorGetter armor)
+    {
+        if (CurrentRecord?.FormKey != armor.FormKey) CurrentRecord = State.PatchMod.Armors.GetOrAddAsOverride(armor);
     }
 
     // armor patcher data maps

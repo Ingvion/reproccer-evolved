@@ -10,13 +10,13 @@ public struct PatchingData(bool NonPlayable = false, bool HasUniqueKeyword = tru
 {
     public bool NonPlayableFlag = NonPlayable;
     public bool UniqueFlag = HasUniqueKeyword;
-    public ArmorType ArmorTypeEnum = ArmorType;
     public bool OverriddenFlag = GetOverridden;
+    public ArmorType ArmorTypeEnum = ArmorType;
 
     public readonly bool IsNonPlayable() => NonPlayableFlag;
     public readonly bool IsUnique() => UniqueFlag;
-    public readonly ArmorType GetArmorType() => ArmorTypeEnum;
     public readonly bool IsOverridden() => OverriddenFlag;
+    public readonly ArmorType GetArmorType() => ArmorTypeEnum;
     public bool SetOverridden() => OverriddenFlag = true;
 }
 
@@ -125,37 +125,35 @@ public static class Helpers
 
     public static FormKey ParseFormKey(string fkString, bool skipResolve = false)
     {
-        // 0 - mod key, 1 - hex id, 2 - record type
+        // 0 - mod key, 1 - local id, 2 - record type
         string[] data = fkString.Split('|');
+        FormKey formKey = new(data[0], Convert.ToUInt32(data[1], 16));
 
-        ModKey modName = ModKey.FromFileName(data[0]);
-        uint localId = Convert.ToUInt32(data[1], 16);
-        FormKey formId = new(modName, localId);
-
-        bool isResolved = skipResolve || TryToResolve(formId, data[2]);
-        if (modName == "ccBGSSSE025-AdvDSGS.esm")
+        bool isResolved = skipResolve || TryToResolve(formKey, data[2]);
+        if (data[0] == "ccBGSSSE025-AdvDSGS.esm")
         {
             var advDSGS = Executor.State!.LoadOrder
-            .FirstOrDefault(plugin => plugin.Key.FileName.Equals(modName) && plugin.Value.Enabled);
+            .FirstOrDefault(plugin => plugin.Key.FileName.Equals(data[0]) && plugin.Value.Enabled);
 
-            if (advDSGS == null) formId = new("Skyrim.esm", 0x000000);
+            if (advDSGS == null) formKey = new("Skyrim.esm", 0x000000);
         }
         else if (!isResolved)
         {
-            throw new Exception($"\n--> Unable to resolve {formId} (no such record?)\n");
+            throw new Exception($"\n--> Unable to resolve {formKey} (no such record?)\n");
         }
 
-        return formId;
+        return formKey;
     }
 
     // for debug purposes
-    private static bool TryToResolve(FormKey formId, string type) => type switch
+    private static bool TryToResolve(FormKey formKey, string type) => type switch
     {
-        "EXPL" => Executor.State!.LinkCache.TryResolve<IExplosionGetter>(formId, out _),
-        "INGR" => Executor.State!.LinkCache.TryResolve<IIngredientGetter>(formId, out _),
-        "KWDA" => Executor.State!.LinkCache.TryResolve<IKeywordGetter>(formId, out _),
-        "MISC" => Executor.State!.LinkCache.TryResolve<IMiscItemGetter>(formId, out _),
-        "PERK" => Executor.State!.LinkCache.TryResolve<IPerkGetter>(formId, out _),
+        "EXPL" => Executor.State!.LinkCache.TryResolve<IExplosionGetter>(formKey, out _),
+        "INGR" => Executor.State!.LinkCache.TryResolve<IIngredientGetter>(formKey, out _),
+        "KWDA" => Executor.State!.LinkCache.TryResolve<IKeywordGetter>(formKey, out _),
+        "MISC" => Executor.State!.LinkCache.TryResolve<IMiscItemGetter>(formKey, out _),
+        "PERK" => Executor.State!.LinkCache.TryResolve<IPerkGetter>(formKey, out _),
+        "SLGM" => Executor.State!.LinkCache.TryResolve<ISoulGemGetter>(formKey, out _),
         _ => false,
     };
 }
