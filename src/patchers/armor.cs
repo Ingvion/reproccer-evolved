@@ -130,10 +130,7 @@ public static class ArmorPatcher
 
         if (name != armor.Name.ToString())
         {
-            if (Settings.Debug.ShowRenamed)
-            {
-                Console.WriteLine($"--> {armor.Name} is renamed to {name}.");
-            }
+            if (Settings.Debug.ShowRenamed) Log(armor, "-> INFO", $" is renamed to {name}.");
 
             armor.GetAsOverride();
             CurrentRecord!.Name = name;
@@ -148,7 +145,7 @@ public static class ArmorPatcher
 
         if (matOverride is not JsonValue jsonVal || !jsonVal.TryGetValue<string>(out var overrideString))
         {
-            Console.WriteLine($"--> WARNING: the value returned from the materialOverrides rule for {armor.Name} ({armor.FormKey}) is not a string.");
+            Log(armor, "---> WARNING", " the value returned from the materialOverrides rule for the record is not a string.");
             return;
         }
 
@@ -162,7 +159,7 @@ public static class ArmorPatcher
             {
                 if  (entry1.Kwda == nullRef)
                 {
-                    Console.WriteLine($"--> CAUTION: a material override rule for {armor.Name} ({armor.FormKey}) references a material from an absent mod (Creation Club \"Saints and Seducers\")\n");
+                    Log(armor, "--> CAUTION", " a material override rule for the record references a material from Creation Club's \"Saints and Seducers\"");
                     break;
                 }
 
@@ -213,7 +210,7 @@ public static class ArmorPatcher
         // invalid if found in the excluded records list by edid
         if (Settings.General.ExclByEdID && excludedArmor.Any(value => value.Equals(armor.EditorID)))
         {
-            if (Settings.Debug.ShowExcluded) Console.WriteLine($"--> {armor.EditorID} found in the exclusion list.");
+            if (Settings.Debug.ShowExcluded) Log(armor, "-> INFO", $" found in the exclusion list (as {armor.EditorID}).");
             return false;
         }
 
@@ -223,7 +220,7 @@ public static class ArmorPatcher
         // invalid if found in the excluded records list by name
         if (excludedArmor.Any(value => armor.Name!.ToString()!.Contains(value)))
         {
-            if (Settings.Debug.ShowExcluded) Console.WriteLine($"--> {armor.Name} found in the exclusion list.");
+            if (Settings.Debug.ShowExcluded) Log(armor, "-> INFO", " found in the exclusion list.");
             return false;
         }
 
@@ -251,6 +248,14 @@ public static class ArmorPatcher
     private static void GetAsOverride(this IArmorGetter armor)
     {
         if (CurrentRecord?.FormKey != armor.FormKey) CurrentRecord = State.PatchMod.Armors.GetOrAddAsOverride(armor);
+    }
+
+    private static void Log(IArmorGetter armor, string prefix, string message)
+    {
+        if (Settings.Debug.ShowNonPlayable || !RecordData.IsNonPlayable())
+        {
+            Console.WriteLine($"{prefix}: {armor.Name} ({armor.FormKey}): {message}");
+        }
     }
 
     // armor patcher data maps
