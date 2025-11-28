@@ -14,6 +14,7 @@ public enum Language
     Spanish,
     Chinese
 }
+
 public class AllSettings
 {
     [SettingName("General")]
@@ -22,7 +23,7 @@ public class AllSettings
     [SettingName("Armor Patcher")]
     public ArmorSettings Armor { get; set; } = new();
 
-    [SettingName("Logger")]
+    [SettingName("Debug")]
     public DebugSettings Debug { get; set; } = new();
 }
 
@@ -67,12 +68,25 @@ public class GeneralSettings
 public class DebugSettings
 {
     [SettingName("Report excluded records")]
-    [Tooltip("A message will be shown when a record is found the excluded records list.")]
+    [Tooltip("A message will be displayed for each record found in the excluded records list.")]
     public bool ShowExcluded { get; set; } = true;
 
     [SettingName("Report renaming actions")]
-    [Tooltip("A message will be shown when a record is renamed in accordance with \"renamer\" rules.")]
+    [Tooltip("A message will be displayed for each record renamed in accordance with \"renamer\" rules.")]
     public bool ShowRenamed { get; set; } = false;
+
+    [SettingName("Report patching results")]
+    [Tooltip("A message with patching results will be displayed for each processed record.")]
+    public bool ShowVerboseData { get; set; } = false;
+
+    [SettingName("Filter patching results")]
+    [Tooltip("Only patching results for records with these values in their names will be displayed when \"Report patching results\" is active.\n"
+        + "Leave empty to display patching results for all processed records.")]
+    public string VerboseDataFilter { get; set; } = "";
+
+    [SettingName("Report non-playables")]
+    [Tooltip("Messages will also be displayed for non-playable records.")]
+    public bool ShowNonPlayable { get; set; } = false;
 }
 
 public class ArmorSettings
