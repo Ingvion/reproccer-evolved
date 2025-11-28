@@ -239,6 +239,23 @@ public static class ArmorPatcher
         }
     }
 
+    private static void PatchShieldWeight(IArmorGetter armor, ArmorType armorType)
+    {
+        if (!armor.Keywords!.Contains(GetFormKey("ArmorShield", true))) return;
+
+        if (armorType == ArmorType.HeavyArmor && !armor.Keywords!.Contains(GetFormKey("skyre__ArmorShieldHeavy", true)))
+        {
+            GetAsOverride(armor).Keywords!.Add(GetFormKey("skyre__ArmorShieldHeavy", true));
+            GetAsOverride(armor).BashImpactDataSet = new FormLinkNullable<IImpactDataSetGetter>(GetFormKey("WPNBashShieldHeavyImpactSet", true));
+            GetAsOverride(armor).AlternateBlockMaterial = new FormLinkNullable<IMaterialTypeGetter>(GetFormKey("MaterialShieldHeavy", true));
+        }
+        else if (armorType == ArmorType.LightArmor && !armor.Keywords!.Contains(GetFormKey("skyre__ArmorShieldLight", true)))
+        {
+            GetAsOverride(armor).Keywords!.Add(GetFormKey("skyre__ArmorShieldLight", true));
+            GetAsOverride(armor).BashImpactDataSet = new FormLinkNullable<IImpactDataSetGetter>(GetFormKey("WPNBashShieldLightImpactSet", true));
+            GetAsOverride(armor).AlternateBlockMaterial = new FormLinkNullable<IMaterialTypeGetter>(GetFormKey("MaterialShieldLight", true));
+        }
+    }
     // local patcher helpers
     private static FormKey GetFormKey(string id, bool local = false)
     {
