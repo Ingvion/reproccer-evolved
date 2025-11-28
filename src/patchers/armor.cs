@@ -18,7 +18,7 @@ public static class ArmorPatcher
     private static readonly List<DataMap> HeavyMaterials = BuildHeavyMaterialsMap();
     private static readonly List<DataMap> LightMaterials = BuildLightMaterialsMap();
     private static readonly List<DataMap> AllMaterials = [.. HeavyMaterials.Union(LightMaterials)];
-    private static Armor? CurrentRecord = null;
+    private static Armor? CurrentRecord;
     private static PatchingData RecordData;
 
     public static void Run()
@@ -29,6 +29,7 @@ public static class ArmorPatcher
 
         foreach (var armor in records)
         {
+            CurrentRecord = null;
             // storing some data publicly to avoid sequential passing of arguments
             RecordData = new PatchingData(
                 NonPlayable: armor.MajorFlags.HasFlag(Armor.MajorFlag.NonPlayable),
@@ -69,6 +70,67 @@ public static class ArmorPatcher
         {
             gmstMaxArmorRating.Data = Settings.Armor.MaxArmorRating;
         }
+    }
+
+    private static List<IArmorGetter> GetRecords()
+    {
+        List<IArmorGetter> records = [];
+        List<string> excludedArmor = [.. Rules["excludedArmor"]!.AsArray().Select(value => value!.GetValue<string>())];
+        List<FormKey> mustHave = [
+            GetFormKey("ArmorHeavy", true),
+            GetFormKey("ArmorLight", true),
+            GetFormKey("ArmorShield", true),
+            GetFormKey("ArmorClothing", true),
+            GetFormKey("ArmorJewelry", true)
+        ];
+
+        var conflictWinners = State.LoadOrder.PriorityOrder
+        .Where(plugin => !Settings.General.IgnoredFiles.Any(name => name == plugin.ModKey.FileName))
+        .Where(plugin => plugin.Enabled)
+        .WinningOverrides<IArmorGetter>();
+
+        foreach (var armor in conflictWinners)
+        {
+            if (IsValid(armor, excludedArmor, mustHave)) records.Add(armor);
+        }
+
+        Console.WriteLine($"Found {records.Count} armor records eligible for patching.\n\n"
+            + "====================");
+        return records;
+    }
+
+    private static bool IsValid(IArmorGetter armor, List<string> excludedArmor, List<FormKey> mustHave)
+    {
+        // invalid if found in the excluded records list by edid
+        if (Settings.General.ExclByEdID && excludedArmor.Any(value => value.Equals(armor.EditorID)))
+        {
+            if (Settings.Debug.ShowExcluded) Log(armor, ">-- INFO", $"found in the exclusion list (as {armor.EditorID}).");
+            return false;
+        }
+
+        // invalid if has no name
+        if (armor.Name == null) return false;
+
+        // invalid if found in the excluded records list by name
+        if (excludedArmor.Any(value => armor.Name!.ToString()!.Contains(value)))
+        {
+            if (Settings.Debug.ShowExcluded) Log(armor, ">-- INFO", "found in the exclusion list.");
+            return false;
+        }
+
+        // invalid if has no body template)
+        if (armor.BodyTemplate == null) return false;
+
+        // valid if has a template (to skip keyword checks below)
+        if (!armor.TemplateArmor.IsNull) return true;
+
+        // invalid if has no keywords or have empty kw array (rare)
+        if (armor.Keywords == null || armor.Keywords.Count == 0) return false;
+
+        // invalid if it does not have any required keywords
+        if (!mustHave.Any(keyword => armor.Keywords.Contains(keyword))) return false;
+
+        return true;
     }
 
     private static void PatchRecordNames(IArmorGetter armor, List<string> renamingBlacklist)
@@ -139,13 +201,13 @@ public static class ArmorPatcher
 
     private static void SetOverriddenData(IArmorGetter armor)
     {
-        dynamic? matOverride = Helpers.RuleByName(
+        JsonNode? matOverride = Helpers.RuleByName(
             armor.Name!.ToString()!, Rules["materialOverrides"]!.AsArray(), data1: "names", data2: "material");
         if (matOverride == null) return;
 
         if (matOverride is not JsonValue jsonVal || !jsonVal.TryGetValue<string>(out var overrideString))
         {
-            Log(armor, "---> WARNING", " the value returned from the materialOverrides rule for the record is not a string.");
+            Log(armor, ">>> WARNING", "the material name returned from the relevant \"materialOverrides\" rule should be a string.");
             return;
         }
 
@@ -159,7 +221,7 @@ public static class ArmorPatcher
             {
                 if  (entry1.Kwda == nullRef)
                 {
-                    Log(armor, "--> CAUTION", " a material override rule for the record references a material from Creation Club's \"Saints and Seducers\"");
+                    Log(armor, ">>- CAUTION", "the relevant \"materialOverrides\" rule references a material from Creation Club's \"Saints and Seducers\"");
                     break;
                 }
 
@@ -180,64 +242,6 @@ public static class ArmorPatcher
             }
         }
     }
-    private static List<IArmorGetter> GetRecords()
-    {
-        List<IArmorGetter> records = [];
-        List<string> excludedArmor = [.. Rules["excludedArmor"]!.AsArray().Select(value => value!.GetValue<string>())];
-        List<FormKey> mustHave = [
-            GetFormKey("ArmorHeavy", true),
-            GetFormKey("ArmorLight", true),
-            GetFormKey("ArmorShield", true),
-            GetFormKey("ArmorClothing", true),
-            GetFormKey("ArmorJewelry", true)
-        ];
-
-        var conflictWinners = State.LoadOrder.PriorityOrder
-        .Where(plugin => !Settings.General.IgnoredFiles.Any(name => name == plugin.ModKey.FileName))
-        .Where(plugin => plugin.Enabled)
-        .WinningOverrides<IArmorGetter>();
-
-        foreach (var armor in conflictWinners)
-        {
-            if (IsValid(armor, excludedArmor, mustHave)) records.Add(armor);
-        }
-
-        return records;
-    }
-
-    private static bool IsValid(IArmorGetter armor, List<string> excludedArmor, List<FormKey> mustHave)
-    {
-        // invalid if found in the excluded records list by edid
-        if (Settings.General.ExclByEdID && excludedArmor.Any(value => value.Equals(armor.EditorID)))
-        {
-            if (Settings.Debug.ShowExcluded) Log(armor, "-> INFO", $" found in the exclusion list (as {armor.EditorID}).");
-            return false;
-        }
-
-        // invalid if has no name
-        if (armor.Name == null) return false;
-
-        // invalid if found in the excluded records list by name
-        if (excludedArmor.Any(value => armor.Name!.ToString()!.Contains(value)))
-        {
-            if (Settings.Debug.ShowExcluded) Log(armor, "-> INFO", " found in the exclusion list.");
-            return false;
-        }
-
-        // invalid if has no body template)
-        if (armor.BodyTemplate == null) return false;
-
-        // valid if has a template (to skip keyword checks below)
-        if (!armor.TemplateArmor.IsNull) return true;
-
-        // invalid if has no keywords or have empty kw array (rare)
-        if (armor.Keywords == null || armor.Keywords.Count == 0) return false;
-
-        // invalid if it does not have any required keywords
-        if (!mustHave.Any(keyword => armor.Keywords.Contains(keyword))) return false;
-
-        return true;
-    }
 
     // local patcher helpers
     private static FormKey GetFormKey(string id, bool local = false)
@@ -254,7 +258,8 @@ public static class ArmorPatcher
     {
         if (Settings.Debug.ShowNonPlayable || !RecordData.IsNonPlayable())
         {
-            Console.WriteLine($"{prefix}: {armor.Name} ({armor.FormKey}): {message}");
+            Console.WriteLine($"{prefix}: {armor.Name} ({armor.FormKey}): {message}\n"
+                +"====================");						 
         }
     }
 
