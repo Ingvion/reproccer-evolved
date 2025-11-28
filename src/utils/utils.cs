@@ -197,7 +197,7 @@ public static class Helpers
         return string.Concat(targetLetters);
     }
 
-    public static dynamic? RuleByName(string name, JsonArray rules, string data1, string data2, bool strict = false)
+    public static JsonNode? RuleByName(string name, JsonArray rules, string data1, string data2, bool strict = false)
     {
         // iterating rules from the end for LIFO entries priority
         for (int i = rules.Count - 1; i >= 0; i--)
@@ -296,5 +296,30 @@ public static class Helpers
     private static string? IsInRange(this JsonArray jsonArr, int index = 0)
     {
         return index <= jsonArr.Count - 1 && jsonArr[index]!.ToString() != "" ? jsonArr[index]!.ToString() : null;
+    }
+
+    public static dynamic? AsType(this JsonNode jsonNode, string type)
+    {
+        if (jsonNode is JsonValue jsonVal)
+        {
+            switch (type)
+            {
+                case "string":
+                    if (jsonVal.TryGetValue<string>(out var asString)) return asString;
+                    break;
+
+                case "int":
+                    if (jsonVal.TryGetValue<int>(out var intAsIs)) return intAsIs;
+                    if (jsonVal.TryGetValue<float>(out var intAsFloat)) return (int)intAsFloat;
+                    break;
+
+                case "float":
+                    if (jsonVal.TryGetValue<float>(out var floatAsIs)) return floatAsIs;
+                    if (jsonVal.TryGetValue<int>(out var floatAsInt)) return floatAsInt;
+                    break;
+            }
+        }
+
+        return null;
     }
 }
