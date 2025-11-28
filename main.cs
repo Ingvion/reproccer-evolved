@@ -90,6 +90,7 @@ static class Executor
 
         // running patchers
         if (Settings.General.ArmorPatcher) Patchers.ArmorPatcher.Run();
+        Console.WriteLine("");
     }
 
     private static List<StaticsMap> BuildStatics() => [
