@@ -18,7 +18,7 @@ public static class ArmorPatcher
     private static readonly List<DataMap> HeavyMaterials = BuildHeavyMaterialsMap();
     private static readonly List<DataMap> LightMaterials = BuildLightMaterialsMap();
     private static readonly List<DataMap> AllMaterials = [.. HeavyMaterials.Union(LightMaterials)];
-    private static Armor? CurrentRecord;
+    private static Armor? PatchedRecord;
     private static PatchingData RecordData;
 
     public static void Run()
@@ -29,7 +29,8 @@ public static class ArmorPatcher
 
         foreach (var armor in records)
         {
-            CurrentRecord = null;
+            PatchedRecord = null;
+
             // storing some data publicly to avoid sequential passing of arguments
             RecordData = new PatchingData(
                 NonPlayable: armor.MajorFlags.HasFlag(Armor.MajorFlag.NonPlayable),
@@ -192,20 +193,18 @@ public static class ArmorPatcher
 
         if (name != armor.Name.ToString())
         {
-            if (Settings.Debug.ShowRenamed) Log(armor, "-> INFO", $" is renamed to {name}.");
-
-            armor.GetAsOverride();
-            CurrentRecord!.Name = name;
+            if (Settings.Debug.ShowRenamed) Log(armor, ">-- INFO", $"is renamed to {name}.");
+            GetAsOverride(armor).Name = name;
         }
     }
 
     private static void SetOverriddenData(IArmorGetter armor)
     {
-        JsonNode? matOverride = Helpers.RuleByName(
+        JsonNode? overrideNode = Helpers.RuleByName(
             armor.Name!.ToString()!, Rules["materialOverrides"]!.AsArray(), data1: "names", data2: "material");
-        if (matOverride == null) return;
+        string? overrideString = overrideNode?.AsType("string");
 
-        if (matOverride is not JsonValue jsonVal || !jsonVal.TryGetValue<string>(out var overrideString))
+        if (overrideNode != null && overrideString == null)
         {
             Log(armor, ">>> WARNING", "the material name returned from the relevant \"materialOverrides\" rule should be a string.");
             return;
@@ -229,14 +228,11 @@ public static class ArmorPatcher
                 {
                     if (armor.Keywords!.Contains((FormKey)entry2.Kwda!) && entry2.Kwda != entry1.Kwda)
                     {
-                        armor.GetAsOverride();
-                        CurrentRecord!.Keywords!.Remove((FormKey)entry2.Kwda);
-                        RecordData.SetOverridden();
+                        GetAsOverride(armor).Keywords!.Remove((FormKey)entry2.Kwda);
                     }
                 }
 
-                armor.GetAsOverride();
-                CurrentRecord!.Keywords!.Add((FormKey)entry1.Kwda!);
+                GetAsOverride(armor).Keywords!.Add((FormKey)entry1.Kwda!);
                 RecordData.SetOverridden();
                 break;
             }
@@ -249,9 +245,9 @@ public static class ArmorPatcher
         return (local ? LocalStatics! : Executor.Statics!).First(elem => elem.Id == id).Formkey;
     }
 
-    private static void GetAsOverride(this IArmorGetter armor)
+    private static Armor GetAsOverride(this IArmorGetter armor)
     {
-        if (CurrentRecord?.FormKey != armor.FormKey) CurrentRecord = State.PatchMod.Armors.GetOrAddAsOverride(armor);
+        return PatchedRecord?.FormKey != armor.FormKey ? State.PatchMod.Armors.GetOrAddAsOverride(armor) : PatchedRecord;
     }
 
     private static void Log(IArmorGetter armor, string prefix, string message)
@@ -259,7 +255,7 @@ public static class ArmorPatcher
         if (Settings.Debug.ShowNonPlayable || !RecordData.IsNonPlayable())
         {
             Console.WriteLine($"{prefix}: {armor.Name} ({armor.FormKey}): {message}\n"
-                +"====================");						 
+                +"====================");
         }
     }
 
