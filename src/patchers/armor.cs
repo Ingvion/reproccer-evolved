@@ -27,6 +27,7 @@ public static class ArmorPatcher
         UpdateGMST();
         List<IArmorGetter> records = GetRecords();
         List<string> renamingBlacklist = [.. Rules["excludedFromRenaming"]!.AsArray().Select(value => value!.GetValue<string>())];
+        string[] verboseFilter = Settings.Debug.VerboseDataFilter.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         foreach (var armor in records)
         {
@@ -185,8 +186,8 @@ public static class ArmorPatcher
 
                     // check if name contains any word from skipIf
                     string skipIf = renamer[i]!["skipIf"]?.ToString() ?? "";
-                    blacklist = skipIf.Split(',');
-                    if (skipIf != "" && blacklist.Any(word => name.Contains(word.Trim()))) continue;
+                    blacklist = skipIf.Split(',', StringSplitOptions.TrimEntries);
+                    if (skipIf != "" && blacklist.Any(word => name.Contains(word))) continue;
                 }
 
                 string newName = Helpers.FindReplace(name, renamer[i]!["find"]!.ToString(), renamer[i]!["replace"]!.ToString(), flags);
