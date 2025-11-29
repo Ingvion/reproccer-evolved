@@ -71,21 +71,17 @@ public class DebugSettings
     [Tooltip("A message will be displayed for each record found in the excluded records list.")]
     public bool ShowExcluded { get; set; } = true;
 
-    [SettingName("Report renaming actions")]
-    [Tooltip("A message will be displayed for each record renamed in accordance with \"renamer\" rules.")]
-    public bool ShowRenamed { get; set; } = false;
-
     [SettingName("Report patching results")]
     [Tooltip("A message with patching results will be displayed for each processed record.")]
     public bool ShowVerboseData { get; set; } = false;
 
     [SettingName("Filter patching results")]
-    [Tooltip("Only patching results for records with these values in their names will be displayed when \"Report patching results\" is active.\n"
-        + "Leave empty to display patching results for all processed records.")]
+    [Tooltip("Patching, renaming, faction assigning, and other results for records with these values in their names will be displayed when \"Report patching results\"\n"
+        + "is active. Leave empty to display patching results for all processed records (not recommended).")]
     public string VerboseDataFilter { get; set; } = "";
 
-    [SettingName("Report non-playables")]
-    [Tooltip("Messages will also be displayed for non-playable records.")]
+    [SettingName("Include non-playables in reports")]
+    [Tooltip("Reports of all types will also be displayed for non-playable records.")]
     public bool ShowNonPlayable { get; set; } = false;
 }
 
