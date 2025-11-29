@@ -6,18 +6,18 @@ using System.Text.RegularExpressions;
 
 namespace ReProccer.Utils;
 
-public struct PatchingData(bool NonPlayable = false, bool HasUniqueKeyword = true, ArmorType ArmorType = ArmorType.Clothing, bool GetOverridden = false)
+public struct PatchingData(bool nonPlayable = false, bool hasUniqueKeyword = true, ArmorType armorType = ArmorType.Clothing, bool getOverridden = false)
 {
-    public bool NonPlayableFlag = NonPlayable;
-    public bool UniqueFlag = HasUniqueKeyword;
-    public bool OverriddenFlag = GetOverridden;
-    public ArmorType ArmorTypeEnum = ArmorType;
+    public bool nonPlayableFlag = nonPlayable;
+    public bool uniqueFlag = hasUniqueKeyword;
+    public bool overriddenFlag = getOverridden;
+    public ArmorType armorTypeEnum = armorType;
 
-    public readonly bool IsNonPlayable() => NonPlayableFlag;
-    public readonly bool IsUnique() => UniqueFlag;
-    public readonly bool IsOverridden() => OverriddenFlag;
-    public readonly ArmorType GetArmorType() => ArmorTypeEnum;
-    public bool SetOverridden() => OverriddenFlag = true;
+    public readonly bool IsNonPlayable() => nonPlayableFlag;
+    public readonly bool IsUnique() => uniqueFlag;
+    public readonly bool IsOverridden() => overriddenFlag;
+    public readonly ArmorType GetArmorType() => armorTypeEnum;
+    public bool SetOverridden() => overriddenFlag = true;
 }
 
 public record StaticsMap(
