@@ -20,6 +20,7 @@ public static class ArmorPatcher
     private static readonly List<DataMap> AllMaterials = [.. HeavyMaterials.Union(LightMaterials)];
     private static Armor? PatchedRecord;
     private static PatchingData RecordData;
+    private static List<List<string>>? Reports;
 
     public static void Run()
     {
@@ -30,12 +31,13 @@ public static class ArmorPatcher
         foreach (var armor in records)
         {
             PatchedRecord = null;
+            Reports = new List<List<string>> { new List<string> {}, new List<string> {}, new List<string> {} };
 
             // storing some data publicly to avoid sequential passing of arguments
             RecordData = new PatchingData(
-                NonPlayable: armor.MajorFlags.HasFlag(Armor.MajorFlag.NonPlayable),
-                HasUniqueKeyword: armor.Keywords!.Contains(GetFormKey("skyre__NoMeltdownRecipes")),
-                ArmorType: armor.BodyTemplate!.ArmorType);
+                nonPlayable: armor.MajorFlags.HasFlag(Armor.MajorFlag.NonPlayable),
+                hasUniqueKeyword: armor.Keywords!.Contains(GetFormKey("skyre__NoMeltdownRecipes")),
+                armorType: armor.BodyTemplate!.ArmorType);
 
             /* armor records with templates inherit their data from the template, but have unique names;
                jewelry type clothing items require no other patching */
@@ -47,6 +49,7 @@ public static class ArmorPatcher
             }
 
             SetOverriddenData(armor);
+            ShowReports(armor, Reports!);
         }
     }
 
@@ -90,12 +93,15 @@ public static class ArmorPatcher
         .Where(plugin => plugin.Enabled)
         .WinningOverrides<IArmorGetter>();
 
+        Console.WriteLine($"~~~ {conflictWinners.Count()} armor records found, filtering... ~~~\n\n"
+            + "====================");
+
         foreach (var armor in conflictWinners)
         {
             if (IsValid(armor, excludedArmor, mustHave)) records.Add(armor);
         }
 
-        Console.WriteLine($"Found {records.Count} armor records eligible for patching.\n\n"
+        Console.WriteLine($"\n~~~ {records.Count} armor records are eligible for patching ~~~\n\n"
             + "====================");
         return records;
     }
@@ -105,7 +111,7 @@ public static class ArmorPatcher
         // invalid if found in the excluded records list by edid
         if (Settings.General.ExclByEdID && excludedArmor.Any(value => value.Equals(armor.EditorID)))
         {
-            if (Settings.Debug.ShowExcluded) Log(armor, ">-- INFO", $"found in the exclusion list (as {armor.EditorID}).");
+            if (Settings.Debug.ShowExcluded) Log(armor, "~ INFO", $"found in the exclusion list (as {armor.EditorID}).");
             return false;
         }
 
@@ -115,7 +121,7 @@ public static class ArmorPatcher
         // invalid if found in the excluded records list by name
         if (excludedArmor.Any(value => armor.Name!.ToString()!.Contains(value)))
         {
-            if (Settings.Debug.ShowExcluded) Log(armor, ">-- INFO", "found in the exclusion list.");
+            if (Settings.Debug.ShowExcluded) Log(armor, "~ INFO", "found in the exclusion list.");
             return false;
         }
 
@@ -193,7 +199,7 @@ public static class ArmorPatcher
 
         if (name != armor.Name.ToString())
         {
-            if (Settings.Debug.ShowRenamed) Log(armor, ">-- INFO", $"is renamed to {name}.");
+            Reports![2].Add($"Was renamed to {name}");
             GetAsOverride(armor).Name = name;
         }
     }
@@ -206,7 +212,7 @@ public static class ArmorPatcher
 
         if (overrideNode != null && overrideString == null)
         {
-            Log(armor, ">>> WARNING", "the material name returned from the relevant \"materialOverrides\" rule should be a string.");
+            Reports![1].Add("The material name returned from the relevant \"materialOverrides\" rule should be a string.");
             return;
         }
 
@@ -220,7 +226,7 @@ public static class ArmorPatcher
             {
                 if  (entry1.Kwda == nullRef)
                 {
-                    Log(armor, ">>- CAUTION", "the relevant \"materialOverrides\" rule references a material from Creation Club's \"Saints and Seducers\"");
+                    Reports![0].Add("The relevant \"materialOverrides\" rule references a material from Creation Club's \"Saints and Seducers\"");
                     break;
                 }
 
@@ -273,6 +279,42 @@ public static class ArmorPatcher
         {
             Console.WriteLine($"{prefix}: {armor.Name} ({armor.FormKey}): {message}\n"
                 +"====================");
+        }
+    }
+
+    private static void ShowReports(IArmorGetter armor, List<List<string>> reports)
+    {
+        if (reports.Count == 0) return;
+
+        if (reports[0].Count > 0) Log(armor, "> CAUTION", reports[0]);
+        if (reports[1].Count > 0) Log(armor, "# ERRORS", reports[1]);
+
+        if (!Settings.Debug.ShowVerboseData) return;
+
+        string[] filter = Settings.Debug.VerboseDataFilter.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (filter.Length > 0 && !filter.Any(value => armor.Name!.ToString()!.Contains(value.Trim()))) return;
+        if (reports[2].Count > 0) Log(armor, "+ REPORTS", reports[2]);
+    }
+
+    private static void Log(IArmorGetter armor, string prefix, string message)
+    {
+        if (Settings.Debug.ShowNonPlayable || !RecordData.IsNonPlayable())
+        {
+            Console.WriteLine($"{prefix}: {armor.Name} ({armor.FormKey}): {message}\n"
+                + "====================");
+        }
+    }
+
+    private static void Log(IArmorGetter armor, string prefix, List<string> messages)
+    {
+        if (Settings.Debug.ShowNonPlayable || !RecordData.IsNonPlayable())
+        {
+            Console.WriteLine($"{prefix} | {armor.Name} ({armor.FormKey})");
+            foreach(var msg in messages)
+            {
+                Console.WriteLine($"--- {msg}");
+            }
+            Console.WriteLine("====================");
         }
     }
 
