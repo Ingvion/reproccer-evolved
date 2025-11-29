@@ -18,6 +18,7 @@ public static class ArmorPatcher
     private static readonly List<DataMap> HeavyMaterials = BuildHeavyMaterialsMap();
     private static readonly List<DataMap> LightMaterials = BuildLightMaterialsMap();
     private static readonly List<DataMap> AllMaterials = [.. HeavyMaterials.Union(LightMaterials)];
+    private static readonly List<DataMap> FactionBinds = BuildFactionBindsMap();
     private static Armor? PatchedRecord;
     private static PatchingData RecordData;
     private static List<List<string>>? Reports;
@@ -264,6 +265,31 @@ public static class ArmorPatcher
         }
     }
 
+    {
+        JsonArray rules = Rules["masquerade"]!.AsArray();
+        List<string> addedFactions = [];
+
+        foreach (var rule in rules)
+        {
+            string[] namesArr = rule!["names"]!.ToString().Split(',', StringSplitOptions.TrimEntries);
+            if (!namesArr.Any(word => armor.Name!.ToString()!.Contains(word))) continue;
+
+            string[] filterArr = rule!["filter"]?.ToString().Replace(" ", "").Split(',') ?? [];
+            if (filterArr.Length != 0 && !filterArr.Any(type => type == RecordData.GetArmorType().ToString())) continue;
+
+            string factions = rule!["faction"]!.ToString();
+            foreach (var entry in FactionBinds)
+            {
+                if (factions.Contains(entry.Id.GetT9n()) && !armor.Keywords!.Contains((FormKey)entry.Kwda!))
+                {
+                    GetAsOverride(armor).Keywords!.Add((FormKey)entry.Kwda);
+                    addedFactions.Add($"{entry.Id.GetT9n()}");
+                }
+            }
+        }
+        if (addedFactions.Count > 0) Reports![2].Add($"Faction keywords added: {string.Join(", ", addedFactions)}");
+    }
+
     // local patcher helpers
     private static FormKey GetFormKey(string id, bool local = false)
     {
@@ -392,6 +418,14 @@ public static class ArmorPatcher
         new(Id: "mat_studded",     Kwda: GetFormKey("ArmorMaterialStudded"),           Item: GetFormKey("LeatherStrips"),    Perk: [ GetFormKey("skyre_SMTLeathercraft") ]                              ),
         new(Id: "mat_thievesgl",   Kwda: GetFormKey("ArmorMaterialThievesGuild"),      Item: GetFormKey("LeatherStrips"),    Perk: [ GetFormKey("skyre_SMTLeathercraft") ]                              ),
         new(Id: "mat_vampire",     Kwda: GetFormKey("DLC1ArmorMaterialVampire"),       Item: GetFormKey("LeatherStrips"),    Perk: [ GetFormKey("skyre_SMTLeathercraft") ]                              )
+    ];
+
+    private static List<DataMap> BuildFactionBindsMap() => [
+        new(Id: "fact_bandit",     Kwda: GetFormKey("skyre_SPCMasqueradeBandit", true)     ),
+        new(Id: "fact_forsworn",   Kwda: GetFormKey("skyre_SPCMasqueradeForsworn", true)   ),
+        new(Id: "fact_imperial",   Kwda: GetFormKey("skyre_SPCMasqueradeImperial", true)   ),
+        new(Id: "fact_stormcloak", Kwda: GetFormKey("skyre_SPCMasqueradeStormcloak", true) ),
+        new(Id: "fact_thalmor",    Kwda: GetFormKey("skyre_SPCMasqueradeThalmor", true)    )
     ];
 }
 
