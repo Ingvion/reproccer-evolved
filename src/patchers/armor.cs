@@ -262,6 +262,7 @@ public static class ArmorPatcher
             GetAsOverride(armor).AlternateBlockMaterial = new FormLinkNullable<IMaterialTypeGetter>(GetFormKey("MaterialShieldLight", true));
         }
     }
+
     // local patcher helpers
     private static FormKey GetFormKey(string id, bool local = false)
     {
@@ -271,15 +272,6 @@ public static class ArmorPatcher
     private static Armor GetAsOverride(this IArmorGetter armor)
     {
         return PatchedRecord?.FormKey != armor.FormKey ? State.PatchMod.Armors.GetOrAddAsOverride(armor) : PatchedRecord;
-    }
-
-    private static void Log(IArmorGetter armor, string prefix, string message)
-    {
-        if (Settings.Debug.ShowNonPlayable || !RecordData.IsNonPlayable())
-        {
-            Console.WriteLine($"{prefix}: {armor.Name} ({armor.FormKey}): {message}\n"
-                +"====================");
-        }
     }
 
     private static void ShowReports(IArmorGetter armor, List<List<string>> reports)
