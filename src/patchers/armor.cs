@@ -55,6 +55,7 @@ public static class ArmorPatcher
             if (RecordData.GetArmorType() != ArmorType.Clothing)
             {
                 PatchShieldWeight(armor, RecordData.GetArmorType());
+                PatchArmorRating(armor);
             }
 
             if (!RecordData.IsNonPlayable())
@@ -276,6 +277,102 @@ public static class ArmorPatcher
         }
     }
 
+    private static void PatchArmorRating(IArmorGetter armor)
+    {
+        float? slotFactor = GetSlotFactor(armor);
+        int? materialFactor = GetMaterialFactor(armor);
+
+        if (slotFactor == null || materialFactor == null) return;
+
+        float extraMod = GetExtraArmorMod(armor);
+        double newArmorRating = Math.Floor((float)slotFactor * (int)materialFactor * extraMod);
+
+        if ((float)newArmorRating != armor.ArmorRating)
+        {
+            GetAsOverride(armor).ArmorRating = (float)newArmorRating;
+            Reports![2].Add($"Armor rating modified: {armor.ArmorRating} -> {GetAsOverride(armor).ArmorRating}");
+        }
+    }
+
+    private static float? GetSlotFactor (IArmorGetter armor)
+    {
+        if (armor.Keywords!.Contains(GetFormKey("ArmorSlotBoots", true)))
+        {
+            return Settings.Armor.SlotBoots;
+        }
+        else if (armor.Keywords!.Contains(GetFormKey("ArmorSlotCuirass", true)))
+        {
+            return Settings.Armor.SlotCuirass;
+        }
+        else if (armor.Keywords!.Contains(GetFormKey("ArmorSlotGauntlets", true)))
+        {
+            return Settings.Armor.SlotGauntlets;
+        }
+        else if (armor.Keywords!.Contains(GetFormKey("ArmorSlotHelmet", true)))
+        {
+            return Settings.Armor.SlotHelmet;
+        }
+        else if (armor.Keywords!.Contains(GetFormKey("ArmorShield", true)))
+        {
+            return Settings.Armor.SlotShield;
+        }
+
+        Reports![1].Add("Unable to determine an equip slot for the record.");
+        return null;
+    }
+
+    private static int? GetMaterialFactor(IArmorGetter armor)
+    {
+        string? materialId = null;
+        FormKey nullRef = new("Skyrim.esm", 0x000000);
+        foreach (var entry in AllMaterials)
+        {
+            FormKey kwda = (FormKey)entry.Kwda!;
+            if (kwda != nullRef && armor.Keywords!.Contains(kwda))
+            {
+                materialId = entry.Id;
+                break;
+            }
+        }
+
+        JsonNode? factorNode = Helpers.RuleByName(armor.Name!.ToString()!, Rules["materials"]!.AsArray(), data1: "names", data2: "armor");
+        if (factorNode == null && materialId != null) factorNode = Helpers.RuleByName(materialId!, Rules["materials"]!.AsArray(), data1: "id", data2: "armor");
+        int? factorInt = factorNode?.AsType("int");
+
+        if (factorInt != null)
+        {
+            if (materialId == null) Reports![0].Add("The record has a \"materials\" rule for its name but no material keyword.");
+            return factorInt;
+        }
+
+        if (factorNode != null && factorInt == null)
+        {
+            Reports![1].Add("The armor value in the relevant \"materials\" rule should be a number.");
+        }
+
+        Reports![1].Add("Unable to determine the material.");
+        return null;
+    }
+
+    private static float GetExtraArmorMod(IArmorGetter armor)
+    {
+        JsonNode? modifierNode = Helpers.RuleByName(armor.Name!.ToString()!, Rules["armorModifiers"]!.AsArray(), data1: "names", data2: "multiplier");
+        float? modifierFloat = modifierNode?.AsType("float");
+
+        if (modifierFloat != null)
+        {
+            return (float)(modifierFloat > 0.0f ? modifierFloat : 1.0f);
+        }
+
+        if (modifierNode != null && modifierFloat == null)
+        {
+            Reports![1].Add("The multiplier value in the relevant \"armorModifiers\" rule should be a number.");
+        }
+
+        return 1.0f;
+    }
+
+    private static void PatchMasqueradeKeywords(IArmorGetter armor)
     {
         JsonArray rules = Rules["masquerade"]!.AsArray();
         List<string> addedFactions = [];
