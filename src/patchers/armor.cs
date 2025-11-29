@@ -51,6 +51,17 @@ public static class ArmorPatcher
             }
 
             SetOverriddenData(armor);
+
+            if (RecordData.GetArmorType() != ArmorType.Clothing)
+            {
+                PatchShieldWeight(armor, RecordData.GetArmorType());
+            }
+
+            if (!RecordData.IsNonPlayable())
+            {
+                PatchRecordNames(armor, renamingBlacklist);
+                PatchMasqueradeKeywords(armor);
+            }
             ShowReports(armor, Reports!);
         }
     }
