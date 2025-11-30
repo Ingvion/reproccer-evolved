@@ -251,7 +251,6 @@ static class Executor
             new(Id: "skyre__WeapTypeTanto",                   Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000827|KWDA") ),
             new(Id: "skyre__WeapTypeWakizashi",               Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000828|KWDA") ),
             new(Id: "skyre__WeapMaterialSilverRefined",       Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000829|KWDA") ),
-            new(Id: "skyre__DreamclothBody",                  Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00098d|KWDA") ),
             new(Id: "skyre_ENCAmmoSiphoningKeyword",          Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000b8f|KWDA") ),
             new(Id: "skyre_MARAmmoBarbedKeyword",             Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d87|KWDA") ),
             new(Id: "skyre_MARAmmoHeavyKeyword",              Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d88|KWDA") ),
