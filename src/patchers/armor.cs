@@ -411,6 +411,73 @@ public static class ArmorPatcher
         if (addedFactions.Count > 0) Report![2].Add($"Faction keywords added: {string.Join(", ", addedFactions)}");
     }
 
+    private static void ProcessClothing(IArmorGetter armor, List<string> clothingBlacklist)
+    {
+        if (!Settings.Armor.NoClothingBreak)
+        {
+            //AddMeltdownRecipe(armor);
+        }
+
+        CreateDreamcloth(armor, clothingBlacklist);
+    }
+
+    private static void CreateDreamcloth(IArmorGetter armor, List<string> clothingBlacklist)
+    {
+        if (clothingBlacklist.Count > 0
+            && clothingBlacklist.Any(value => armor.Name!.ToString()!.Contains(value)))
+        {
+            Report![2].Add($"Found in the \"No Dreamcloth\" list");
+            return;
+        }
+
+        if (!armor.TemplateArmor.IsNull || RecordData.IsUnique())
+        {
+            Report![2].Add($"Cannot have a Dreamcloth variant due to being unique or having a template.");
+            return;
+        }
+
+        bool isModified = RecordData.IsModified();
+
+        string label = Settings.Armor.DreamclothLabel == "" ? $" [{"name_dcloth".GetT9n()}]" : Settings.Armor.DreamclothLabel;
+        string newName = GetAsOverride(armor).Name!.ToString() + label;
+        string newEdId = "RP_ARMO_" + armor.EditorID!.ToString();
+
+        Armor newArmor = State.PatchMod.Armors.DuplicateInAsNewRecord(GetAsOverride(armor));
+        if (!isModified) State.PatchMod.Armors.Remove(armor);
+
+        newArmor.Name = newName;
+        newArmor.EditorID = newEdId;
+        newArmor.VirtualMachineAdapter = null;
+        newArmor.Description = null;
+        newArmor.Keywords!.Add(GetFormKey("skyre__ArmorDreamcloth", true));
+
+        float priceMult = Settings.Armor.DreamclothPrice / 100f;
+        newArmor.Value = (uint)(priceMult * newArmor.Value);
+
+        List<IngredientsMap> ingredients = [
+            new(Ingr: GetFormKey("SoulGemPettyFilled"), Qty: 2, Type: "SLGM"),
+            new(Ingr: GetFormKey("LeatherStrips"),      Qty: 1, Type: "MISC"),
+            new(Ingr: GetFormKey("WispWrappings"),      Qty: 1, Type: "INGR")
+        ];
+
+        if (newArmor.Keywords!.Contains(GetFormKey("ClothingBody", true)))
+        {
+            ingredients[0] = ingredients[0] with { Ingr = GetFormKey("SoulGemCommonFilled"), Qty = 1 };
+            ingredients[1] = ingredients[1] with { Qty = 3 };
+            ingredients[2] = ingredients[2] with { Qty = 2 };
+
+            newArmor.Keywords!.Add(GetFormKey("skyre__DreamclothBody", true));
+        }
+        else if (newArmor.Keywords!.Contains(GetFormKey("ClothingHead", true)))
+        {
+            ingredients[0] = ingredients[0] with { Ingr = GetFormKey("SoulGemLesserFilled"), Qty = 1 };
+            ingredients[1] = ingredients[1] with { Qty = 2 };
+        }
+
+        //AddCraftingRecipe(GetAsOverride(newArmor), armor, GetFormKey("skyre_SMTWeavingMill"), ingredients);
+        //AddMeltdownRecipe(newArmor, GetFormKey("WispWrappings"), []);
+    }
+
     // local patcher helpers
     private static FormKey GetFormKey(string id, bool local = false)
     {
