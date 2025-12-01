@@ -474,8 +474,60 @@ public static class ArmorPatcher
             ingredients[1] = ingredients[1] with { Qty = 2 };
         }
 
-        //AddCraftingRecipe(GetAsOverride(newArmor), armor, GetFormKey("skyre_SMTWeavingMill"), ingredients);
+        AddCraftingRecipe(GetAsOverride(newArmor), armor, GetFormKey("skyre_SMTWeavingMill"), ingredients);
         //AddMeltdownRecipe(newArmor, GetFormKey("WispWrappings"), []);
+    }
+
+    private static void AddCraftingRecipe(IArmorGetter newArmor, IArmorGetter oldArmor, FormKey perk, List<IngredientsMap> ingredients)
+    {
+        var linkCache = Executor.State!.LinkCache;
+        string newEdId = "RP_CRAFT_ARMO_" + oldArmor.EditorID!.ToString();
+        ConstructibleObject cobj = State.PatchMod.ConstructibleObjects.AddNew();
+
+        cobj.EditorID = newEdId;
+        cobj.Items = [];
+
+        ContainerItem baseItem = new();
+        baseItem.Item = oldArmor.ToNullableLink();
+        ContainerEntry baseEntry = new();
+        baseEntry.Item = baseItem;
+        baseEntry.Item.Count = 1;
+        cobj.Items.Add(baseEntry);
+
+        foreach (var entry in ingredients)
+        {
+            ContainerItem newItem = new();
+
+            switch (entry.Type)
+            {
+                case "SLGM":
+                    newItem.Item = linkCache.Resolve<ISoulGemGetter>(entry.Ingr).ToNullableLink();
+                    break;
+
+                case "MISC":
+                    newItem.Item = linkCache.Resolve<IMiscItemGetter>(entry.Ingr).ToNullableLink();
+                    break;
+
+                case "INGR":
+                    newItem.Item = linkCache.Resolve<IIngredientGetter>(entry.Ingr).ToNullableLink();
+                    break;
+            }
+
+            ContainerEntry newEntry = new();
+            newEntry.Item = newItem;
+            newEntry.Item.Count = entry.Qty;
+            cobj.Items.Add(newEntry);
+        }
+
+        cobj.AddHasPerkCondition(perk);
+        if (!Settings.Armor.ShowAllRecipes)
+        {
+            cobj.AddGetItemCountCondition(oldArmor.FormKey, CompareOperator.GreaterThanOrEqualTo, 1); 
+        }
+
+        cobj.CreatedObject = newArmor.ToNullableLink();
+        cobj.WorkbenchKeyword = linkCache.Resolve<IKeywordGetter>(GetFormKey("CraftingTanningRack")).ToNullableLink();
+        cobj.CreatedObjectCount = 1;
     }
 
     // local patcher helpers
