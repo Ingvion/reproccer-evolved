@@ -6,18 +6,18 @@ using System.Text.RegularExpressions;
 
 namespace ReProccer.Utils;
 
-public struct PatchingData(bool nonPlayable = false, bool hasUniqueKeyword = true, ArmorType armorType = ArmorType.Clothing, bool getOverridden = false)
+public struct PatchingData(bool nonPlayable = false, bool hasUniqueKeyword = true, ArmorType armorType = ArmorType.Clothing, bool getModified = false)
 {
     public bool nonPlayableFlag = nonPlayable;
     public bool uniqueFlag = hasUniqueKeyword;
-    public bool overriddenFlag = getOverridden;
+    public bool modifiedFlag = getModified;
     public ArmorType armorTypeEnum = armorType;
 
     public readonly bool IsNonPlayable() => nonPlayableFlag;
     public readonly bool IsUnique() => uniqueFlag;
-    public readonly bool IsOverridden() => overriddenFlag;
+    public readonly bool IsModified() => modifiedFlag;
     public readonly ArmorType GetArmorType() => armorTypeEnum;
-    public bool SetOverridden() => overriddenFlag = true;
+    public bool SetModified() => modifiedFlag = true;
 }
 
 public record StaticsMap(
@@ -30,6 +30,12 @@ public record DataMap(
     FormKey? Kwda = null,
     FormKey? Item = null,
     List<FormKey>? Perk = null
+);
+
+public record IngredientsMap(
+    FormKey Ingr,
+    int Qty,
+    string Type
 );
 
 public static class Helpers
@@ -145,8 +151,7 @@ public static class Helpers
         return formKey;
     }
 
-    // for debug purposes
-    private static bool TryToResolve(FormKey formKey, string type) => type switch
+    private static dynamic TryToResolve(FormKey formKey, string type) => type switch
     {
         "EXPL" => Executor.State!.LinkCache.TryResolve<IExplosionGetter>(formKey, out _),
         "INGR" => Executor.State!.LinkCache.TryResolve<IIngredientGetter>(formKey, out _),
@@ -321,5 +326,40 @@ public static class Helpers
         }
 
         return null;
+    }
+}
+
+public static class Conditions
+{
+    public static void AddHasPerkCondition(this ConstructibleObject cobj, FormKey perk)
+    {
+        var hasPerk = new HasPerkConditionData()
+        {
+            RunOnType = Condition.RunOnType.Subject
+        };
+        hasPerk.Perk.Link.SetTo(perk);
+
+        cobj.Conditions.Add(new ConditionFloat
+        {
+            CompareOperator = CompareOperator.EqualTo,
+            Data = hasPerk,
+            ComparisonValue = 1
+        });
+    }
+
+    public static void AddGetItemCountCondition(this ConstructibleObject cobj, FormKey item, CompareOperator type, int num)
+    {
+        var getItemCount = new GetItemCountConditionData()
+        {
+            RunOnType = Condition.RunOnType.Subject
+        };
+        getItemCount.ItemOrList.Link.SetTo(item);
+
+        cobj.Conditions.Add(new ConditionFloat
+        {
+            CompareOperator = type,
+            Data = getItemCount,
+            ComparisonValue = num
+        });
     }
 }
