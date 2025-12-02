@@ -34,7 +34,7 @@ public class GeneralSettings
     + "if none, default English strings will be used.")]
     public Language GameLanguage { get; set; } = Language.English;
 
-    [SettingName("Ignored Files")]
+    [SettingName("Ignored files")]
     [Tooltip("Plugins listed here will be fully ignored - records will be ignored, rules will not be loaded,\n"
         + "and winning overrides from these plugins will be skipped.")]
     public List<string> IgnoredFiles { get; set; } = [
@@ -43,21 +43,26 @@ public class GeneralSettings
         "ShowRaceMenuAlternative.esp"
     ];
 
-    [SettingName("Armor Patcher")]
+    [SettingName("Armor patcher")]
     [Tooltip("Toggles the armor patcher.")]
     public bool ArmorPatcher { get; set; } = true;
 
-    [SettingName("Weapons Patcher")]
+    [SettingName("Weapons patcher")]
     [Tooltip("Toggles the weapons patcher.")]
     public bool WeaponsPatcher { get; set; } = true;
 
-    [SettingName("Alchemy Patcher")]
+    [SettingName("Alchemy patcher")]
     [Tooltip("Toggles the ingredients patcher.")]
     public bool AlchemyPatcher { get; set; } = true;
 
-    [SettingName("Projectiles Patcher")]
+    [SettingName("Projectiles patcher")]
     [Tooltip("Toggles the ammo and projectiles patcher.")]
     public bool ProjectilesPatcher { get; set; } = true;
+
+    [SettingName("Skip existing breakdown recipes")]
+    [Tooltip("If a breakdown recipe for the record already exists in some other mod, ReProccer will not generate its own.\n"
+         + "Info on found recipes will be displayed if \"Report patching results\" is active.")]
+    public bool SkipExisting { get; set; } = true;
 
     [SettingName("Allow exclusion by EdID")]
     [Tooltip("Allows the ReProccer to check for exact match in records' editor ID first when processing the exclusion list.\n"
@@ -76,8 +81,8 @@ public class DebugSettings
     public bool ShowVerboseData { get; set; } = false;
 
     [SettingName("Filter patching results")]
-    [Tooltip("Patching, renaming, faction assigning, and other results for records with these values in their names will be displayed when \"Report patching results\"\n"
-        + "is active. Leave empty to display patching results for all processed records (not recommended).")]
+    [Tooltip("Only patching results for records with these values in their names will be displayed when \"Report patching results\" is active.\n"
+        + "Separate values by commas; leave the field empty to display patching results for all processed records (not recommended).")]
     public string VerboseDataFilter { get; set; } = "";
 
     [SettingName("Include non-playables in reports")]
@@ -132,7 +137,7 @@ public class ArmorSettings
     [SettingName("Leather armors recipes require the Leathercraft perk")]
     [Tooltip("If there are no other smithing perk requirements, the patcher will add the Leathercraft perk as a requirement\n"
         + "for leather-type armors recipes (Leather Armor, Imperial Light Cuirass, etc). The option does not apply to Hide and Fur armors.")]
-    public bool FixLeatherCraft { get; set; } = true;
+    public bool FixCraftRecipes { get; set; } = true;
 
     [SettingName("No breakdown recipes for clothing")]
     [Tooltip("If active, ReProccer will not generate breakdown recipes for clothing items. This option does not apply to Dreamcloth wear.")]
