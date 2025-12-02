@@ -34,22 +34,32 @@ public record IngredientsMap(
 
 public static class Helpers
 {
-    public static JsonNode LoadJson(string path, string filename, bool noSkip = false)
+    /// <summary>
+    /// Returns the JSON file as JsonNode.<br/>
+    /// Regular and JSONC style (with single- and multiline comments) files are allowed, but not JSON5 ones.
+    /// </summary>
+    /// <param name="dir">The directory in which to look for the file (use AppContext.BaseDirectory + folder name)</param>
+    /// <param name="file">The file to look for (any .json*)</param>
+    /// <param name="noSkip">Throw exception if the file is not unparseable or does not exist</param>
+    /// <returns>A specified JSON file as <see cref="JsonNode"/>.</returns>
+    /// <exception cref="FileNotFoundException"><paramref name="dir" /> contains no specified file.</exception>
+    /// <exception cref="JsonException"><paramref name="file" /> cannot be parsed due to sytax errors.</exception>
+    public static JsonNode LoadJson(string dir, string file, bool noSkip = false)
     {
-        if (!Directory.Exists($"{path}"))
+        if (!Directory.Exists($"{dir}"))
         {
-            throw new Exception($"--> Unable to find the \"{path}\" directory.\n");
+            throw new Exception($"--> Unable to find the \"{dir}\" directory.\n");
         }
 
         string jsonString;
 
         try
         {
-            jsonString = File.ReadAllText($"{path}/{filename}");
+            jsonString = File.ReadAllText($"{dir}/{file}");
         }
         catch (FileNotFoundException)
         {
-            return noSkip ? throw new Exception($"--> Unable to find \"{filename}\" in the \"\\{path}\" directory.\n") : JsonNode.Parse("{}")!;
+            return noSkip ? throw new FileNotFoundException($"--> Unable to find \"{file}\" in the \"\\{dir}\" directory.\n") : JsonNode.Parse("{}")!;
         }
 
         JsonNode? jsonFile;
@@ -63,11 +73,11 @@ public static class Helpers
         {
             if (noSkip)
             {
-                throw new Exception($"--> Unable to parse \"{filename}\" in the \"\\{path}\" directory.\n");
+                throw new JsonException($"--> Unable to parse \"{file}\" in the \"\\{dir}\" directory.\n");
             }
             else
             {
-                Console.WriteLine($"---> WARNING: \"{filename}\" in the \"\\{path}\" directory has syntax errors and will be skipped.");
+                Console.WriteLine($"---> WARNING: \"{file}\" in the \"\\{dir}\" directory has syntax errors and will be skipped.");
                 return JsonNode.Parse("{}")!;
             }
         }
@@ -89,9 +99,14 @@ public static class Helpers
         return jsonString;
     }
 
+    /// <summary>
+    /// Merges 2 JsonNodes with appending non existing properties.<br/>
+    /// </summary>
+    /// <param name="targetJson">Target JsonNode</param>
+    /// <param name="sourceJson">Source JsonNode</param>
+    /// <returns>Target <see cref="JsonNode"/> with appended source JsonNode values to it.</returns>
     public static JsonNode DeepMerge(JsonNode targetJson, JsonNode sourceJson)
     {
-        // There's likely a better way to merge JSONs but I'm limited by lack of experience in C#
         if (targetJson is JsonObject target0 && sourceJson is JsonObject source0)
         {
             foreach (var prop0 in source0)
@@ -123,10 +138,21 @@ public static class Helpers
         return targetJson;
     }
 
-    public static FormKey ParseFormKey(string fkString, bool skipResolve = false)
+    /// <summary>
+    /// Constructs the FormKey value and checks whether it could be resolved.<br/>
+    /// The method takes into account "Saints & Seducers" CC mod, and returns nullref FormKey for related records <br/>
+    /// instead of exception in case the mod is not in the load order to avoid forcing users to use it.
+    /// </summary>
+    /// <param name="str">A string to conbstruct a FormKey from ("Mod_name|local_id|RECORD_TYPE")</param>
+    /// <param name="skipResolve">True to skip the record resolution attempt</param>
+    /// <returns>The FormKey value, or nullref FormKey if the record originates from the "Saints & Seducers".</returns>
+    /// <exception cref="Exception">
+    /// The constructed FormKey cannot be resolved (incorrect mod name/localId/type).<br/>
+    /// </exception>
+    public static FormKey ParseFormKey(string str, bool skipResolve = false)
     {
         // 0 - mod key, 1 - local id, 2 - record type
-        string[] data = fkString.Split('|');
+        string[] data = str.Split('|');
         FormKey formKey = new(data[0], Convert.ToUInt32(data[1], 16));
 
         bool isResolved = skipResolve || TryToResolve(formKey, data[2]);
@@ -156,6 +182,14 @@ public static class Helpers
         _ => false,
     };
 
+    /// <summary>
+    /// Search for the substring in the record name and replace it with another substring.<br/>
+    /// </summary>
+    /// <param name="name">The string to look in (record name)</param>
+    /// <param name="findStr">A string/substring to look for (at least 2 characters)</param>
+    /// <param name="replaceStr">A string/substring to replace with.</param>
+    /// <param name="flags">An array of chars representing regex flags.</param>
+    /// <returns>The record name as a <see cref="string"/>, modified or not.</returns>
     public static string FindReplace(string name, string findStr, string replaceStr, char[] flags)
     {
         string pattern = !flags.Contains('p') ?
@@ -196,6 +230,15 @@ public static class Helpers
         return string.Concat(targetLetters);
     }
 
+    /// <summary>
+    /// Returns the data2 value from the rules entry if the data1 value from the same entry is present in the passed string.<br/>
+    /// </summary>
+    /// <param name="name">A string to search value A in (record name in most cases)</param>
+    /// <param name="rules">JsonArray of rule entries</param>
+    /// <param name="data1">The passed string should contain a value (which is either a string or array of strings) of this key.</param>
+    /// <param name="data2">The value of this key will be returned.</param>
+    /// <param name="strict">True to check if all strings from of the data1 value (if array) present in the passed string.</param>
+    /// <returns>The <see cref="JsonNode"/> with data2 value, or null no entry matches the conditions.</returns>
     public static JsonNode? RuleByName(string name, JsonArray rules, string data1, string data2, bool strict = false)
     {
         // iterating rules from the end for LIFO entries priority
@@ -249,6 +292,17 @@ public static class Helpers
         return match.Success;
     }
 
+    /// <summary>
+    /// Returns the translated string for this-parameter from the JsonNode of translated strings.<br/><br/>
+    /// The method returns translated strings in specified language only if the file with strings for this language<br/>
+    /// exists, otherwise English strings will be used. The name parameter only needed for languages with grammatical<br/>
+    /// gender, and require gendered adjectives and gendered nouns specified (the the guide for details).
+    /// </summary>
+    /// <param name="id">Key name as this-parameter</param>
+    /// <param name="lang">The language to search in first (english if not specified)</param>
+    /// <param name="name">Name of the record for languages with grammatical gender.</param>
+    /// <returns>The <see cref="string"/> for this-parameter from the translated strings node.</returns>
+    /// <exception cref="Exception"><paramref name="id" /> cannot be found in the list of strings.</exception>
     public static string GetT9n(this string id, string lang = "", string name = "")
     {
         if (lang == "") lang = Executor.Settings!.General.GameLanguage.ToString();
@@ -297,6 +351,12 @@ public static class Helpers
         return index <= jsonArr.Count - 1 && jsonArr[index]!.ToString() != "" ? jsonArr[index]!.ToString() : null;
     }
 
+    /// <summary>
+    /// Safe cast of JsonNode elements to the necessary type.<br/>
+    /// </summary>
+    /// <param name="cobj">A JsonNode as this-parameter</param>
+    /// <param name="type">Awaited type</param>
+    /// <returns><see cref="JsonValue"/> as one of the basic types (<see cref="string"/>, <see cref="float"/>, <see cref="int"/>), or null.</returns>
     public static dynamic? AsType(this JsonNode jsonNode, string type)
     {
         if (jsonNode is JsonValue jsonVal)
@@ -321,11 +381,30 @@ public static class Helpers
 
         return null;
     }
+
+    /// <summary>
+    /// Checks if this-parameter string exists in the excluded strings list.<br/>
+    /// </summary>
+    /// <param name="str">A string as this-parameter</param>
+    /// <param name="excludedStrings">A list of strings</param>
+    /// <param name="fullMatch">True to look for this-parameter string as a full string only</param>
+    /// <returns>True if receiver string exists in the excluded strings list</returns>
+    public static bool IsExcluded(this string str, List<string> excludedStrings, bool fullMatch = false)
+    {
+        return fullMatch ? excludedStrings.Any(value => value.Equals(str)) : excludedStrings.Count > 0 && excludedStrings.Any(str.Contains);
+    }
 }
 
 public static class Conditions
 {
-    public static void AddHasPerkCondition(this ConstructibleObject cobj, FormKey perk, CompareOperator type, Condition.Flag flag = 0, int pos = -1)
+    /// <summary>
+    /// Adds a condition with "HasPerk" function to the array of conditions in a constructible object record.<br/>
+    /// </summary>
+    /// <param name="cobj">A constructible object as this-parameter</param>
+    /// <param name="perk">The FormKey of the perk to check</param>
+    /// <param name="flag">Pass Condition.Flag.OR enum to set the OR flag or 0 as None.</param>
+    /// <param name="pos">Condition position in the array of conditions (is the last element by default).</param>
+    public static void AddHasPerkCondition(this ConstructibleObject cobj, FormKey perk, Condition.Flag flag = 0, int pos = -1)
     {
         var hasPerk = new HasPerkConditionData()
         {
@@ -336,13 +415,22 @@ public static class Conditions
         pos = pos == -1 ? cobj.Conditions.Count : pos;
         cobj.Conditions.Insert(pos, new ConditionFloat
         {
-            CompareOperator = type,
+            CompareOperator = CompareOperator.EqualTo,
             Data = hasPerk,
             Flags = flag,
             ComparisonValue = 1
         });
     }
 
+    /// <summary>
+    /// Adds a condition with "GetItemCount" function to the array of conditions in a constructible object record.<br/>
+    /// </summary>
+    /// <param name="cobj">A constructible object as this-parameter</param>
+    /// <param name="item">The FormKey of the item to check</param>
+    /// <param name="type">Compare type enum (CompareOperator.EqualTo, CompareOperator.GreaterThen, etc.).</param>
+    /// <param name="flag">Pass Condition.Flag.OR enum to set the OR flag or 0 as None.</param>
+    /// <param name="pos">Condition position in the array of conditions (is the last element by default).</param>
+    /// <param name="count">Number of items to compare with.</param>
     public static void AddGetItemCountCondition(this ConstructibleObject cobj, FormKey item, CompareOperator type, Condition.Flag flag = 0, int pos = -1, int count = 1)
     {
         var getItemCount = new GetItemCountConditionData()
