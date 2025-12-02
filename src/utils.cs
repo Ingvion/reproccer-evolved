@@ -8,16 +8,10 @@ namespace ReProccer.Utils;
 
 public struct PatchingData(bool nonPlayable = false, bool hasUniqueKeyword = true, ArmorType armorType = ArmorType.Clothing, bool getModified = false)
 {
-    public bool nonPlayableFlag = nonPlayable;
-    public bool uniqueFlag = hasUniqueKeyword;
-    public bool modifiedFlag = getModified;
-    public ArmorType armorTypeEnum = armorType;
-
-    public readonly bool IsNonPlayable() => nonPlayableFlag;
-    public readonly bool IsUnique() => uniqueFlag;
-    public readonly bool IsModified() => modifiedFlag;
-    public readonly ArmorType GetArmorType() => armorTypeEnum;
-    public bool SetModified() => modifiedFlag = true;
+    public bool NonPlayable{ get; set; } = nonPlayable;
+    public bool Unique { get; set; } = hasUniqueKeyword;
+    public ArmorType ArmorType { get; set; } = armorType;
+    public bool Modified { get; set; } = getModified;
 }
 
 public record StaticsMap(
@@ -331,7 +325,7 @@ public static class Helpers
 
 public static class Conditions
 {
-    public static void AddHasPerkCondition(this ConstructibleObject cobj, FormKey perk)
+    public static void AddHasPerkCondition(this ConstructibleObject cobj, FormKey perk, CompareOperator type, Condition.Flag flag = 0, int pos = -1)
     {
         var hasPerk = new HasPerkConditionData()
         {
@@ -339,15 +333,17 @@ public static class Conditions
         };
         hasPerk.Perk.Link.SetTo(perk);
 
-        cobj.Conditions.Add(new ConditionFloat
+        pos = pos == -1 ? cobj.Conditions.Count : pos;
+        cobj.Conditions.Insert(pos, new ConditionFloat
         {
-            CompareOperator = CompareOperator.EqualTo,
+            CompareOperator = type,
             Data = hasPerk,
+            Flags = flag,
             ComparisonValue = 1
         });
     }
 
-    public static void AddGetItemCountCondition(this ConstructibleObject cobj, FormKey item, CompareOperator type, int num)
+    public static void AddGetItemCountCondition(this ConstructibleObject cobj, FormKey item, CompareOperator type, Condition.Flag flag = 0, int pos = -1, int count = 1)
     {
         var getItemCount = new GetItemCountConditionData()
         {
@@ -355,11 +351,13 @@ public static class Conditions
         };
         getItemCount.ItemOrList.Link.SetTo(item);
 
-        cobj.Conditions.Add(new ConditionFloat
+        pos = pos == -1 ? cobj.Conditions.Count : pos;
+        cobj.Conditions.Insert(pos, new ConditionFloat
         {
             CompareOperator = type,
             Data = getItemCount,
-            ComparisonValue = num
+            Flags = flag,
+            ComparisonValue = count
         });
     }
 }
