@@ -26,7 +26,7 @@ public static class ArmorPatcher
     public static void Run()
     {
         UpdateGMST();
-        List<IArmorGetter> records = GetRecords();
+        (List<IArmorGetter> records, List<IConstructibleObjectGetter> recipes) = GetRecords();
         List<List<string>> blacklists = [
             [.. Rules["excludedFromRenaming"]!.AsArray().Select(value => value!.GetValue<string>())],
             [.. Rules["excludedDreamcloth"]!.AsArray().Select(value => value!.GetValue<string>())],
@@ -103,34 +103,38 @@ public static class ArmorPatcher
         }
     }
 
-    private static List<IArmorGetter> GetRecords()
+    private static (List<IArmorGetter> armors, List<IConstructibleObjectGetter> recipes) GetRecords()
     {
-        List<IArmorGetter> records = [];
-        List<string> excludedArmor = [.. Rules["excludedArmor"]!.AsArray().Select(value => value!.GetValue<string>())];
+        IEnumerable<IArmorGetter> armoWinners = Executor.State!.LoadOrder.PriorityOrder
+            .Where(plugin => !Settings.General.IgnoredFiles.Any(name => name == plugin.ModKey.FileName))
+            .Where(plugin => plugin.Enabled)
+            .WinningOverrides<IArmorGetter>();
+
+        Console.WriteLine($"~~~ {armoWinners.Count()} armor records found, filtering... ~~~\n\n"
+            + "====================");
+
+        List<IArmorGetter> armoRecords = [];
+        List<IConstructibleObjectGetter> cobjRecords = [.. Executor.State!.LoadOrder.PriorityOrder
+            .Where(plugin => !Settings.General.IgnoredFiles.Any(name => name == plugin.ModKey.FileName))
+            .Where(plugin => plugin.Enabled)
+            .WinningOverrides<IConstructibleObjectGetter>()];
+
+        List<string> excludedNames = [.. Rules["excludedArmor"]!.AsArray().Select(value => value!.GetValue<string>())];
         List<FormKey> mustHave = [
             GetFormKey("ArmorHeavy", true),
             GetFormKey("ArmorLight", true),
             GetFormKey("ArmorShield", true),
             GetFormKey("ArmorClothing", true),
             GetFormKey("ArmorJewelry", true)
-        ];
-
-        var conflictWinners = State.LoadOrder.PriorityOrder
-        .Where(plugin => !Settings.General.IgnoredFiles.Any(name => name == plugin.ModKey.FileName))
-        .Where(plugin => plugin.Enabled)
-        .WinningOverrides<IArmorGetter>();
-
-        Console.WriteLine($"~~~ {conflictWinners.Count()} armor records found, filtering... ~~~\n\n"
-            + "====================");
-
-        foreach (var armor in conflictWinners)
+];
+        foreach (var record in armoWinners)
         {
-            if (IsValid(armor, excludedArmor, mustHave)) records.Add(armor);
+            if (IsValid(record, excludedNames, mustHave)) armoRecords.Add(record);
         }
 
-        Console.WriteLine($"\n~~~ {records.Count} armor records are eligible for patching ~~~\n\n"
+        Console.WriteLine($"\n~~~ {armoRecords.Count} armor records are eligible for patching ~~~\n\n"
             + "====================");
-        return records;
+        return (armoRecords, cobjRecords);
     }
 
     private static bool IsValid(IArmorGetter armor, List<string> excludedArmor, List<FormKey> mustHave)
