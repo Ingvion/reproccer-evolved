@@ -420,6 +420,62 @@ public static class ArmorPatcher
         if (addedFactions.Count > 0) Report![3].Add($"Faction keywords added: {string.Join(", ", addedFactions)}");
     }
 
+    private static void ProcessRecipes(IArmorGetter armor, List<IConstructibleObjectGetter> allRecipes, List<string> excludedNames)
+    {
+        if (armor.Name!.ToString()!.IsExcluded(excludedNames))
+        {
+            if (Settings.Debug.ShowExcluded) Report![0].Add($"Found in the \"No recipe modifications\" list");
+            return;
+        }
+
+        foreach (var cobj in allRecipes)
+        {
+            if (cobj.CreatedObject.FormKey == armor.FormKey)
+            {
+                if (Settings.Armor.FixCraftRecipes && cobj.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingForge"))
+                {
+                    ModCraftingRecipe(cobj, armor);
+                }
+                //ModTemperingRecipe(cobj, armor);
+            }
+        }
+
+        //AddBreakdownRecipe(armor);
+    }
+
+    private static void ModCraftingRecipe(IConstructibleObjectGetter recipe, IArmorGetter armor)
+    {
+        foreach (var material in LightMaterials)
+        {
+            if (recipe.Conditions.Count != 0)
+            {
+                if (material.Perk != null
+                    && recipe.Conditions.Any(condition => condition.Data is HasPerkConditionData hasPerk
+                    && material.Perk.Any(perk => hasPerk.Perk.Link.FormKey == perk)))
+                {
+                    return;
+                }
+            }
+        }
+
+        bool isLeather = false;
+        foreach (var material in LightMaterials)
+        {
+            if (material.Perk != null
+                && material.Perk[0] == GetFormKey("skyre_SMTLeathercraft") 
+                && armor.Keywords!.Contains((FormKey)material.Kwda!))
+            {
+                isLeather = true;
+                break;
+            }
+        }
+
+        if (isLeather)
+        {
+            ConstructibleObject cobj = Executor.State!.PatchMod.ConstructibleObjects.GetOrAddAsOverride(recipe);
+            cobj.AddHasPerkCondition(GetFormKey("skyre_SMTLeathercraft"));
+        }
+    }
     private static void ProcessClothing(IArmorGetter armor, List<string> excluded)
     {
         if (!Settings.Armor.NoClothingBreak)
