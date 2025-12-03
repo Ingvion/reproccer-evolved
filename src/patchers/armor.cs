@@ -1,8 +1,6 @@
 ﻿using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Skyrim;
-using Mutagen.Bethesda.Synthesis;
-using ReProccer.Config;
 using ReProccer.Utils;
 using System.Text.Json.Nodes;
 
@@ -10,8 +8,7 @@ namespace ReProccer.Patchers;
 
 public static class ArmorPatcher
 {
-    private static readonly IPatcherState<ISkyrimMod, ISkyrimModGetter> State = Executor.State!;
-    private static readonly AllSettings Settings = Executor.Settings!;
+    private static readonly Config.AllSettings Settings = Executor.Settings!;
     private static readonly JsonObject Rules = Executor.Rules!["armor"]!.AsObject();
     private static readonly List<StaticsMap>? LocalStatics = BuildStatics();
 
@@ -19,6 +16,7 @@ public static class ArmorPatcher
     private static readonly List<DataMap> LightMaterials = BuildLightMaterialsMap();
     private static readonly List<DataMap> AllMaterials = [.. HeavyMaterials.Union(LightMaterials)];
     private static readonly List<DataMap> FactionBinds = BuildFactionBindsMap();
+
     private static Armor? PatchedRecord;
     private static PatchingData RecordData;
     private static List<List<string>>? Report;
@@ -86,8 +84,8 @@ public static class ArmorPatcher
     {
         FormKey armorScalingFactor = new("Skyrim.esm", 0x021a72);
 
-        IGameSettingGetter conflictWinner = State.LinkCache.Resolve<IGameSettingGetter>(armorScalingFactor);
-        GameSetting record = State.PatchMod.GameSettings.GetOrAddAsOverride(conflictWinner);
+        IGameSettingGetter conflictWinner = Executor.State!.LinkCache.Resolve<IGameSettingGetter>(armorScalingFactor);
+        GameSetting record = Executor.State!.PatchMod.GameSettings.GetOrAddAsOverride(conflictWinner);
 
         if (record is GameSettingFloat gmstArmorScalingFactor)
         {
@@ -96,8 +94,8 @@ public static class ArmorPatcher
 
         FormKey maxArmorRating = new("Skyrim.esm", 0x037deb);
 
-        conflictWinner = State.LinkCache.Resolve<IGameSettingGetter>(maxArmorRating);
-        record = State.PatchMod.GameSettings.GetOrAddAsOverride(conflictWinner);
+        conflictWinner = Executor.State!.LinkCache.Resolve<IGameSettingGetter>(maxArmorRating);
+        record = Executor.State!.PatchMod.GameSettings.GetOrAddAsOverride(conflictWinner);
 
         if (record is GameSettingFloat gmstMaxArmorRating)
         {
@@ -457,8 +455,8 @@ public static class ArmorPatcher
         string newName = GetAsOverride(armor).Name!.ToString() + label;
         string newEdId = "RP_ARMO_" + armor.EditorID!.ToString();
 
-        Armor newArmor = State.PatchMod.Armors.DuplicateInAsNewRecord(GetAsOverride(armor));
-        if (!isModified) State.PatchMod.Armors.Remove(armor);
+        Armor newArmor = Executor.State!.PatchMod.Armors.DuplicateInAsNewRecord(GetAsOverride(armor));
+        if (!isModified) Executor.State!.PatchMod.Armors.Remove(armor);
 
         newArmor.Name = newName;
         newArmor.EditorID = newEdId;
@@ -497,7 +495,7 @@ public static class ArmorPatcher
     {
         var linkCache = Executor.State!.LinkCache;
         string newEdId = "RP_CRAFT_ARMO_" + oldArmor.EditorID!.ToString();
-        ConstructibleObject cobj = State.PatchMod.ConstructibleObjects.AddNew();
+        ConstructibleObject cobj = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
 
         cobj.EditorID = newEdId;
         cobj.Items = [];
@@ -516,15 +514,15 @@ public static class ArmorPatcher
             switch (entry.Type)
             {
                 case "SLGM":
-                    newItem.Item = linkCache.Resolve<ISoulGemGetter>(entry.Ingr).ToNullableLink();
+                    newItem.Item = Executor.State!.Resolve<ISoulGemGetter>(entry.Ingr).ToNullableLink();
                     break;
 
                 case "MISC":
-                    newItem.Item = linkCache.Resolve<IMiscItemGetter>(entry.Ingr).ToNullableLink();
+                    newItem.Item = Executor.State!.Resolve<IMiscItemGetter>(entry.Ingr).ToNullableLink();
                     break;
 
                 case "INGR":
-                    newItem.Item = linkCache.Resolve<IIngredientGetter>(entry.Ingr).ToNullableLink();
+                    newItem.Item = Executor.State!.Resolve<IIngredientGetter>(entry.Ingr).ToNullableLink();
                     break;
             }
 
@@ -541,7 +539,7 @@ public static class ArmorPatcher
         }
 
         cobj.CreatedObject = newArmor.ToNullableLink();
-        cobj.WorkbenchKeyword = linkCache.Resolve<IKeywordGetter>(GetFormKey("CraftingTanningRack")).ToNullableLink();
+        cobj.WorkbenchKeyword = Executor.State!.Resolve<IKeywordGetter>(GetFormKey("CraftingTanningRack")).ToNullableLink();
         cobj.CreatedObjectCount = 1;
     }
 
@@ -554,7 +552,7 @@ public static class ArmorPatcher
     private static Armor GetAsOverride(this IArmorGetter armor)
     {
         if (!RecordData.Modified) RecordData.Modified = true;
-        return PatchedRecord?.FormKey != armor.FormKey ? State.PatchMod.Armors.GetOrAddAsOverride(armor) : PatchedRecord;
+        return PatchedRecord?.FormKey != armor.FormKey ? Executor.State!.PatchMod.Armors.GetOrAddAsOverride(armor) : PatchedRecord;
     }
 
     private static void ShowReport(IArmorGetter armor, List<List<string>> msgList)
