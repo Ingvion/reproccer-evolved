@@ -76,6 +76,9 @@ public static class ArmorPatcher
         }
     }
 
+    /// <summary>
+    /// Modifies the fArmorScalingFactor and fMaxArmorRating game settings.
+    /// </summary>
     private static void UpdateGMST()
     {
         FormKey armorScalingFactor = new("Skyrim.esm", 0x021a72);
@@ -99,6 +102,10 @@ public static class ArmorPatcher
         }
     }
 
+    /// <summary>
+    /// Records loader.
+    /// </summary>
+    /// <returns>The list of armor records eligible for patching.</returns>
     private static (List<IArmorGetter> armors, List<IConstructibleObjectGetter> recipes) GetRecords()
     {
         IEnumerable<IArmorGetter> armoWinners = Executor.State!.LoadOrder.PriorityOrder
@@ -133,6 +140,12 @@ public static class ArmorPatcher
         return (armoRecords, cobjRecords);
     }
 
+    /// <summary>
+    /// Checks if the armor matches necessary conditions to be patched.
+    /// </summary>
+    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <param name="excludedNames">The list of excluded strings.</param>
+    /// <param name="excludedNames">The list of keywords formkeys of which at least one must be present on armor.</param>
     private static bool IsValid(IArmorGetter armor, List<string> excludedNames, List<FormKey> mustHave)
     {
         Report = [[], [], [], []];
@@ -177,6 +190,11 @@ public static class ArmorPatcher
         return true;
     }
 
+    /// <summary>
+    /// Renames any type of armor records according to the rules.
+    /// </summary>
+    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <param name="excludedNames">The list of excluded strings.</param>
     private static void PatchRecordNames(IArmorGetter armor, List<string> excludedNames)
     {
         if (armor.Name!.ToString()!.IsExcluded(excludedNames))
@@ -241,6 +259,10 @@ public static class ArmorPatcher
         }
     }
 
+    /// <summary>
+    /// Modifies armors materials according to the rules.
+    /// </summary>
+    /// <param name="armor">The armor record as IArmorGetter.</param>
     private static void SetOverriddenData(IArmorGetter armor)
     {
         JsonNode? overrideNode = Helpers.RuleByName(
@@ -281,6 +303,11 @@ public static class ArmorPatcher
         }
     }
 
+    /// <summary>
+    /// Distributes shield weight keywords and modifies shields' impact data set and material type.
+    /// </summary>
+    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <param name="armorType">The armor type as enum.</param>
     private static void PatchShieldWeight(IArmorGetter armor, ArmorType armorType)
     {
         if (!armor.Keywords!.Contains(GetFormKey("ArmorShield", true))) return;
@@ -299,6 +326,10 @@ public static class ArmorPatcher
         }
     }
 
+    /// <summary>
+    /// Modifies the armor rating based on other methods' results.
+    /// </summary>
+    /// <param name="armor">The armor record as IArmorGetter.</param>
     private static void PatchArmorRating(IArmorGetter armor)
     {
         float? slotFactor = GetSlotFactor(armor);
@@ -316,6 +347,11 @@ public static class ArmorPatcher
         }
     }
 
+    /// <summary>
+    /// Returns the armor rating slot modifier according to the settings.
+    /// </summary>
+    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <returns>Armor rating slot modifier as <see cref="float"/>, or null if the armor has no slot keyword.</returns>
     private static float? GetSlotFactor (IArmorGetter armor)
     {
         if (armor.Keywords!.Contains(GetFormKey("ArmorSlotBoots", true)))
@@ -343,6 +379,11 @@ public static class ArmorPatcher
         return null;
     }
 
+    /// <summary>
+    /// Returns the armor rating material modifier according to the rules.
+    /// </summary>
+    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <returns>Armor rating material modifier as <see cref="int"/>, or null if there's no rule or value has incorrect type.</returns>
     private static int? GetMaterialFactor(IArmorGetter armor)
     {
         string? materialId = null;
@@ -376,6 +417,11 @@ public static class ArmorPatcher
         return null;
     }
 
+    /// <summary>
+    /// Returns the armor rating multipier according to the rules.
+    /// </summary>
+    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <returns>Armor rating multipier as <see cref="float"/>.</returns>
     private static float GetExtraArmorMod(IArmorGetter armor)
     {
         JsonNode? modifierNode = Helpers.RuleByName(armor.Name!.ToString()!, Rules["armorModifiers"]!.AsArray(), data1: "names", data2: "multiplier");
@@ -394,6 +440,10 @@ public static class ArmorPatcher
         return 1.0f;
     }
 
+    /// <summary>
+    /// Adds faction keywords for the Masquerade perk to clothig in accordance to the rules.
+    /// </summary>
+    /// <param name="armor">The armor record as IArmorGetter.</param>
     private static void PatchMasqueradeKeywords(IArmorGetter armor)
     {
         JsonArray rules = Rules["masquerade"]!.AsArray();
@@ -420,6 +470,12 @@ public static class ArmorPatcher
         if (addedFactions.Count > 0) Report![3].Add($"Faction keywords added: {string.Join(", ", addedFactions)}");
     }
 
+    /// <summary>
+    /// Recipes processor.
+    /// </summary>
+    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <param name="allRecipes">List of all constructible object records.</param>
+    /// <param name="excludedNames">The list of excluded strings.</param>
     private static void ProcessRecipes(IArmorGetter armor, List<IConstructibleObjectGetter> allRecipes, List<string> excludedNames)
     {
         if (armor.Name!.ToString()!.IsExcluded(excludedNames))
@@ -443,6 +499,14 @@ public static class ArmorPatcher
         //AddBreakdownRecipe(armor);
     }
 
+    /// <summary>
+    /// Modifies crafting recipes for the armor.<br/><br/>
+    /// The method adds the HasPerk-type condition with the Leathercraft perk to the crafting recipe<br/>
+    /// if the armor have keywords with this perk associated with them (see the materials map below).<br/> 
+    /// Only crafting recipes with no HasPerk-type conditions with other smithing perks will be modified. 
+    /// </summary>
+    /// <param name="recipe">The tempering recipe record as IConstructibleObjectGetter.</param>
+    /// <param name="armor">The armor record as IArmorGetter.</param>
     private static void ModCraftingRecipe(IConstructibleObjectGetter recipe, IArmorGetter armor)
     {
         foreach (var material in LightMaterials)
@@ -477,6 +541,14 @@ public static class ArmorPatcher
         }
     }
 
+    /// <summary>
+    /// Modifies tempering recipes for the armor.<br/><br/>
+    /// The method removes existing HasPerk-type conditions, where perk is a smithing perk, and adds<br/>
+    /// new ones corresponding to the armor's keywords. If more than 1 perk is associated with a keyword,<br/>
+    /// all but the last HasPerk-type conditions will have the OR flag.
+    /// </summary>
+    /// <param name="recipe">The tempering recipe record as IConstructibleObjectGetter.</param>
+    /// <param name="armor">The armor record as IArmorGetter.</param>
     private static void ModTemperingRecipe(IConstructibleObjectGetter recipe, IArmorGetter armor)
     {
         if (recipe.Conditions.Count != 0 && recipe.Conditions.Any(condition => condition.Data is EPTemperingItemIsEnchantedConditionData))
@@ -516,6 +588,9 @@ public static class ArmorPatcher
         }
     }
 
+    /// <summary>
+    /// Clothing processor.<br/>
+    /// </summary>
     private static void ProcessClothing(IArmorGetter armor, List<string> excluded)
     {
         if (!Settings.Armor.NoClothingBreak)
@@ -526,10 +601,14 @@ public static class ArmorPatcher
         CreateDreamcloth(armor, excluded);
     }
 
+    /// <summary>
+    /// Generates the Dreamcloth variant for the armor.<br/>
+    /// </summary>
+    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <param name="excludedNames">The list of excluded strings.</param>
     private static void CreateDreamcloth(IArmorGetter armor, List<string> excludedNames)
     {
-        if (excludedNames.Count > 0
-            && excludedNames.Any(name => armor.Name!.ToString()!.Contains(name)))
+        if (armor.Name!.ToString()!.IsExcluded(excludedNames))
         {
             if (Settings.Debug.ShowExcluded) Report![0].Add($"Found in the \"No Dreamcloth variant\" list");
             return;
@@ -579,11 +658,17 @@ public static class ArmorPatcher
             ingredients[1] = ingredients[1] with { Qty = 2 };
         }
 
-        AddCraftingRecipe(GetAsOverride(newArmor), armor, GetFormKey("skyre_SMTWeavingMill"), ingredients);
+        AddCraftingRecipe(GetAsOverride(newArmor), armor, ingredients);
         //AddBreakdownRecipe(newArmor, GetFormKey("WispWrappings"), []);
     }
 
-    private static void AddCraftingRecipe(IArmorGetter newArmor, IArmorGetter oldArmor, FormKey perk, List<IngredientsMap> ingredients)
+    /// <summary>
+    /// Generates the crafting recipe for the Dreamcloth variant (newArmor).<br/>
+    /// </summary>
+    /// <param name="newArmor">The Dreamcloth variant of the oldArmor as IArmorGetter.</param>
+    /// <param name="oldArmor">The armor record as IArmorGetter.</param>
+    /// <param name="ingredients">List of ingredients and their quantity.</param>
+    private static void AddCraftingRecipe(IArmorGetter newArmor, IArmorGetter oldArmor, List<IngredientsMap> ingredients)
     {
         string newEdId = "RP_CRAFT_ARMO_" + oldArmor.EditorID!.ToString();
         ConstructibleObject cobj = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
@@ -623,7 +708,7 @@ public static class ArmorPatcher
             cobj.Items.Add(newEntry);
         }
 
-        cobj.AddHasPerkCondition(perk);
+        cobj.AddHasPerkCondition(GetFormKey("skyre_SMTWeavingMill"));
         if (!Settings.Armor.ShowAllRecipes)
         {
             cobj.AddGetItemCountCondition(oldArmor.FormKey, CompareOperator.GreaterThanOrEqualTo, 0, -1); 
@@ -660,7 +745,7 @@ public static class ArmorPatcher
     }
 
     /// <summary>
-    /// Displays logs of various severity.<br/>
+    /// Displays info and errors.<br/>
     /// </summary>
     /// <param name="armor">The armor record as IArmorGetter.</param>
     /// <param name="msgList">The list of list of strings with messages.</param>
