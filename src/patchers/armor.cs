@@ -480,19 +480,22 @@ public static class ArmorPatcher
     {
         if (armor.Name!.ToString()!.IsExcluded(excludedNames))
         {
-            if (Settings.Debug.ShowExcluded) Report![0].Add($"Found in the \"No recipe modifications\" list");
-            return;
+            if (Settings.Debug.ShowExcluded)
+            {
+                Report![0].Add($"Found in the \"No recipe modifications\" list");
+                return;
+            }
         }
 
         foreach (var cobj in allRecipes)
         {
             if (cobj.CreatedObject.FormKey == armor.FormKey)
             {
-                if (Settings.Armor.FixCraftRecipes && cobj.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingForge"))
-                {
+                if (Settings.Armor.FixCraftRecipes && cobj.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingForge")) 
                     ModCraftingRecipe(cobj, armor);
-                }
-                ModTemperingRecipe(cobj, armor);
+
+                if (cobj.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingArmorTable", true)) 
+                    ModTemperingRecipe(cobj, armor);
             }
         }
 
@@ -715,7 +718,7 @@ public static class ArmorPatcher
         }
 
         cobj.CreatedObject = newArmor.ToNullableLink();
-        cobj.WorkbenchKeyword = Executor.State!.LinkCache.Resolve<IKeywordGetter>(GetFormKey("CraftingTanningRack")).ToNullableLink();
+        cobj.WorkbenchKeyword = Executor.State!.LinkCache.Resolve<IKeywordGetter>(GetFormKey("CraftingTanningRack", true)).ToNullableLink();
         cobj.CreatedObjectCount = 1;
     }
 
@@ -786,11 +789,13 @@ public static class ArmorPatcher
         new(Id: "ArmorSlotBoots",                         Formkey: Helpers.ParseFormKey("Skyrim.esm|0x06c0ed|KWDA")                  ),
         new(Id: "ArmorSlotHelmet",                        Formkey: Helpers.ParseFormKey("Skyrim.esm|0x06c0ee|KWDA")                  ),
         new(Id: "ArmorSlotGauntlets",                     Formkey: Helpers.ParseFormKey("Skyrim.esm|0x06c0ef|KWDA")                  ),
+        new(Id: "CraftingTanningRack",                    Formkey: Helpers.ParseFormKey("Skyrim.esm|0x07866a|KWDA")                  ),
         new(Id: "VendorItemArmor",                        Formkey: Helpers.ParseFormKey("Skyrim.esm|0x08f959|KWDA")                  ),
         new(Id: "VendorItemJewelry",                      Formkey: Helpers.ParseFormKey("Skyrim.esm|0x08f95a|KWDA")                  ),
         new(Id: "VendorItemClothing",                     Formkey: Helpers.ParseFormKey("Skyrim.esm|0x08f95b|KWDA")                  ),
         new(Id: "ArmorShield",                            Formkey: Helpers.ParseFormKey("Skyrim.esm|0x0965b2|KWDA")                  ),
         new(Id: "ClothingBody",                           Formkey: Helpers.ParseFormKey("Skyrim.esm|0x0a8657|KWDA")                  ),
+        new(Id: "CraftingSmithingArmorTable",             Formkey: Helpers.ParseFormKey("Skyrim.esm|0x0adb78|KWDA")                  ),
         new(Id: "ClothingHead",                           Formkey: Helpers.ParseFormKey("Skyrim.esm|0x10cd11|KWDA")                  ),
         new(Id: "MaterialShieldLight",                    Formkey: Helpers.ParseFormKey("Skyrim.esm|0x016978|KWDA", true)            ),
         new(Id: "MaterialShieldHeavy",                    Formkey: Helpers.ParseFormKey("Skyrim.esm|0x016979|KWDA", true)            ),
