@@ -8,7 +8,7 @@ namespace ReProccer.Patchers;
 
 public static class ArmorPatcher
 {
-    private static readonly Config.AllSettings Settings = Executor.Settings!;
+    private static readonly Settings.AllSettings Settings = Executor.Settings!;
     private static readonly JsonObject Rules = Executor.Rules!["armor"]!.AsObject();
     private static readonly List<StaticsMap>? LocalStatics = BuildStatics();
 

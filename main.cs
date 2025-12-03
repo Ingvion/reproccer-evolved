@@ -1,6 +1,5 @@
 ﻿using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Synthesis;
-using ReProccer.Config;
 using ReProccer.Utils;
 using System.Text.Json.Nodes;
 
@@ -13,8 +12,8 @@ static class Executor
     internal static List<StaticsMap>? Statics;
     internal static IPatcherState<ISkyrimMod, ISkyrimModGetter>? State;
 
-    internal static Lazy<AllSettings> AllSettings = new();
-    internal static AllSettings? Settings;
+    internal static Lazy<Settings.AllSettings> AllSettings = new();
+    internal static Settings.AllSettings? Settings;
 
     // entry point
     public static async Task<int> Main(string[] args)

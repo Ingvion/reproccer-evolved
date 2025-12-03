@@ -1,6 +1,6 @@
 using Mutagen.Bethesda.WPF.Reflection.Attributes;
 
-namespace ReProccer.Config;
+namespace ReProccer.Settings;
 
 public enum Language
 {
