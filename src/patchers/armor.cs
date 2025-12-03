@@ -515,6 +515,7 @@ public static class ArmorPatcher
             }
         }
     }
+
     private static void ProcessClothing(IArmorGetter armor, List<string> excluded)
     {
         if (!Settings.Armor.NoClothingBreak)
@@ -579,7 +580,7 @@ public static class ArmorPatcher
         }
 
         AddCraftingRecipe(GetAsOverride(newArmor), armor, GetFormKey("skyre_SMTWeavingMill"), ingredients);
-        //AddMeltdownRecipe(newArmor, GetFormKey("WispWrappings"), []);
+        //AddBreakdownRecipe(newArmor, GetFormKey("WispWrappings"), []);
     }
 
     private static void AddCraftingRecipe(IArmorGetter newArmor, IArmorGetter oldArmor, FormKey perk, List<IngredientsMap> ingredients)
@@ -634,17 +635,35 @@ public static class ArmorPatcher
     }
 
     // local patcher helpers
+
+    /// <summary>
+    /// Returns the FormKey with id from the statics list.<br/>
+    /// </summary>
+    /// <param name="id">The id of the FormKey to return.</param>
+    /// <param name="local">Look for a FormKey in the local statics list (for this patcher only)</param>
+    /// <returns>A FormKey from the statics list.</returns>
     private static FormKey GetFormKey(string id, bool local = false)
     {
         return (local ? LocalStatics! : Executor.Statics!).First(elem => elem.Id == id).Formkey;
     }
 
+    /// <summary>
+    /// Returns the winning override for this-parameter, and copies it to the patch file.<br/>
+    /// Marks it as modified in local record data.
+    /// </summary>
+    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <returns>The winning override as Armor.</returns>
     private static Armor GetAsOverride(this IArmorGetter armor)
     {
         if (!RecordData.Modified) RecordData.Modified = true;
         return PatchedRecord?.FormKey != armor.FormKey ? Executor.State!.PatchMod.Armors.GetOrAddAsOverride(armor) : PatchedRecord;
     }
 
+    /// <summary>
+    /// Displays logs of various severity.<br/>
+    /// </summary>
+    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <param name="msgList">The list of list of strings with messages.</param>
     private static void ShowReport(IArmorGetter armor, List<List<string>> msgList)
     {
         if (msgList[0].Count > 0) Log(armor, "~ INFO", msgList[0]);
