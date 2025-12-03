@@ -48,7 +48,7 @@ public static class ArmorPatcher
 
             /* armor records with templates inherit their data from the template, but have unique names;
                jewelry type clothing items require no other patching */
-            if (!armor.TemplateArmor.IsNull || (RecordData.GetArmorType() == ArmorType.Clothing
+            if (!armor.TemplateArmor.IsNull || (RecordData.ArmorType == ArmorType.Clothing
                 && armor.Keywords!.Contains(GetFormKey("ArmorJewelry", true))))
             {
                 PatchRecordNames(armor, blacklists[0]);
@@ -58,17 +58,17 @@ public static class ArmorPatcher
 
             SetOverriddenData(armor);
 
-            if (RecordData.GetArmorType() != ArmorType.Clothing)
+            if (RecordData.ArmorType != ArmorType.Clothing)
             {
-                PatchShieldWeight(armor, RecordData.GetArmorType());
+                PatchShieldWeight(armor, RecordData.ArmorType);
                 PatchArmorRating(armor);
             }
 
-            if (!RecordData.IsNonPlayable())
+            if (!RecordData.NonPlayable)
             {
                 PatchRecordNames(armor, blacklists[0]);
                 PatchMasqueradeKeywords(armor);
-                if (RecordData.GetArmorType() == ArmorType.Clothing)
+                if (RecordData.ArmorType == ArmorType.Clothing)
                 {
                     ProcessClothing(armor, blacklists[1]);
                     ShowReport(armor, Report);
@@ -198,7 +198,7 @@ public static class ArmorPatcher
                 if (filter != "")
                 {
                     string[] filterArr = filter.Split(',');
-                    if (!filterArr.Any(type => RecordData.GetArmorType().ToString() == type.Replace(" ", "")))
+                    if (!filterArr.Any(type => RecordData.ArmorType.ToString() == type.Replace(" ", "")))
                     {
                         continue;
                     }
@@ -396,7 +396,7 @@ public static class ArmorPatcher
             if (!namesArr.Any(word => armor.Name!.ToString()!.Contains(word))) continue;
 
             string[] filterArr = rule!["filter"]?.ToString().Replace(" ", "").Split(',') ?? [];
-            if (filterArr.Length != 0 && !filterArr.Any(type => type == RecordData.GetArmorType().ToString())) continue;
+            if (filterArr.Length != 0 && !filterArr.Any(type => type == RecordData.ArmorType.ToString())) continue;
 
             string factions = rule!["faction"]!.ToString();
             foreach (var entry in FactionBinds)
@@ -430,13 +430,13 @@ public static class ArmorPatcher
             return;
         }
 
-        if (!armor.TemplateArmor.IsNull || RecordData.IsUnique())
+        if (!armor.TemplateArmor.IsNull || RecordData.Unique)
         {
             Report![2].Add($"Cannot have a Dreamcloth variant due to being unique or having a template.");
             return;
         }
 
-        bool isModified = RecordData.IsModified();
+        bool isModified = RecordData.Modified;
 
         string label = Settings.Armor.DreamclothLabel == "" ? $" [{"name_dcloth".GetT9n()}]" : Settings.Armor.DreamclothLabel;
         string newName = GetAsOverride(armor).Name!.ToString() + label;
@@ -522,7 +522,7 @@ public static class ArmorPatcher
         cobj.AddHasPerkCondition(perk);
         if (!Settings.Armor.ShowAllRecipes)
         {
-            cobj.AddGetItemCountCondition(oldArmor.FormKey, CompareOperator.GreaterThanOrEqualTo, 1); 
+            cobj.AddGetItemCountCondition(oldArmor.FormKey, CompareOperator.GreaterThanOrEqualTo, 0, -1); 
         }
 
         cobj.CreatedObject = newArmor.ToNullableLink();
@@ -538,7 +538,7 @@ public static class ArmorPatcher
 
     private static Armor GetAsOverride(this IArmorGetter armor)
     {
-        if (!RecordData.IsModified()) RecordData.SetModified();
+        if (!RecordData.Modified) RecordData.Modified = true;
         return PatchedRecord?.FormKey != armor.FormKey ? State.PatchMod.Armors.GetOrAddAsOverride(armor) : PatchedRecord;
     }
 
@@ -556,7 +556,7 @@ public static class ArmorPatcher
 
     private static void Log(IArmorGetter armor, string prefix, string message)
     {
-        if (Settings.Debug.ShowNonPlayable || !RecordData.IsNonPlayable())
+        if (Settings.Debug.ShowNonPlayable || !RecordData.NonPlayable)
         {
             Console.WriteLine($"{prefix}: {armor.Name} ({armor.FormKey}): {message}\n"
                 + "====================");
@@ -565,9 +565,9 @@ public static class ArmorPatcher
 
     private static void Log(IArmorGetter armor, string prefix, List<string> messages)
     {
-        if (Settings.Debug.ShowNonPlayable || !RecordData.IsNonPlayable())
+        if (Settings.Debug.ShowNonPlayable || !RecordData.NonPlayable)
         {
-            string note = RecordData.IsNonPlayable() ? " | NON-PLAYABLE" : "";
+            string note = RecordData.NonPlayable ? " | NON-PLAYABLE" : "";
             Console.WriteLine($"{prefix} | {armor.Name} ({armor.FormKey}){note}");
             foreach(var msg in messages)
             {
