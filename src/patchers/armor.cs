@@ -31,8 +31,6 @@ public static class ArmorPatcher
             [.. Rules["excludedFromRecipes"]!.AsArray().Select(value => value!.GetValue<string>())]
         ];
 
-        string[] verboseFilter = Settings.Debug.VerboseDataFilter.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
         foreach (var armor in records)
         {
             PatchedRecord = null;
@@ -45,8 +43,6 @@ public static class ArmorPatcher
                 hasUniqueKeyword: armor.Keywords!.Contains(GetFormKey("skyre__NoMeltdownRecipes")),
                 armorType: armor.BodyTemplate!.ArmorType);
 
-            /* armor records with templates inherit their data from the template, but have unique names;
-               jewelry type clothing items require no other patching */
             if (!armor.TemplateArmor.IsNull || (RecordData.ArmorType == ArmorType.Clothing
                 && armor.Keywords!.Contains(GetFormKey("ArmorJewelry", true))))
             {
@@ -137,11 +133,12 @@ public static class ArmorPatcher
         return (armoRecords, cobjRecords);
     }
 
-    private static bool IsValid(IArmorGetter armor, List<string> excludedArmor, List<FormKey> mustHave)
+    private static bool IsValid(IArmorGetter armor, List<string> excludedNames, List<FormKey> mustHave)
     {
         Report = [[], [], [], []];
+
         // invalid if found in the excluded records list by edid
-        if (Settings.General.ExclByEdID && excludedArmor.Any(value => value.Equals(armor.EditorID)))
+        if (Settings.General.ExclByEdID && armor.EditorID!.IsExcluded(excludedNames, true))
         {
             if (Settings.Debug.ShowExcluded) 
             { 
@@ -155,7 +152,7 @@ public static class ArmorPatcher
         if (armor.Name == null) return false;
 
         // invalid if found in the excluded records list by name
-        if (excludedArmor.Any(value => armor.Name!.ToString()!.Contains(value)))
+        if (armor.Name!.ToString()!.IsExcluded(excludedNames))
         {
             if (Settings.Debug.ShowExcluded)
             {
@@ -180,10 +177,9 @@ public static class ArmorPatcher
         return true;
     }
 
-    private static void PatchRecordNames(IArmorGetter armor, List<string> renamingBlacklist)
+    private static void PatchRecordNames(IArmorGetter armor, List<string> excludedNames)
     {
-        if (renamingBlacklist.Count > 0
-            && renamingBlacklist.Any(value => armor.Name!.ToString()!.Contains(value)))
+        if (armor.Name!.ToString()!.IsExcluded(excludedNames))
         {
             if (Settings.Debug.ShowExcluded) Report![0].Add($"Found in the \"No renaming\" list");
             return;
@@ -424,20 +420,20 @@ public static class ArmorPatcher
         if (addedFactions.Count > 0) Report![3].Add($"Faction keywords added: {string.Join(", ", addedFactions)}");
     }
 
-    private static void ProcessClothing(IArmorGetter armor, List<string> clothingBlacklist)
+    private static void ProcessClothing(IArmorGetter armor, List<string> excluded)
     {
         if (!Settings.Armor.NoClothingBreak)
         {
             //AddMeltdownRecipe(armor);
         }
 
-        CreateDreamcloth(armor, clothingBlacklist);
+        CreateDreamcloth(armor, excluded);
     }
 
-    private static void CreateDreamcloth(IArmorGetter armor, List<string> clothingBlacklist)
+    private static void CreateDreamcloth(IArmorGetter armor, List<string> excludedNames)
     {
-        if (clothingBlacklist.Count > 0
-            && clothingBlacklist.Any(value => armor.Name!.ToString()!.Contains(value)))
+        if (excludedNames.Count > 0
+            && excludedNames.Any(name => armor.Name!.ToString()!.Contains(name)))
         {
             if (Settings.Debug.ShowExcluded) Report![0].Add($"Found in the \"No Dreamcloth variant\" list");
             return;
@@ -493,7 +489,6 @@ public static class ArmorPatcher
 
     private static void AddCraftingRecipe(IArmorGetter newArmor, IArmorGetter oldArmor, FormKey perk, List<IngredientsMap> ingredients)
     {
-        var linkCache = Executor.State!.LinkCache;
         string newEdId = "RP_CRAFT_ARMO_" + oldArmor.EditorID!.ToString();
         ConstructibleObject cobj = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
 
@@ -514,15 +509,15 @@ public static class ArmorPatcher
             switch (entry.Type)
             {
                 case "SLGM":
-                    newItem.Item = Executor.State!.Resolve<ISoulGemGetter>(entry.Ingr).ToNullableLink();
+                    newItem.Item = Executor.State!.LinkCache.Resolve<ISoulGemGetter>(entry.Ingr).ToNullableLink();
                     break;
 
                 case "MISC":
-                    newItem.Item = Executor.State!.Resolve<IMiscItemGetter>(entry.Ingr).ToNullableLink();
+                    newItem.Item = Executor.State!.LinkCache.Resolve<IMiscItemGetter>(entry.Ingr).ToNullableLink();
                     break;
 
                 case "INGR":
-                    newItem.Item = Executor.State!.Resolve<IIngredientGetter>(entry.Ingr).ToNullableLink();
+                    newItem.Item = Executor.State!.LinkCache.Resolve<IIngredientGetter>(entry.Ingr).ToNullableLink();
                     break;
             }
 
@@ -539,7 +534,7 @@ public static class ArmorPatcher
         }
 
         cobj.CreatedObject = newArmor.ToNullableLink();
-        cobj.WorkbenchKeyword = Executor.State!.Resolve<IKeywordGetter>(GetFormKey("CraftingTanningRack")).ToNullableLink();
+        cobj.WorkbenchKeyword = Executor.State!.LinkCache.Resolve<IKeywordGetter>(GetFormKey("CraftingTanningRack")).ToNullableLink();
         cobj.CreatedObjectCount = 1;
     }
 
