@@ -38,7 +38,8 @@ public static class ArmorPatcher
         foreach (var armor in records)
         {
             PatchedRecord = null;
-            Report = [ [], [], [] ];
+            // 0 info, 1 caution, 2 errors, 3 report
+            Report = [[], [], [], []];
 
             // storing some data publicly to avoid sequential passing of arguments
             RecordData = new PatchingData(
@@ -76,6 +77,7 @@ public static class ArmorPatcher
                 }
             }
 
+            ProcessRecipes(armor, recipes, blacklists[2]);
             ShowReport(armor, Report);
         }
     }
@@ -139,10 +141,15 @@ public static class ArmorPatcher
 
     private static bool IsValid(IArmorGetter armor, List<string> excludedArmor, List<FormKey> mustHave)
     {
+        Report = [[], [], [], []];
         // invalid if found in the excluded records list by edid
         if (Settings.General.ExclByEdID && excludedArmor.Any(value => value.Equals(armor.EditorID)))
         {
-            if (Settings.Debug.ShowExcluded) Log(armor, "~ INFO", $"found in the exclusion list (as {armor.EditorID}).");
+            if (Settings.Debug.ShowExcluded) 
+            { 
+                Report![0].Add($"found in the \"No patching\" list by EditorID (as {armor.EditorID})");
+                ShowReport(armor, Report);
+            }
             return false;
         }
 
@@ -152,7 +159,11 @@ public static class ArmorPatcher
         // invalid if found in the excluded records list by name
         if (excludedArmor.Any(value => armor.Name!.ToString()!.Contains(value)))
         {
-            if (Settings.Debug.ShowExcluded) Log(armor, "~ INFO", "found in the exclusion list.");
+            if (Settings.Debug.ShowExcluded)
+            {
+                Report![0].Add($"found in the \"No patching\" list by name");
+                ShowReport(armor, Report);
+            }
             return false;
         }
 
@@ -176,7 +187,7 @@ public static class ArmorPatcher
         if (renamingBlacklist.Count > 0
             && renamingBlacklist.Any(value => armor.Name!.ToString()!.Contains(value)))
         {
-            Report![2].Add($"Found in the \"No renaming\" list");
+            if (Settings.Debug.ShowExcluded) Report![0].Add($"Found in the \"No renaming\" list");
             return;
         }
 
@@ -231,7 +242,7 @@ public static class ArmorPatcher
 
         if (name != armor.Name.ToString())
         {
-            Report![2].Add($"Was renamed to {name}");
+            Report![3].Add($"Was renamed to {name}");
             GetAsOverride(armor).Name = name;
         }
     }
@@ -244,7 +255,7 @@ public static class ArmorPatcher
 
         if (overrideNode != null && overrideString == null)
         {
-            Report![1].Add("The material name returned from the relevant \"materialOverrides\" rule should be a string.");
+            Report![2].Add("The material name returned from the relevant \"materialOverrides\" rule should be a string.");
             return;
         }
 
@@ -258,7 +269,7 @@ public static class ArmorPatcher
             {
                 if  (entry1.Kwda == nullRef)
                 {
-                    Report![0].Add("The relevant \"materialOverrides\" rule references a material from Creation Club's \"Saints and Seducers\"");
+                    Report![1].Add("The relevant \"materialOverrides\" rule references a material from Creation Club's \"Saints and Seducers\"");
                     break;
                 }
 
@@ -307,7 +318,7 @@ public static class ArmorPatcher
         if ((float)newArmorRating != armor.ArmorRating)
         {
             GetAsOverride(armor).ArmorRating = (float)newArmorRating;
-            Report![2].Add($"Armor rating modified: {armor.ArmorRating} -> {GetAsOverride(armor).ArmorRating}");
+            Report![3].Add($"Armor rating modified: {armor.ArmorRating} -> {GetAsOverride(armor).ArmorRating}");
         }
     }
 
@@ -334,7 +345,7 @@ public static class ArmorPatcher
             return Settings.Armor.SlotShield;
         }
 
-        Report![1].Add("Unable to determine an equip slot for the record.");
+        Report![2].Add("Unable to determine the equip slot for the record.");
         return null;
     }
 
@@ -358,16 +369,16 @@ public static class ArmorPatcher
 
         if (factorInt != null)
         {
-            if (materialId == null) Report![0].Add("The record has a \"materials\" rule for its name but no material keyword.");
+            if (materialId == null) Report![1].Add("The record has a \"materials\" rule for its name but no material keyword.");
             return factorInt;
         }
 
         if (factorNode != null && factorInt == null)
         {
-            Report![1].Add("The armor value in the relevant \"materials\" rule should be a number.");
+            Report![2].Add("The armor value in the relevant \"materials\" rule should be a number.");
         }
 
-        Report![1].Add("Unable to determine the material.");
+        Report![2].Add("Unable to determine the material.");
         return null;
     }
 
@@ -383,7 +394,7 @@ public static class ArmorPatcher
 
         if (modifierNode != null && modifierFloat == null)
         {
-            Report![1].Add("The multiplier value in the relevant \"armorModifiers\" rule should be a number.");
+            Report![2].Add("The multiplier value in the relevant \"armorModifiers\" rule should be a number.");
         }
 
         return 1.0f;
@@ -412,7 +423,7 @@ public static class ArmorPatcher
                 }
             }
         }
-        if (addedFactions.Count > 0) Report![2].Add($"Faction keywords added: {string.Join(", ", addedFactions)}");
+        if (addedFactions.Count > 0) Report![3].Add($"Faction keywords added: {string.Join(", ", addedFactions)}");
     }
 
     private static void ProcessClothing(IArmorGetter armor, List<string> clothingBlacklist)
@@ -430,13 +441,13 @@ public static class ArmorPatcher
         if (clothingBlacklist.Count > 0
             && clothingBlacklist.Any(value => armor.Name!.ToString()!.Contains(value)))
         {
-            Report![2].Add($"Found in the \"No Dreamcloth\" list");
+            if (Settings.Debug.ShowExcluded) Report![0].Add($"Found in the \"No Dreamcloth variant\" list");
             return;
         }
 
         if (!armor.TemplateArmor.IsNull || RecordData.Unique)
         {
-            Report![2].Add($"Cannot have a Dreamcloth variant due to being unique or having a template.");
+            Report![3].Add($"Cannot have a Dreamcloth variant due to being unique or having a template");
             return;
         }
 
@@ -548,23 +559,15 @@ public static class ArmorPatcher
 
     private static void ShowReport(IArmorGetter armor, List<List<string>> msgList)
     {
-        if (msgList[0].Count > 0) Log(armor, "> CAUTION", msgList[0]);
-        if (msgList[1].Count > 0) Log(armor, "# ERROR", msgList[1]);
+        if (msgList[0].Count > 0) Log(armor, "~ INFO", msgList[0]);
+        if (msgList[1].Count > 0) Log(armor, "> CAUTION", msgList[1]);
+        if (msgList[2].Count > 0) Log(armor, "# ERROR", msgList[2]);
 
         if (!Settings.Debug.ShowVerboseData) return;
 
         string[] filter = Settings.Debug.VerboseDataFilter.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (filter.Length > 0 && !filter.Any(value => armor.Name!.ToString()!.Contains(value.Trim()))) return;
-        if (msgList[2].Count > 0) Log(armor, "+ REPORT", msgList[2]);
-    }
-
-    private static void Log(IArmorGetter armor, string prefix, string message)
-    {
-        if (Settings.Debug.ShowNonPlayable || !RecordData.NonPlayable)
-        {
-            Console.WriteLine($"{prefix}: {armor.Name} ({armor.FormKey}): {message}\n"
-                + "====================");
-        }
+        if (msgList[3].Count > 0) Log(armor, "+ REPORT", msgList[3]);
     }
 
     private static void Log(IArmorGetter armor, string prefix, List<string> messages)
