@@ -436,7 +436,7 @@ public static class ArmorPatcher
                 {
                     ModCraftingRecipe(cobj, armor);
                 }
-                //ModTemperingRecipe(cobj, armor);
+                ModTemperingRecipe(cobj, armor);
             }
         }
 
@@ -474,6 +474,45 @@ public static class ArmorPatcher
         {
             ConstructibleObject cobj = Executor.State!.PatchMod.ConstructibleObjects.GetOrAddAsOverride(recipe);
             cobj.AddHasPerkCondition(GetFormKey("skyre_SMTLeathercraft"));
+        }
+    }
+
+    private static void ModTemperingRecipe(IConstructibleObjectGetter recipe, IArmorGetter armor)
+    {
+        if (recipe.Conditions.Count != 0 && recipe.Conditions.Any(condition => condition.Data is EPTemperingItemIsEnchantedConditionData))
+        {
+            IArmorGetter thisArmor = RecordData.Modified ? GetAsOverride(armor) : armor;
+            List<FormKey> armorPerks = [.. AllMaterials
+                .Where(entry => thisArmor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
+                .Where(entry => entry.Perk != null)
+                .SelectMany(entry => entry.Perk!)
+                .Distinct()];
+            List<FormKey> allPerks = [.. AllMaterials
+                .Where(entry => entry.Perk != null)
+                .SelectMany(entry => entry.Perk!)
+                .Distinct()];
+
+            ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.GetOrAddAsOverride(recipe);
+            for (int i = newRecipe.Conditions.Count - 1; i >= 0; i--)
+            {
+                if (newRecipe.Conditions[i].Data is HasPerkConditionData hasPerk && allPerks.Any(perk => perk == hasPerk.Perk.Link.FormKey))
+                {
+                    newRecipe.Conditions.Remove(newRecipe.Conditions[i]);
+                }
+            }
+
+            foreach (var perk in armorPerks)
+            {
+                Condition.Flag flag = armorPerks.IndexOf(perk) == armorPerks.Count - 1 ? 0 : Condition.Flag.OR;
+                newRecipe.AddHasPerkCondition(perk, flag);
+            }
+            
+            // removing ITPOs
+            if (recipe.Conditions.Count == newRecipe.Conditions.Count 
+                && !recipe.Conditions.Except(newRecipe.Conditions).Any())
+            {
+                Executor.State!.PatchMod.ConstructibleObjects.Remove(newRecipe);
+            }
         }
     }
     private static void ProcessClothing(IArmorGetter armor, List<string> excluded)
