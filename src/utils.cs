@@ -398,7 +398,7 @@ public static class Helpers
 public static class Conditions
 {
     /// <summary>
-    /// Adds a condition with "HasPerk" function to the array of conditions in a constructible object record.<br/>
+    /// Adds a HasPerk-type condition to the array of conditions in a constructible object record.<br/>
     /// </summary>
     /// <param name="cobj">A constructible object as this-parameter</param>
     /// <param name="perk">The FormKey of the perk to check</param>
@@ -423,7 +423,7 @@ public static class Conditions
     }
 
     /// <summary>
-    /// Adds a condition with "GetItemCount" function to the array of conditions in a constructible object record.<br/>
+    /// Adds a GetItemCount-type condition to the array of conditions in a constructible object record.<br/>
     /// </summary>
     /// <param name="cobj">A constructible object as this-parameter</param>
     /// <param name="item">The FormKey of the item to check</param>
@@ -446,6 +446,32 @@ public static class Conditions
             Data = getItemCount,
             Flags = flag,
             ComparisonValue = count
+        });
+    }
+
+    /// <summary>
+    /// Adds a GetEquipped-type condition to the array of conditions in a constructible object record.<br/>
+    /// </summary>
+    /// <param name="cobj">A constructible object as this-parameter</param>
+    /// <param name="item">The FormKey of the item to check</param>
+    /// <param name="type">Compare type enum (CompareOperator.EqualTo, CompareOperator.GreaterThen, etc.).</param>
+    /// <param name="flag">Pass Condition.Flag.OR enum to set the OR flag or 0 as None.</param>
+    /// <param name="pos">Condition position in the array of conditions (is the last element by default).</param>
+    public static void AddGetEquippedCondition(this ConstructibleObject cobj, FormKey item, CompareOperator type = CompareOperator.EqualTo, Condition.Flag flag = 0, int pos = -1)
+    {
+        var getEquipped = new GetEquippedConditionData()
+        {
+            RunOnType = Condition.RunOnType.Subject
+        };
+        getEquipped.ItemOrList.Link.SetTo(item);
+
+        pos = pos == -1 ? cobj.Conditions.Count : pos;
+        cobj.Conditions.Insert(pos, new ConditionFloat
+        {
+            CompareOperator = type,
+            Data = getEquipped,
+            Flags = flag,
+            ComparisonValue = 1
         });
     }
 }
