@@ -6,12 +6,13 @@ using System.Text.RegularExpressions;
 
 namespace ReProccer.Utils;
 
-public struct PatchingData(bool nonPlayable = false, bool hasUniqueKeyword = true, ArmorType armorType = ArmorType.Clothing, bool getModified = false)
+public struct PatchingData(bool nonPlayable = false, bool hasUniqueKeyword = true, ArmorType armorType = ArmorType.Clothing, bool getModified = false, bool getOverridden = false)
 {
     public bool NonPlayable{ get; set; } = nonPlayable;
     public bool Unique { get; set; } = hasUniqueKeyword;
-    public ArmorType ArmorType { get; set; } = armorType;
     public bool Modified { get; set; } = getModified;
+    public bool Overridden { get; set; } = getOverridden;
+    public ArmorType ArmorType { get; set; } = armorType;
 }
 
 public record StaticsMap(
@@ -155,7 +156,7 @@ public static class Helpers
         string[] data = str.Split('|');
         FormKey formKey = new(data[0], Convert.ToUInt32(data[1], 16));
 
-        bool isResolved = skipResolve || TryToResolve(formKey, data[2]);
+        bool isResolved = skipResolve || TryResolveAs(formKey, data[2]);
         if (data[0] == "ccBGSSSE025-AdvDSGS.esm")
         {
             var advDSGS = Executor.State!.LoadOrder
@@ -171,7 +172,7 @@ public static class Helpers
         return formKey;
     }
 
-    private static dynamic TryToResolve(FormKey formKey, string type) => type switch
+    private static bool TryResolveAs(FormKey formKey, string type) => type switch
     {
         "EXPL" => Executor.State!.LinkCache.TryResolve<IExplosionGetter>(formKey, out _),
         "INGR" => Executor.State!.LinkCache.TryResolve<IIngredientGetter>(formKey, out _),
