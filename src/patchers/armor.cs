@@ -496,7 +496,7 @@ public static class ArmorPatcher
             }
         }
 
-        //AddBreakdownRecipe(armor);
+        AddBreakdownRecipe(armor);
     }
 
     /// <summary>
@@ -614,16 +614,138 @@ public static class ArmorPatcher
     }
 
     /// <summary>
+    /// Generates a breakdown recipe for the armor.
+    /// </summary>
+    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <param name="allRecipes">The list of all recipes as ConstructibleObject (could be null).</param>
+    private static void AddBreakdownRecipe(IArmorGetter armor, bool newRecord = false)
+    {
+        if (RecordData.Unique)
+        {
+            Report![3].Add($"Cannot have a breakdown recipe due to the \"No breakdown\" keyword");
+            return;
+        }
+
+        IConstructibleObjectGetter? craftingRecipe = null;
+        if (!newRecord)
+        {
+            foreach (var recipe in Executor.AllRecipes!)
+            {
+                if (Settings.General.SkipExisting
+                    && recipe.Items?.FirstOrDefault()?.Item == armor
+                    && (recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingTanningRack")
+                    || recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmelter")))
+                {
+                    Report![3].Add($"Already has a breakdown recipe in the {recipe.FormKey.ModKey.FileName}");
+                    return;
+                }
+
+                if (craftingRecipe == null
+                    && recipe.CreatedObject.FormKey == armor.FormKey
+                    && (recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingTanningRack")
+                    || recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingForge")))
+                {
+                    craftingRecipe = recipe;
+                }
+            }
+        }
+
+        List<FormKey> armorPerks = [.. Statics.AllMaterials
+            .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
+            .Where(entry => entry.Perk != null)
+            .SelectMany(entry => entry.Perk!)
+            .Distinct()];
+        List<FormKey> armorItems = [.. Statics.AllMaterials
+            .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
+            .Select(entry => (FormKey)entry.Item!)
+            .Distinct()];
+
+        if (armorItems.Count == 0)
+        {
+            Report![1].Add($"Unable to determine the breakdown recipe resulting item");
+            return;
+        }
+
+        bool isBig = armor.BodyTemplate != null
+            && (armor.BodyTemplate.FirstPersonFlags.HasFlag(BipedObjectFlag.Body) || armor.BodyTemplate.FirstPersonFlags.HasFlag(BipedObjectFlag.Shield));
+
+        bool isClothing = RecordData.ArmorType == ArmorType.Clothing && !armor.Keywords!.Contains(GetFormKey("skyre__ArmorDreamcloth"));
+
+        bool isLeather = armorItems.Contains(GetFormKey("LeatherStrips")) && !armor.Keywords!.Contains(GetFormKey("skyre__ArmorDreamcloth"));
+        if (isLeather)
+        {
+            int index = armorItems.IndexOf(GetFormKey("LeatherStrips"));
+            if (index != -1)
+            {
+                armorItems.RemoveAt(index);
+                armorItems.Insert(index, GetFormKey("Leather01"));
+            }
+        }
+
+        bool fromRecipe = false;
+        int qty = 1;
+        FormKey ingr = armorItems[0];
+        if (craftingRecipe != null)
+        {
+            foreach (var entry in armorItems)
+            {
+                if (craftingRecipe.Items!.Count == 0) continue;
+                foreach (var elem in craftingRecipe.Items)
+                {
+                    if (elem.Item.Item.FormKey == entry && elem.Item.Count > qty)
+                    {
+                        ingr = entry;
+                        qty = elem.Item.Count;
+                        fromRecipe = true;
+                    }
+                }
+            }
+        }
+
+        int mod = (isClothing ? 2 : 0) + (isLeather ? 2 : 0) + (isBig ? 1 : 0);
+        float outputQty = (qty + mod) * (Settings.Armor.RefundAmount / 100f);
+        int inputQty = (int)(outputQty < 1 && fromRecipe ? Math.Round(1 / outputQty) : 1);
+
+        string newEdId = "RP_BREAK_ARMO_" + armor.EditorID;
+        ConstructibleObject cobj = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
+
+        cobj.EditorID = newEdId;
+        cobj.Items = [];
+
+        ContainerItem newItem = new();
+        newItem.Item = armor.ToNullableLink();
+        ContainerEntry newEntry = new();
+        newEntry.Item = newItem;
+        newEntry.Item.Count = inputQty;
+        cobj.Items.Add(newEntry);
+
+        cobj.AddHasPerkCondition(GetFormKey("skyre_SMTBreakdown"));
+        if (armorPerks.Count > 0)
+        {
+            Condition.Flag flag = Condition.Flag.OR;
+            foreach (var perk in armorPerks)
+            {
+                if (armorPerks.IndexOf(perk) == armorPerks.Count - 1) flag = 0;
+                cobj.AddHasPerkCondition(perk, flag);
+            }
+        }
+        cobj.AddGetItemCountCondition(armor.FormKey, CompareOperator.GreaterThanOrEqualTo);
+        cobj.AddGetEquippedCondition(armor.FormKey, CompareOperator.NotEqualTo);
+
+        cobj.CreatedObject = Executor.State!.LinkCache.Resolve<IMiscItemGetter>(ingr).ToNullableLink();
+        cobj.WorkbenchKeyword = Executor.State!.LinkCache.Resolve<IKeywordGetter>
+            (isLeather || isClothing ? GetFormKey("CraftingTanningRack") : GetFormKey("CraftingSmelter"))
+            .ToNullableLink();
+        cobj.CreatedObjectCount = (ushort)Math.Clamp(Math.Floor(outputQty), 1, qty + (fromRecipe ? 0 : mod));
+    }
+
+    /// <summary>
     /// Clothing processor.<br/>
     /// </summary>
     private static void ProcessClothing(IArmorGetter armor, List<string> excludedNames)
-
-
     {
-        if (!Settings.Armor.NoClothingBreak)
-        {
-            //AddMeltdownRecipe(armor);
-        }
+        if (!Settings.Armor.NoClothingBreak) AddBreakdownRecipe(armor, true);
+
         CreateDreamcloth(armor, excludedNames);
     }
 
