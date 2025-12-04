@@ -617,8 +617,8 @@ public static class ArmorPatcher
     /// Generates a breakdown recipe for the armor.
     /// </summary>
     /// <param name="armor">The armor record as IArmorGetter.</param>
-    /// <param name="allRecipes">The list of all recipes as ConstructibleObject (could be null).</param>
-    private static void AddBreakdownRecipe(IArmorGetter armor, bool newRecord = false)
+    /// <param name="noRecipes">True for armor-type records with no material keywords.</param>
+    private static void AddBreakdownRecipe(IArmorGetter armor, bool noRecipes = false)
     {
         if (RecordData.Unique)
         {
@@ -627,7 +627,7 @@ public static class ArmorPatcher
         }
 
         IConstructibleObjectGetter? craftingRecipe = null;
-        if (!newRecord)
+        if (!noRecipes)
         {
             foreach (var recipe in Executor.AllRecipes!)
             {
@@ -650,17 +650,19 @@ public static class ArmorPatcher
             }
         }
 
-        List<FormKey> armorPerks = [.. Statics.AllMaterials
+        List<FormKey> armorPerks = RecordData.ArmorType != ArmorType.Clothing ? 
+            [.. Statics.AllMaterials
             .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
             .Where(entry => entry.Perk != null)
             .SelectMany(entry => entry.Perk!)
-            .Distinct()];
-        List<FormKey> armorItems = [.. Statics.AllMaterials
+            .Distinct()] : [];
+        List<FormKey> armorItems = RecordData.ArmorType != ArmorType.Clothing ?
+            [.. Statics.AllMaterials
             .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
             .Select(entry => (FormKey)entry.Item!)
-            .Distinct()];
+            .Distinct()] : [GetFormKey("LeatherStrips")];
 
-        if (armorItems.Count == 0)
+        if (RecordData.ArmorType != ArmorType.Clothing && armorItems.Count == 0)
         {
             Report![1].Add($"Unable to determine the breakdown recipe resulting item");
             return;
@@ -671,14 +673,14 @@ public static class ArmorPatcher
 
         bool isClothing = RecordData.ArmorType == ArmorType.Clothing && !armor.Keywords!.Contains(GetFormKey("skyre__ArmorDreamcloth"));
 
-        bool isLeather = armorItems.Contains(GetFormKey("LeatherStrips")) && !armor.Keywords!.Contains(GetFormKey("skyre__ArmorDreamcloth"));
-        if (isLeather)
+        if (armorItems.Contains(GetFormKey("LeatherStrips")) is bool isLeather)
         {
             int index = armorItems.IndexOf(GetFormKey("LeatherStrips"));
             if (index != -1)
             {
                 armorItems.RemoveAt(index);
-                armorItems.Insert(index, GetFormKey("Leather01"));
+                armorItems.Insert(index, armor.Keywords!.Contains(GetFormKey("skyre__ArmorDreamcloth")) 
+                    ? GetFormKey("WispWrappings") : GetFormKey("Leather01"));
             }
         }
 
@@ -732,7 +734,9 @@ public static class ArmorPatcher
         cobj.AddGetItemCountCondition(armor.FormKey, CompareOperator.GreaterThanOrEqualTo);
         cobj.AddGetEquippedCondition(armor.FormKey, CompareOperator.NotEqualTo);
 
-        cobj.CreatedObject = Executor.State!.LinkCache.Resolve<IMiscItemGetter>(ingr).ToNullableLink();
+        cobj.CreatedObject = Executor.State!.LinkCache.TryResolve<IMiscItemGetter>(ingr, out var ingrItem) ? ingrItem.ToNullableLink() 
+                           : Executor.State!.LinkCache.Resolve<IIngredientGetter>(ingr).ToNullableLink();
+
         cobj.WorkbenchKeyword = Executor.State!.LinkCache.Resolve<IKeywordGetter>
             (isLeather || isClothing ? GetFormKey("CraftingTanningRack") : GetFormKey("CraftingSmelter"))
             .ToNullableLink();
@@ -806,8 +810,8 @@ public static class ArmorPatcher
             ingredients[1] = ingredients[1] with { Qty = 2 };
         }
 
-        AddCraftingRecipe(GetAsOverride(newArmor), armor, ingredients);
-        //AddBreakdownRecipe(newArmor, GetFormKey("WispWrappings"), []);
+        AddCraftingRecipe(newArmor, armor, ingredients);
+        AddBreakdownRecipe(newArmor, true);
     }
 
     /// <summary>
@@ -861,6 +865,7 @@ public static class ArmorPatcher
         {
             cobj.AddGetItemCountCondition(oldArmor.FormKey, CompareOperator.GreaterThanOrEqualTo);
         }
+        cobj.AddGetEquippedCondition(oldArmor.FormKey, CompareOperator.NotEqualTo);
 
         cobj.CreatedObject = newArmor.ToNullableLink();
         cobj.WorkbenchKeyword = Executor.State!.LinkCache.Resolve<IKeywordGetter>(GetFormKey("CraftingTanningRack")).ToNullableLink();
