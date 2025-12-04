@@ -67,9 +67,10 @@ public static class ArmorPatcher
                     ShowReport(armor, Report);
                     continue;
                 }
+                ProcessRecipes(armor, blacklists[2]);
             }
 
-            ProcessRecipes(armor, recipes, blacklists[2]);
+
             ShowReport(armor, Report);
         }
     }
@@ -552,16 +553,27 @@ public static class ArmorPatcher
     {
         if (recipe.Conditions.Count != 0 && recipe.Conditions.Any(condition => condition.Data is EPTemperingItemIsEnchantedConditionData))
         {
-            IArmorGetter thisArmor = RecordData.Modified ? GetAsOverride(armor) : armor;
-            List<FormKey> armorPerks = [.. AllMaterials
-                .Where(entry => thisArmor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
+            List<FormKey> allPerks = [.. Statics.AllMaterials
                 .Where(entry => entry.Perk != null)
                 .SelectMany(entry => entry.Perk!)
                 .Distinct()];
-            List<FormKey> allPerks = [.. AllMaterials
+            List<FormKey> materialPerks = [.. Statics.AllMaterials
+                .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
                 .Where(entry => entry.Perk != null)
                 .SelectMany(entry => entry.Perk!)
                 .Distinct()];
+            List<FormKey> materialItems = [.. Statics.AllMaterials
+                .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
+                .Select(entry => (FormKey)entry.Item!)
+                .Distinct()];
+
+
+            int index = materialItems.IndexOf(GetFormKey("LeatherStrips"));
+            if (index != -1)
+            {
+                materialItems.RemoveAt(index);
+                materialItems.Insert(index, GetFormKey("Leather01"));
+            }
 
             ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.GetOrAddAsOverride(recipe);
             for (int i = newRecipe.Conditions.Count - 1; i >= 0; i--)
@@ -572,9 +584,23 @@ public static class ArmorPatcher
                 }
             }
 
-            foreach (var perk in armorPerks)
+            if (RecordData.Overridden)
             {
-                Condition.Flag flag = armorPerks.IndexOf(perk) == armorPerks.Count - 1 ? 0 : Condition.Flag.OR;
+                newRecipe.Items?.Clear();
+                foreach (var item in materialItems)
+                {
+                    ContainerItem newItem = new();
+                    newItem.Item = Executor.State!.LinkCache.Resolve<IMiscItemGetter>(item).ToNullableLink();
+                    ContainerEntry newEntry = new();
+                    newEntry.Item = newItem;
+                    newEntry.Item.Count = 1;
+                    newRecipe.Items!.Add(newEntry);
+                }
+            }
+
+            foreach (var perk in materialPerks)
+            {
+                Condition.Flag flag = materialPerks.IndexOf(perk) == materialPerks.Count - 1 ? 0 : Condition.Flag.OR;
                 newRecipe.AddHasPerkCondition(perk, flag);
             }
 
@@ -590,14 +616,15 @@ public static class ArmorPatcher
     /// <summary>
     /// Clothing processor.<br/>
     /// </summary>
-    private static void ProcessClothing(IArmorGetter armor, List<string> excluded)
+    private static void ProcessClothing(IArmorGetter armor, List<string> excludedNames)
+
+
     {
         if (!Settings.Armor.NoClothingBreak)
         {
             //AddMeltdownRecipe(armor);
         }
-
-        CreateDreamcloth(armor, excluded);
+        CreateDreamcloth(armor, excludedNames);
     }
 
     /// <summary>
@@ -615,7 +642,7 @@ public static class ArmorPatcher
 
         if (!armor.TemplateArmor.IsNull || RecordData.Unique)
         {
-            Report![3].Add($"Cannot have a Dreamcloth variant due to being unique or having a template");
+            Report![3].Add($"Cannot have a Dreamcloth variant due to having a template or \"No breakdown\" keyword");
             return;
         }
 
@@ -669,7 +696,7 @@ public static class ArmorPatcher
     /// <param name="ingredients">List of ingredients and their quantity.</param>
     private static void AddCraftingRecipe(IArmorGetter newArmor, IArmorGetter oldArmor, List<IngredientsMap> ingredients)
     {
-        string newEdId = "RP_CRAFT_ARMO_" + oldArmor.EditorID!.ToString();
+        string newEdId = "RP_CRAFT_ARMO_" + oldArmor.EditorID;
         ConstructibleObject cobj = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
 
         cobj.EditorID = newEdId;
@@ -873,3 +900,4 @@ public static class ArmorPatcher
         return (allMaterials, lightMaterials, factionBinds);
     }
 }
+
