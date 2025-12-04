@@ -1,4 +1,5 @@
-﻿using Mutagen.Bethesda.Skyrim;
+﻿using Mutagen.Bethesda;
+using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Synthesis;
 using ReProccer.Utils;
 using System.Text.Json.Nodes;
@@ -14,6 +15,8 @@ static class Executor
 
     internal static Lazy<Settings.AllSettings> AllSettings = new();
     internal static Settings.AllSettings? Settings;
+
+    internal static List<IConstructibleObjectGetter>? AllRecipes;
 
     // entry point
     public static async Task<int> Main(string[] args)
@@ -86,6 +89,12 @@ static class Executor
 
         // parsing statics
         Statics = BuildStatics();
+
+        // getting constructible objects
+        AllRecipes = [.. State.LoadOrder.PriorityOrder
+            .Where(plugin => !Settings.General.IgnoredFiles.Any(name => name == plugin.ModKey.FileName))
+            .Where(plugin => plugin.Enabled)
+            .WinningOverrides<IConstructibleObjectGetter>()];
 
         // running patchers
         if (Settings.General.ArmorPatcher) Patchers.ArmorPatcher.Run();
@@ -279,7 +288,7 @@ static class Executor
             new(Id: "skyre_MARCrossbowSiege",                 Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d96|PERK") ),
             new(Id: "skyre_MARArtificer",                     Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000dbf|PERK") ),
             new(Id: "skyre_SMTLeathercraft",                  Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ec4|PERK") ),
-            new(Id: "skyre_SMTMeltdown",                      Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000edf|PERK") ),
+            new(Id: "skyre_SMTBreakdown",                     Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000edf|PERK") ),
             new(Id: "skyre_SMTTradecraft",                    Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee0|PERK") ),
             new(Id: "skyre_SMTWeavingMill",                   Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee1|PERK") ),
             new(Id: "skyre_SMTDeepSilver",                    Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee4|PERK") )
