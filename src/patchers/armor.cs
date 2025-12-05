@@ -14,14 +14,15 @@ public static class ArmorPatcher
                              List<DataMap> AllMaterials,
                              List<DataMap> FactionBinds) Statics = BuildStaticsMap();
 
-    private static Armor? PatchedRecord;
+    private static EditorIDs EditorIDs;
+    private static Armor? ThisRecord;
     private static PatchingData RecordData;
-    private static List<List<string>>? Report;
+    private static Logger Logger;
 
     public static void Run()
     {
         UpdateGMST();
-        Executor.NewEditorIDs = [];
+        EditorIDs = new EditorIDs();
 
         List<IArmorGetter> records = GetRecords();
         List<List<string>> blacklists = [
@@ -32,21 +33,20 @@ public static class ArmorPatcher
 
         foreach (var armor in records)
         {
-            PatchedRecord = null;
-            // 0 info, 1 caution, 2 errors, 3 report
-            Report = [[], [], [], []];
-
-            // storing some data publicly to avoid sequential passing of arguments
-            RecordData = new PatchingData(
-                nonPlayable: armor.MajorFlags.HasFlag(Armor.MajorFlag.NonPlayable),
-                hasUniqueKeyword: armor.Keywords!.Contains(GetFormKey("skyre__NoMeltdownRecipes")),
-                armorType: armor.BodyTemplate!.ArmorType);
+            ThisRecord = null;
+            RecordData = new PatchingData
+            {
+                ArmorType = armor.BodyTemplate!.ArmorType,
+                NonPlayable = armor.MajorFlags.HasFlag(Armor.MajorFlag.NonPlayable),
+                Unique = armor.Keywords!.Contains(GetFormKey("skyre__NoMeltdownRecipes"))
+            };
+            Logger = new Logger();
 
             if (!armor.TemplateArmor.IsNull || (RecordData.ArmorType == ArmorType.Clothing
                 && armor.Keywords!.Contains(GetFormKey("ArmorJewelry"))))
             {
                 PatchRecordNames(armor, blacklists[0]);
-                ShowReport(armor, Report);
+                armor.ShowReport();
                 continue;
             }
 
@@ -65,14 +65,14 @@ public static class ArmorPatcher
                 if (RecordData.ArmorType == ArmorType.Clothing)
                 {
                     ProcessClothing(armor, blacklists[1]);
-                    ShowReport(armor, Report);
+                    armor.ShowReport();
                     continue;
                 }
                 ProcessRecipes(armor, blacklists[2]);
             }
 
 
-            ShowReport(armor, Report);
+            armor.ShowReport();
         }
     }
 
@@ -125,7 +125,7 @@ public static class ArmorPatcher
             GetFormKey("ArmorShield"),
             GetFormKey("ArmorClothing"),
             GetFormKey("ArmorJewelry")
-];
+        ];
         foreach (var record in armoWinners)
         {
             if (IsValid(record, excludedNames, mustHave)) armoRecords.Add(record);
@@ -141,18 +141,18 @@ public static class ArmorPatcher
     /// </summary>
     /// <param name="armor">The armor record as IArmorGetter.</param>
     /// <param name="excludedNames">The list of excluded strings.</param>
-    /// <param name="excludedNames">The list of keywords formkeys of which at least one must be present on armor.</param>
+    /// <param name="mustHave">The list of keywords formkeys of which at least one must be present on armor.</param>
     private static bool IsValid(IArmorGetter armor, List<string> excludedNames, List<FormKey> mustHave)
     {
-        Report = [[], [], [], []];
+        Logger = new Logger();
 
         // invalid if found in the excluded records list by edid
         if (Settings.General.ExclByEdID && armor.EditorID!.IsExcluded(excludedNames, true))
         {
             if (Settings.Debug.ShowExcluded)
             {
-                Report![0].Add($"found in the \"No patching\" list by EditorID (as {armor.EditorID})");
-                ShowReport(armor, Report);
+                Logger.Info($"Found in the \"No patching\" list by EditorID (as {armor.EditorID})");
+                armor.ShowReport();
             }
             return false;
         }
@@ -165,8 +165,8 @@ public static class ArmorPatcher
         {
             if (Settings.Debug.ShowExcluded)
             {
-                Report![0].Add($"found in the \"No patching\" list by name");
-                ShowReport(armor, Report);
+                Logger.Info($"Found in the \"No patching\" list by name");
+                armor.ShowReport();
             }
             return false;
         }
@@ -195,7 +195,7 @@ public static class ArmorPatcher
     {
         if (armor.Name!.ToString()!.IsExcluded(excludedNames))
         {
-            if (Settings.Debug.ShowExcluded) Report![0].Add($"Found in the \"No renaming\" list");
+            if (Settings.Debug.ShowExcluded) Logger.Info($"Found in the \"No renaming\" list");
             return;
         }
 
@@ -250,7 +250,7 @@ public static class ArmorPatcher
 
         if (name != armor.Name.ToString())
         {
-            Report![3].Add($"Was renamed to {name}");
+            Logger.Info($"Was renamed to {name}", true);
             GetAsOverride(armor).Name = name;
         }
     }
@@ -267,7 +267,7 @@ public static class ArmorPatcher
 
         if (overrideNode != null && overrideString == null)
         {
-            Report![2].Add("The material name returned from the relevant \"materialOverrides\" rule should be a string.");
+            Logger.Error("The material name returned from the relevant \"materialOverrides\" rule should be a string.");
             return;
         }
 
@@ -281,7 +281,7 @@ public static class ArmorPatcher
             {
                 if (entry1.Kwda == nullRef)
                 {
-                    Report![1].Add("The relevant \"materialOverrides\" rule references a material from Creation Club's \"Saints and Seducers\"");
+                    Logger.Caution("The relevant \"materialOverrides\" rule references a material from Creation Club's \"Saints and Seducers\"");
                     break;
                 }
 
@@ -340,7 +340,7 @@ public static class ArmorPatcher
         if ((float)newArmorRating != armor.ArmorRating)
         {
             GetAsOverride(armor).ArmorRating = (float)newArmorRating;
-            Report![3].Add($"Armor rating modified: {armor.ArmorRating} -> {GetAsOverride(armor).ArmorRating}");
+            Logger.Info($"Armor rating modified: {armor.ArmorRating} -> {GetAsOverride(armor).ArmorRating}", true);
         }
     }
 
@@ -372,7 +372,7 @@ public static class ArmorPatcher
             return Settings.Armor.SlotShield;
         }
 
-        Report![2].Add("Unable to determine the equip slot for the record.");
+        Logger.Error("Unable to determine the equip slot for the record.");
         return null;
     }
 
@@ -401,16 +401,16 @@ public static class ArmorPatcher
 
         if (factorInt != null)
         {
-            if (materialId == null) Report![1].Add("The record has a \"materials\" rule for its name but no material keyword.");
+            if (materialId == null) Logger.Caution("The record has a \"materials\" rule for its name but no material keyword.");
             return factorInt;
         }
 
         if (factorNode != null && factorInt == null)
         {
-            Report![2].Add("The armor value in the relevant \"materials\" rule should be a number.");
+            Logger.Error("The armor value in the relevant \"materials\" rule should be a number.");
         }
 
-        Report![2].Add("Unable to determine the material.");
+        Logger.Error("Unable to determine the material.");
         return null;
     }
 
@@ -431,7 +431,7 @@ public static class ArmorPatcher
 
         if (modifierNode != null && modifierFloat == null)
         {
-            Report![2].Add("The multiplier value in the relevant \"armorModifiers\" rule should be a number.");
+            Logger.Error("The multiplier value in the relevant \"armorModifiers\" rule should be a number.");
         }
 
         return 1.0f;
@@ -464,7 +464,7 @@ public static class ArmorPatcher
                 }
             }
         }
-        if (addedFactions.Count > 0) Report![3].Add($"Faction keywords added: {string.Join(", ", addedFactions)}");
+        if (addedFactions.Count > 0) Logger.Info($"Faction keywords added: {string.Join(", ", addedFactions)}", true);
     }
 
     /// <summary>
@@ -480,7 +480,7 @@ public static class ArmorPatcher
         if (armor.Name!.ToString()!.IsExcluded(excludedNames))
         {
             if (Settings.Debug.ShowExcluded)
-                Report![0].Add($"Found in the \"No recipe modifications\" list");
+                Logger.Info($"Found in the \"No recipe modifications\" list");
 
             return;
         }
@@ -623,7 +623,7 @@ public static class ArmorPatcher
     {
         if (RecordData.Unique)
         {
-            Report![3].Add($"Cannot have a breakdown recipe due to the \"No breakdown\" keyword");
+            Logger.Info($"Cannot have a breakdown recipe due to the \"No breakdown\" keyword", true);
             return;
         }
 
@@ -637,7 +637,7 @@ public static class ArmorPatcher
                     && (recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingTanningRack")
                     || recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmelter")))
                 {
-                    Report![3].Add($"Already has a breakdown recipe in the {recipe.FormKey.ModKey.FileName}");
+                    Logger.Info($"Already has a breakdown recipe in the {recipe.FormKey.ModKey.FileName}");
                     return;
                 }
 
@@ -665,7 +665,7 @@ public static class ArmorPatcher
 
         if (RecordData.ArmorType != ArmorType.Clothing && armorItems.Count == 0)
         {
-            Report![1].Add($"Unable to determine the breakdown recipe resulting item");
+            Logger.Error($"Unable to determine the breakdown recipe resulting item");
             return;
         }
 
@@ -716,7 +716,7 @@ public static class ArmorPatcher
         string newEditorID = "RP_ARMO_BREAK_" + (isDreamcloth ? armor.EditorID!.Replace("RP_ARMO_", "") : armor.EditorID);
         ConstructibleObject cobj = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
 
-        cobj.EditorID = newEditorID.ToUnique();
+        cobj.EditorID = EditorIDs.Unique(newEditorID);
         cobj.Items = [];
 
         ContainerItem newItem = new();
@@ -767,13 +767,13 @@ public static class ArmorPatcher
     {
         if (armor.Name!.ToString()!.IsExcluded(excludedNames))
         {
-            if (Settings.Debug.ShowExcluded) Report![0].Add($"Found in the \"No Dreamcloth variant\" list");
+            if (Settings.Debug.ShowExcluded) Logger.Info($"Found in the \"No Dreamcloth variant\" list");
             return;
         }
 
         if (!armor.TemplateArmor.IsNull || RecordData.Unique)
         {
-            Report![3].Add($"Cannot have a Dreamcloth variant due to having a template or \"No breakdown\" keyword");
+            Logger.Info($"Cannot have a Dreamcloth variant due to having a template or \"No breakdown\" keyword", true);
             return;
         }
 
@@ -787,7 +787,7 @@ public static class ArmorPatcher
         if (!isModified) Executor.State!.PatchMod.Armors.Remove(armor);
 
         newArmor.Name = newName;
-        newArmor.EditorID = newEditorID.ToUnique();
+        newArmor.EditorID = EditorIDs.Unique(newEditorID);
         newArmor.VirtualMachineAdapter = null;
         newArmor.Description = null;
         newArmor.Keywords!.Add(GetFormKey("skyre__ArmorDreamcloth"));
@@ -830,7 +830,7 @@ public static class ArmorPatcher
         string newEditorID = "RP_ARMO_CRAFT_" + oldArmor.EditorID;
         ConstructibleObject cobj = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
 
-        cobj.EditorID = newEditorID.ToUnique();
+        cobj.EditorID = EditorIDs.Unique(newEditorID);
         cobj.Items = [];
 
         ContainerItem baseItem = new();
@@ -895,7 +895,7 @@ public static class ArmorPatcher
     private static Armor GetAsOverride(this IArmorGetter armor)
     {
         if (!RecordData.Modified) RecordData.Modified = true;
-        return PatchedRecord?.FormKey != armor.FormKey ? Executor.State!.PatchMod.Armors.GetOrAddAsOverride(armor) : PatchedRecord;
+        return ThisRecord?.FormKey != armor.FormKey ? Executor.State!.PatchMod.Armors.GetOrAddAsOverride(armor) : ThisRecord;
     }
 
     /// <summary>
@@ -903,32 +903,7 @@ public static class ArmorPatcher
     /// </summary>
     /// <param name="armor">The armor record as IArmorGetter.</param>
     /// <param name="msgList">The list of list of strings with messages.</param>
-    private static void ShowReport(IArmorGetter armor, List<List<string>> msgList)
-    {
-        if (msgList[0].Count > 0) Log(armor, "~ INFO", msgList[0]);
-        if (msgList[1].Count > 0) Log(armor, "> CAUTION", msgList[1]);
-        if (msgList[2].Count > 0) Log(armor, "# ERROR", msgList[2]);
-
-        if (!Settings.Debug.ShowVerboseData) return;
-
-        string[] filter = Settings.Debug.VerboseDataFilter.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (filter.Length > 0 && !filter.Any(value => armor.Name!.ToString()!.Contains(value.Trim()))) return;
-        if (msgList[3].Count > 0) Log(armor, "+ REPORT", msgList[3]);
-    }
-
-    private static void Log(IArmorGetter armor, string prefix, List<string> messages)
-    {
-        if (Settings.Debug.ShowNonPlayable || !RecordData.NonPlayable)
-        {
-            string note = RecordData.NonPlayable ? " | NON-PLAYABLE" : "";
-            Console.WriteLine($"{prefix} | {armor.Name} ({armor.FormKey}){note}");
-            foreach (var msg in messages)
-            {
-                Console.WriteLine($"--- {msg}");
-            }
-            Console.WriteLine("====================");
-        }
-    }
+    private static void ShowReport(this IArmorGetter armor) => Logger.ShowReport($"{armor.Name}", $"{armor.FormKey}", !RecordData.NonPlayable);
 
     // armor patcher statics
     private static (List<DataMap>, List<DataMap>, List<DataMap>) BuildStaticsMap()
