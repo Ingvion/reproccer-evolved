@@ -131,7 +131,7 @@ public class ArmorSettings
     public int RefundAmount { get; set; } = 50;
 
     [SettingName("Dreamcloth gear label")]
-    [Tooltip("Dreamcloth items will have this string added to their names; leave empty to use the default \" [Dreamcloth]\" label.\n")]
+    [Tooltip("Dreamcloth items will have this string added to their names; leave empty to use the default \"[Dreamcloth]\" label.\n")]
     public string DreamclothLabel { get; set; } = " [Dreamcloth]";
 
     [SettingName("Leather armors recipes require the Leathercraft perk")]

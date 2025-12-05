@@ -21,6 +21,7 @@ public static class ArmorPatcher
     public static void Run()
     {
         UpdateGMST();
+        Executor.NewEditorIDs = [];
 
         List<IArmorGetter> records = GetRecords();
         List<List<string>> blacklists = [
@@ -670,19 +671,23 @@ public static class ArmorPatcher
 
         bool isBig = armor.BodyTemplate != null
             && (armor.BodyTemplate.FirstPersonFlags.HasFlag(BipedObjectFlag.Body) || armor.BodyTemplate.FirstPersonFlags.HasFlag(BipedObjectFlag.Shield));
-
-        bool isClothing = RecordData.ArmorType == ArmorType.Clothing && !armor.Keywords!.Contains(GetFormKey("skyre__ArmorDreamcloth"));
-
-        if (armorItems.Contains(GetFormKey("LeatherStrips")) is bool isLeather)
+        bool isDreamcloth = armor.Keywords!.Contains(GetFormKey("skyre__ArmorDreamcloth"));
+        if (armorItems.IndexOf(GetFormKey("LeatherStrips")) is int index && index != -1)
         {
-            int index = armorItems.IndexOf(GetFormKey("LeatherStrips"));
-            if (index != -1)
+            if (isDreamcloth)
             {
                 armorItems.RemoveAt(index);
-                armorItems.Insert(index, armor.Keywords!.Contains(GetFormKey("skyre__ArmorDreamcloth")) 
-                    ? GetFormKey("WispWrappings") : GetFormKey("Leather01"));
+                armorItems.Insert(index, GetFormKey("WispWrappings"));
+            }
+            else if (isBig)
+            {
+                armorItems.RemoveAt(index);
+                armorItems.Insert(index, GetFormKey("Leather01"));
             }
         }
+
+        bool isClothing = RecordData.ArmorType == ArmorType.Clothing && !isDreamcloth;
+        bool isLeather = armorItems.Contains(GetFormKey("Leather01")) || armorItems.Contains(GetFormKey("LeatherStrips"));
 
         bool fromRecipe = false;
         int qty = 1;
@@ -704,14 +709,14 @@ public static class ArmorPatcher
             }
         }
 
-        int mod = (isClothing ? 2 : 0) + (isLeather ? 2 : 0) + (isBig ? 1 : 0);
+        int mod = (isClothing ? 1 : 0) + (isLeather ? 2 : 0) + (isBig ? 1 : 0);
         float outputQty = (qty + mod) * (Settings.Armor.RefundAmount / 100f);
         int inputQty = (int)(outputQty < 1 && fromRecipe ? Math.Round(1 / outputQty) : 1);
 
-        string newEdId = "RP_BREAK_ARMO_" + armor.EditorID;
+        string newEditorID = "RP_ARMO_BREAK_" + (isDreamcloth ? armor.EditorID!.Replace("RP_ARMO_", "") : armor.EditorID);
         ConstructibleObject cobj = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
 
-        cobj.EditorID = newEdId;
+        cobj.EditorID = newEditorID.ToUnique();
         cobj.Items = [];
 
         ContainerItem newItem = new();
@@ -776,13 +781,13 @@ public static class ArmorPatcher
 
         string label = Settings.Armor.DreamclothLabel == "" ? $" [{"name_dcloth".GetT9n()}]" : Settings.Armor.DreamclothLabel;
         string newName = GetAsOverride(armor).Name!.ToString() + label;
-        string newEdId = "RP_ARMO_" + armor.EditorID!.ToString();
+        string newEditorID = "RP_ARMO_" + armor.EditorID;
 
         Armor newArmor = Executor.State!.PatchMod.Armors.DuplicateInAsNewRecord(GetAsOverride(armor));
         if (!isModified) Executor.State!.PatchMod.Armors.Remove(armor);
 
         newArmor.Name = newName;
-        newArmor.EditorID = newEdId;
+        newArmor.EditorID = newEditorID.ToUnique();
         newArmor.VirtualMachineAdapter = null;
         newArmor.Description = null;
         newArmor.Keywords!.Add(GetFormKey("skyre__ArmorDreamcloth"));
@@ -822,10 +827,10 @@ public static class ArmorPatcher
     /// <param name="ingredients">List of ingredients and their quantity.</param>
     private static void AddCraftingRecipe(IArmorGetter newArmor, IArmorGetter oldArmor, List<IngredientsMap> ingredients)
     {
-        string newEdId = "RP_CRAFT_ARMO_" + oldArmor.EditorID;
+        string newEditorID = "RP_ARMO_CRAFT_" + oldArmor.EditorID;
         ConstructibleObject cobj = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
 
-        cobj.EditorID = newEdId;
+        cobj.EditorID = newEditorID.ToUnique();
         cobj.Items = [];
 
         ContainerItem baseItem = new();
