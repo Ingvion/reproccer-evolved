@@ -475,4 +475,22 @@ public static class Conditions
             ComparisonValue = 1
         });
     }
+
+    /// <summary>
+    /// Increments editor ID index by 1 until it becomes unique to avoid duplication of existing records editor IDs.<br/>
+    /// </summary>
+    /// <param name="newEditorID">Editor ID as string.</param>
+    /// <returns>Editor ID with a number appended to it as <see cref="string"/></returns>
+    public static string ToUnique(this string newEditorID)
+    {
+        
+        int incr = 0;
+        while (Executor.NewEditorIDs.Contains($"{newEditorID}{incr}"))
+        {
+            incr = incr == 0 ? 1 : ++incr;
+        }
+
+        Executor.NewEditorIDs.Add($"{newEditorID}{incr}");
+        return $"{newEditorID}{incr}";
+    }
 }
