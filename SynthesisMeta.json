@@ -2,7 +2,7 @@
   "Nickname": "ReProccer Evolved",
   "Visibility": "Visible",
   "OneLineDescription": "Makes armor, weapons, ammunition, and ingredients from any mod compatible with T3nd0's Skyrim SE/AE Redone",
-  "LongDescription": "This is a C# version of the ReProccer Reborn, the automated SkyRe patch generator, intended for use with Synthesis. This patcher does the same as the original, plus it doesn't have the infamous 254 file limitation and works correctly on Linux.",
+  "LongDescription": "This is a C# version of the ReProccer Reborn, the automated SkyRe patch generator, intended for use with Synthesis. This patcher does the same as the original, plus it doesn't have the infamous 254 file limitation.",
   "PreferredAutoVersioning": "Default",
   "RequiredMods": [
     "Skyrim AE Redone - Core.esm",
