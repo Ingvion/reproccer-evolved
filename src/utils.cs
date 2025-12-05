@@ -6,13 +6,71 @@ using System.Text.RegularExpressions;
 
 namespace ReProccer.Utils;
 
-public struct PatchingData(bool nonPlayable = false, bool hasUniqueKeyword = true, ArmorType armorType = ArmorType.Clothing, bool getModified = false, bool getOverridden = false)
+public struct PatchingData()
 {
-    public bool NonPlayable{ get; set; } = nonPlayable;
-    public bool Unique { get; set; } = hasUniqueKeyword;
-    public bool Modified { get; set; } = getModified;
-    public bool Overridden { get; set; } = getOverridden;
-    public ArmorType ArmorType { get; set; } = armorType;
+    public bool NonPlayable{ get; set; }
+    public bool Modified { get; set; }
+    public bool Overridden { get; set; }
+    public bool Unique { get; set; }
+    public ArmorType ArmorType { get; set; }
+}
+
+public struct Logger()
+{
+    private List<string> InfoMsg { get; set; } = [];
+    private List<string> CautionMsg { get; set; } = [];
+    private List<string> ErrorMsg { get; set; } = [];
+    private static readonly string[] Filter = Executor.Settings!.Debug.VerboseDataFilter
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    public readonly void Info(string msg, bool verboseInfo = false)
+    {
+        if (Executor.Settings!.Debug.ShowVerboseData || !verboseInfo) InfoMsg.Add(msg);
+    } 
+    public readonly void Caution(string msg) => CautionMsg.Add(msg);
+    public readonly void Error(string msg) => ErrorMsg.Add(msg);
+
+    public readonly void ShowReport(string name, string formkey, bool nonPlayable)
+    {
+        if (Filter.Length > 0 && Filter.Any(value => name.Contains(value.Trim()))) return;
+
+        List<List<string>> messages = [InfoMsg, CautionMsg, ErrorMsg];
+        if (messages.All(group => group.Count == 0)) return;
+
+        string[] groups = ["    > INFO:", "    > CAUTION:", "    > ERROR:"];
+        if (Executor.Settings!.Debug.ShowNonPlayable || !nonPlayable)
+        {
+            string note = nonPlayable ? " | NON-PLAYABLE" : "";
+            Console.WriteLine($"+ REPORT | {name} ({formkey}){note}");
+            foreach (var msgGroup in messages)
+            {
+                if (msgGroup.Count == 0) continue;
+                Console.WriteLine($"{groups[messages.IndexOf(msgGroup)]}");
+
+                foreach (var msg in msgGroup)
+                {
+                    Console.WriteLine($"           {msg}");
+                }
+            }
+            Console.WriteLine("====================");
+        }
+    }
+}
+
+public struct EditorIDs()
+{
+    public List<string> List { get; set; } = [];
+    public readonly string Unique(string editorID)
+    {
+        int? incr = null;
+        while (List.Contains($"{editorID}{incr}"))
+        {
+            incr = incr == null ? 1 : ++incr;
+        }
+
+        List.Add($"{editorID}{incr}");
+        return $"{editorID}{incr}";
+    }
 }
 
 public record StaticsMap(
@@ -394,6 +452,60 @@ public static class Helpers
     {
         return fullMatch ? excludedStrings.Any(value => value.Equals(str)) : excludedStrings.Count > 0 && excludedStrings.Any(str.Contains);
     }
+
+    /*
+    /// <summary>
+    /// Increments editor ID index by 1 until it becomes unique to avoid duplication of existing records editor IDs.<br/>
+    /// </summary>
+    /// <param name="newEditorID">Editor ID as string.</param>
+    /// <returns>Editor ID with a number appended to it as <see cref="string"/></returns>
+    public static string ToUnique(this string newEditorID)
+    {
+
+        int? incr = null;
+        while (Executor.NewEditorIDs.Contains($"{newEditorID}{incr}"))
+        {
+            incr = incr == null ? 1 : ++incr;
+        }
+
+        Executor.NewEditorIDs.Add($"{newEditorID}{incr}");
+        return $"{newEditorID}{incr}";
+    }
+
+    /// <summary>
+    /// Displays reports.<br/>
+    /// </summary>
+    /// <param name="name">Record name.</param>
+    /// <param name="formkey">Record FormKey.</param>
+    /// <param name="nonPlayable">True if the record has a Non-Playable flag.</param>
+    /// <param name="msgList">List of lists of strings with messages.</param>
+    public static void DisplayLog(string name, string formkey, bool nonPlayable, List<List<string>> msgList)
+    {
+        if (Executor.Settings!.Debug.ShowVerboseData) return;
+
+        string[] filter = Executor.Settings!.Debug.VerboseDataFilter.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (filter.Length > 0 && !filter.Any(value => name.Contains(value.Trim()))) return;
+
+
+        string[] group = ["-- ~ INFO", "-- > CAUTION", "-- # ERROR"];
+        if (Executor.Settings!.Debug.ShowNonPlayable || !nonPlayable)
+        {
+            string note = nonPlayable ? " | NON-PLAYABLE" : "";
+            Console.WriteLine($"+ REPORT | {name} ({formkey}){note}");
+            foreach (var msgGroup in msgList)
+            {
+                if (msgGroup.Count > 0) continue;
+                Console.WriteLine($"{group[msgList.IndexOf(msgGroup)]}");
+
+                foreach (var msg in msgGroup)
+                {
+                    Console.WriteLine($"----- {msg}");
+                }
+            }
+            Console.WriteLine("====================");
+        }
+    }
+    */
 }
 
 public static class Conditions
@@ -474,23 +586,5 @@ public static class Conditions
             Flags = flag,
             ComparisonValue = 1
         });
-    }
-
-    /// <summary>
-    /// Increments editor ID index by 1 until it becomes unique to avoid duplication of existing records editor IDs.<br/>
-    /// </summary>
-    /// <param name="newEditorID">Editor ID as string.</param>
-    /// <returns>Editor ID with a number appended to it as <see cref="string"/></returns>
-    public static string ToUnique(this string newEditorID)
-    {
-        
-        int incr = 0;
-        while (Executor.NewEditorIDs.Contains($"{newEditorID}{incr}"))
-        {
-            incr = incr == 0 ? 1 : ++incr;
-        }
-
-        Executor.NewEditorIDs.Add($"{newEditorID}{incr}");
-        return $"{newEditorID}{incr}";
     }
 }
