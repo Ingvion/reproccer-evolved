@@ -17,7 +17,6 @@ static class Executor
     internal static Settings.AllSettings? Settings;
 
     internal static List<IConstructibleObjectGetter>? AllRecipes;
-    internal static List<string> NewEditorIDs = [];
 
     // entry point
     public static async Task<int> Main(string[] args)
