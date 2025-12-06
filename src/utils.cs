@@ -13,6 +13,7 @@ public struct PatchingData()
     public bool Overridden { get; set; }
     public bool Unique { get; set; }
     public ArmorType ArmorType { get; set; }
+    public WeaponAnimationType AnimType { get; set; }
 }
 
 public struct Logger()
@@ -80,6 +81,7 @@ public record StaticsMap(
 
 public record DataMap(
     string Id,
+    string? Desc = null,
     FormKey? Kwda = null,
     FormKey? Item = null,
     List<FormKey>? Perk = null

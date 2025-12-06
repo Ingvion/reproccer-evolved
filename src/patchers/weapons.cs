@@ -10,6 +10,10 @@ public static class WeaponsPatcher
 {
     private static readonly Settings.AllSettings Settings = Executor.Settings!;
     private static readonly JsonObject Rules = Executor.Rules!["weapons"]!.AsObject();
+    private static readonly (List<DataMap> AllWeaponTypes,
+                             List<DataMap> SkyReWeaponTypes,
+                             List<DataMap> AllMaterials,
+                             List<DataMap> CrossbowSubtypes) Statics = BuildStaticsMap();
 
     private static EditorIDs EditorIDs;
     private static Weapon? ThisRecord;
@@ -48,15 +52,7 @@ public static class WeaponsPatcher
         List<string> excludedNames = [.. Rules["excludedWeapons"]!.AsArray().Select(value => value!.GetValue<string>())];
         foreach (var record in weapWinners)
         {
-            if (IsValid(record, excludedNames))
-            {
-                weapRecords.Add(record);
-            }
-            else
-            {
-                Console.WriteLine($"{record.Name} ({record.EditorID}) is invalid");
-            }
-                ;
+            if (IsValid(record, excludedNames)) weapRecords.Add(record);
         }
 
         Console.WriteLine($"\n~~~ {weapRecords.Count} weapon records are eligible for patching ~~~\n\n"
@@ -109,5 +105,127 @@ public static class WeaponsPatcher
         if (weapon.Keywords == null || weapon.Keywords.Count == 0) return false;
 
         return true;
+    }
+
+    // weapons patcher statics
+    private static (List<DataMap>, List<DataMap>, List<DataMap>, List<DataMap>) BuildStaticsMap()
+    {
+        Executor.Statics!.AddRange(
+        [
+            new(Id: "WeapTypeSword",                          Formkey: Helpers.ParseFormKey("Skyrim.esm|0x01e711|KWDA")                  ),
+            new(Id: "WeapTypeWaraxe",                         Formkey: Helpers.ParseFormKey("Skyrim.esm|0x01e712|KWDA")                  ),
+            new(Id: "WeapTypeDagger",                         Formkey: Helpers.ParseFormKey("Skyrim.esm|0x01e713|KWDA")                  ),
+            new(Id: "WeapTypeMace",                           Formkey: Helpers.ParseFormKey("Skyrim.esm|0x01e714|KWDA")                  ),
+            new(Id: "WeapTypeBow",                            Formkey: Helpers.ParseFormKey("Skyrim.esm|0x01e715|KWDA")                  ),
+            new(Id: "WeapTypeWarhammer",                      Formkey: Helpers.ParseFormKey("Skyrim.esm|0x06d930|KWDA")                  ),
+            new(Id: "WeapTypeGreatsword",                     Formkey: Helpers.ParseFormKey("Skyrim.esm|0x06d931|KWDA")                  ),
+            new(Id: "WeapTypeBattleaxe",                      Formkey: Helpers.ParseFormKey("Skyrim.esm|0x06d932|KWDA")                  ),
+            new(Id: "skyre__WeapTypeBastardSword",            Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000813|KWDA") ),
+            new(Id: "skyre__WeapTypeQuarterstaff",            Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000814|KWDA") ),
+            new(Id: "skyre__WeapMaterialBound",               Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000815|KWDA") ),
+            new(Id: "skyre__WeapTypeShortbow",                Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000817|KWDA") ),
+            new(Id: "skyre__WeapTypeBroadsword",              Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000818|KWDA") ),
+            new(Id: "skyre__WeapTypeClub",                    Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000819|KWDA") ),
+            new(Id: "skyre__WeapTypeCrossbow",                Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00081a|KWDA") ),
+            new(Id: "skyre__WeapTypeGlaive",                  Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00081b|KWDA") ),
+            new(Id: "skyre__WeapTypeHalberd",                 Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00081c|KWDA") ),
+            new(Id: "skyre__WeapTypeHatchet",                 Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00081d|KWDA") ),
+            new(Id: "skyre__WeapTypeKatana",                  Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00081e|KWDA") ),
+            new(Id: "skyre__WeapTypeLongbow",                 Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000816|KWDA") ),
+            new(Id: "skyre__WeapTypeLongmace",                Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00081f|KWDA") ),
+            new(Id: "skyre__WeapTypeLongspear",               Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000820|KWDA") ),
+            new(Id: "skyre__WeapTypeLongsword",               Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000821|KWDA") ),
+            new(Id: "skyre__WeapTypeMaul",                    Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000822|KWDA") ),
+            new(Id: "skyre__WeapTypeNodachi",                 Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000823|KWDA") ),
+            new(Id: "skyre__WeapTypeScimitar",                Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000824|KWDA") ),
+            new(Id: "skyre__WeapTypeShortspear",              Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000825|KWDA") ),
+            new(Id: "skyre__WeapTypeShortsword",              Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000826|KWDA") ),
+            new(Id: "skyre__WeapTypeTanto",                   Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000827|KWDA") ),
+            new(Id: "skyre__WeapTypeWakizashi",               Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000828|KWDA") ),
+            new(Id: "skyre__WeapMaterialSilverRefined",       Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000829|KWDA") ),
+            new(Id: "skyre_MAREnhancedCrossbowMuffled",       Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d97|KWDA") ),
+            new(Id: "skyre_MAREnhancedCrossbowSiege",         Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d98|KWDA") ),
+            new(Id: "SilverPerk",                             Formkey: Helpers.ParseFormKey("Skyrim.esm|0x10d685|PERK")                  ),
+            new(Id: "skyre_MARCrossbowLight",                 Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d93|PERK") ),
+            new(Id: "skyre_MARCrossbowRecurve",               Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d94|PERK") ),
+            new(Id: "skyre_MARCrossbowMuffled",               Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d95|PERK") ),
+            new(Id: "skyre_MARCrossbowSiege",                 Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d96|PERK") ),
+            new(Id: "skyre_MARArtificer",                     Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000dbf|PERK") )
+        ]);
+
+        List<DataMap> allWeaponTypes = [
+            new(Id: "type_battleaxe",    Kwda: GetFormKey("WeapTypeBattleaxe")  ),
+            new(Id: "type_bow",          Kwda: GetFormKey("WeapTypeBow")        ),
+            new(Id: "type_broadsword",   Kwda: GetFormKey("WeapTypeSword")      ),
+            new(Id: "type_dagger",       Kwda: GetFormKey("WeapTypeDagger")     ),
+            new(Id: "type_greatsword",   Kwda: GetFormKey("WeapTypeGreatsword") ),
+            new(Id: "type_mace",         Kwda: GetFormKey("WeapTypeMace")       ),
+            new(Id: "type_waraxe",       Kwda: GetFormKey("WeapTypeWaraxe")     ),
+            new(Id: "type_warhammer",    Kwda: GetFormKey("WeapTypeWarhammer")  )
+        ];
+
+        List<DataMap> skyreWeaponTypes = [
+            new(Id: "type_bastard",      Kwda: GetFormKey("skyre__WeapTypeBastardSword") ),
+            new(Id: "type_broadsword",   Kwda: GetFormKey("skyre__WeapTypeBroadsword")   ),
+            new(Id: "type_club",         Kwda: GetFormKey("skyre__WeapTypeClub")         ),
+            new(Id: "type_crossbow",     Kwda: GetFormKey("skyre__WeapTypeCrossbow")     ),
+            new(Id: "type_glaive",       Kwda: GetFormKey("skyre__WeapTypeGlaive")       ),
+            new(Id: "type_halberd",      Kwda: GetFormKey("skyre__WeapTypeHalberd")      ),
+            new(Id: "type_hatchet",      Kwda: GetFormKey("skyre__WeapTypeHatchet")      ),
+            new(Id: "type_katana",       Kwda: GetFormKey("skyre__WeapTypeKatana")       ),
+            new(Id: "type_longbow",      Kwda: GetFormKey("skyre__WeapTypeLongbow")      ),
+            new(Id: "type_longmace",     Kwda: GetFormKey("skyre__WeapTypeLongmace")     ),
+            new(Id: "type_longspear",    Kwda: GetFormKey("skyre__WeapTypeLongspear")    ),
+            new(Id: "type_longsword",    Kwda: GetFormKey("skyre__WeapTypeLongsword")    ),
+            new(Id: "type_maul",         Kwda: GetFormKey("skyre__WeapTypeMaul")         ),
+            new(Id: "type_nodachi",      Kwda: GetFormKey("skyre__WeapTypeNodachi")      ),
+            new(Id: "type_quarterstaff", Kwda: GetFormKey("skyre__WeapTypeQuarterstaff") ),
+            new(Id: "type_scimitar",     Kwda: GetFormKey("skyre__WeapTypeScimitar")     ),
+            new(Id: "type_shortbow",     Kwda: GetFormKey("skyre__WeapTypeShortbow")     ),
+            new(Id: "type_shortspear",   Kwda: GetFormKey("skyre__WeapTypeShortspear")   ),
+            new(Id: "type_shortsword",   Kwda: GetFormKey("skyre__WeapTypeShortsword")   ),
+            new(Id: "type_tanto",        Kwda: GetFormKey("skyre__WeapTypeTanto")        ),
+            new(Id: "type_wakizashi",    Kwda: GetFormKey("skyre__WeapTypeWakizashi")    )
+        ];
+
+        allWeaponTypes.InsertRange(0, skyreWeaponTypes);
+
+        List<DataMap> allMaterials = [
+            new(Id: "mat_amber",      Kwda: GetFormKey("cc_WeapMaterialAmber"),          Item: GetFormKey("ingotAmber"),       Perk: [ GetFormKey("perkSmithingGlass"), GetFormKey("perkSmithingEbony") ]         ),
+            new(Id: "mat_blades",     Kwda: GetFormKey("WAF_WeapMaterialBlades"),        Item: GetFormKey("ingotSteel"),       Perk: [ GetFormKey("perkSmithingSteel") ]                                          ),
+            new(Id: "mat_daedric",    Kwda: GetFormKey("WeapMaterialDaedric"),           Item: GetFormKey("ingotEbony"),       Perk: [ GetFormKey("perkSmithingDaedric") ]                                        ),
+            new(Id: "mat_dawnguard",  Kwda: GetFormKey("WAF_DLC1WeapMaterialDawnguard"), Item: GetFormKey("ingotSteel"),       Perk: [ GetFormKey("perkSmithingSteel") ]                                          ),
+            new(Id: "mat_dark",       Kwda: GetFormKey("cc_WeapMaterialDark"),           Item: GetFormKey("ingotQuicksilver"), Perk: [ GetFormKey("perkSmithingDaedric") ]                                        ),
+            new(Id: "mat_dragonbone", Kwda: GetFormKey("DLC1WeapMaterialDragonbone"),    Item: GetFormKey("dragonbone"),       Perk: [ GetFormKey("perkSmithingDragon") ]                                         ),
+            new(Id: "mat_draugr",     Kwda: GetFormKey("WeapMaterialDraugr"),            Item: GetFormKey("ingotQuicksilver"), Perk: [ GetFormKey("perkSmithingAdvanced") ]                                       ),
+            new(Id: "mat_draugrh",    Kwda: GetFormKey("WeapMaterialDraugrHoned"),       Item: GetFormKey("ingotQuicksilver"), Perk: [ GetFormKey("perkSmithingAdvanced") ]                                       ),
+            new(Id: "mat_dwarven",    Kwda: GetFormKey("WeapMaterialDwarven"),           Item: GetFormKey("ingotDwarven"),     Perk: [ GetFormKey("perkSmithingDwarven") ]                                        ),
+            new(Id: "mat_ebony",      Kwda: GetFormKey("WeapMaterialEbony"),             Item: GetFormKey("ingotEbony"),       Perk: [ GetFormKey("perkSmithingEbony") ]                                          ),
+            new(Id: "mat_elven",      Kwda: GetFormKey("WeapMaterialElven"),             Item: GetFormKey("ingotMoonstone"),   Perk: [ GetFormKey("perkSmithingElven") ]                                          ),
+            new(Id: "mat_falmer",     Kwda: GetFormKey("WeapMaterialFalmer"),            Item: GetFormKey("chaurusChitin"),    Perk: [ GetFormKey("perkSmithingElven") ]                                          ),
+            new(Id: "mat_falmerh",    Kwda: GetFormKey("WeapMaterialFalmerHoned"),       Item: GetFormKey("chaurusChitin"),    Perk: [ GetFormKey("perkSmithingElven") ]                                          ),
+            new(Id: "mat_forsworn",   Kwda: GetFormKey("WAF_WeapMaterialForsworn"),      Item: GetFormKey("ingotIron")                                                                                            ),
+            new(Id: "mat_glass",      Kwda: GetFormKey("WeapMaterialGlass"),             Item: GetFormKey("ingotMalachite"),   Perk: [ GetFormKey("perkSmithingGlass") ]                                          ),
+            new(Id: "mat_golden",     Kwda: GetFormKey("cc_WeapMaterialGolden"),         Item: GetFormKey("ingotMoonstone"),   Perk: [GetFormKey("perkSmithingDaedric") ]                                         ),
+            new(Id: "mat_imperial",   Kwda: GetFormKey("WeapMaterialImperial"),          Item: GetFormKey("ingotSteel"),       Perk: [ GetFormKey("perkSmithingSteel") ]                                          ),
+            new(Id: "mat_iron",       Kwda: GetFormKey("WeapMaterialIron"),              Item: GetFormKey("ingotIron")                                                                                            ),
+            new(Id: "mat_madness",    Kwda: GetFormKey("cc_WeapMaterialMadness"),        Item: GetFormKey("ingotMadness"),     Perk: [ GetFormKey("perkSmithingEbony") ]                                          ),
+            new(Id: "mat_nordic",     Kwda: GetFormKey("DLC2WeaponMaterialNordic"),      Item: GetFormKey("ingotQuicksilver"), Perk: [ GetFormKey("perkSmithingAdvanced") ]                                       ),
+            new(Id: "mat_orcish",     Kwda: GetFormKey("WeapMaterialOrcish"),            Item: GetFormKey("ingotOrichalcum"),  Perk: [ GetFormKey("perkSmithingOrcish") ]                                         ),
+            new(Id: "mat_silverr",    Kwda: GetFormKey("WeapMaterialSilverRefined"),     Item: GetFormKey("ingotQuicksilver"), Perk: [ GetFormKey("perkSmithingSilverRefined"), GetFormKey("perkSmithingSteel") ] ),
+            new(Id: "mat_silver",     Kwda: GetFormKey("WeapMaterialSilver"),            Item: GetFormKey("ingotSilver"),      Perk: [ GetFormKey("perkSmithingTradecraft"), GetFormKey("perkSmithingSteel") ]    ),
+            new(Id: "mat_stalhrim",   Kwda: GetFormKey("DLC2WeaponMaterialStalhrim"),    Item: GetFormKey("oreStalhrim"),      Perk: [ GetFormKey("perkSmithingGlass"), GetFormKey("perkSmithingEbony") ]         ),
+            new(Id: "mat_steel",      Kwda: GetFormKey("WeapMaterialSteel"),             Item: GetFormKey("ingotSteel"),       Perk: [ GetFormKey("perkSmithingSteel") ]                                          ),
+            new(Id: "mat_wood",       Kwda: GetFormKey("WeapMaterialWood"),              Item: GetFormKey("charcoal")                                                                                             )
+        ];
+
+        List<DataMap> crossbowSubtypes = [
+            new(Id: "name_recurve",                                                       Desc: "desc_recurve", Perk: [ GetFormKey("skyre_MARCrossbowRecurve")   ),
+            new(Id: "name_lweight",                                                       Desc: "desc_lweight", Perk: [ GetFormKey("skyre_MARCrossbowLight")     ),
+            new(Id: "name_muffled", Kwda: GetFormKey("skyre_MAREnhancedCrossbowMuffled"), Desc: "desc_muffled", Perk: [ GetFormKey("skyre_MARCrossbowMuffled") ] ),
+            new(Id: "name_siege",   Kwda: GetFormKey("skyre_MAREnhancedCrossbowSiege"),   Desc: "desc_siege",   Perk: [ GetFormKey("skyre_MARCrossbowSiege") ]   )
+        ];
+
+        return (allWeaponTypes, skyreWeaponTypes, allMaterials, crossbowSubtypes);
     }
 }
