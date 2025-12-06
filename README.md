@@ -5,4 +5,4 @@ WIP, ***currently only the armor patcher is available***. While the patcher it's
 
 # Installation
 * Download and install [Synthesis](https://github.com/Mutagen-Modding/Synthesis/releases)
-* In Synthesis, on the top left row of icons pick "Local Solutions" -> "Git Repository", find ReProccer Evolved in the list, and click "Add patcher".
+* In Synthesis, on the top left row of icons press "Git Repository", find ReProccer Evolved in the list, and click "Add patcher".
