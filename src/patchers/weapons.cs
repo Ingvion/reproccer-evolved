@@ -10,10 +10,10 @@ public static class WeaponsPatcher
 {
     private static readonly Settings.AllSettings Settings = Executor.Settings!;
     private static readonly JsonObject Rules = Executor.Rules!["weapons"]!.AsObject();
-    private static readonly (List<DataMap> AllWeaponTypes,
-                             List<DataMap> SkyReWeaponTypes,
-                             List<DataMap> AllMaterials,
-                             List<DataMap> CrossbowSubtypes) Statics = BuildStaticsMap();
+    private static readonly (List<DataMap> AllTypes,
+                             List<DataMap> SkyReTypes,
+                             List<DataMap> CrossbowSubtypes,
+                             List<DataMap> AllMaterials) Statics = BuildStaticsMap();
 
     private static EditorIDs EditorIDs;
     private static Weapon? ThisRecord;
@@ -107,6 +107,34 @@ public static class WeaponsPatcher
         return true;
     }
 
+    // local patcher helpers
+
+    /// <summary>
+    /// Returns the FormKey with id from the statics record.<br/>
+    /// </summary>
+    /// <param name="id">The id in the elements with the FormKey to return.</param>
+    /// <returns>A FormKey from the statics list.</returns>
+    private static FormKey GetFormKey(string id) => Executor.Statics!.First(elem => elem.Id == id).Formkey;
+
+    /// <summary>
+    /// Returns the winning override for this-parameter, and copies it to the patch file.<br/>
+    /// Marks it as modified in local record data.
+    /// </summary>
+    /// <param name="weapon">The weapon record as IWeaponGetter.</param>
+    /// <returns>The winning override as Weapon.</returns>
+    private static Weapon GetAsOverride(this IWeaponGetter weapon)
+    {
+        if (!RecordData.Modified) RecordData.Modified = true;
+        return ThisRecord?.FormKey != weapon.FormKey ? Executor.State!.PatchMod.Weapons.GetOrAddAsOverride(weapon) : ThisRecord;
+    }
+
+    /// <summary>
+    /// Displays info and errors.<br/>
+    /// </summary>
+    /// <param name="weapon">The weapon record as IWeaponGetter.</param>
+    /// <param name="msgList">The list of list of strings with messages.</param>
+    private static void ShowReport(this IWeaponGetter weapon) => Logger.ShowReport($"{weapon.Name}", $"{weapon.FormKey}", !RecordData.NonPlayable);
+
     // weapons patcher statics
     private static (List<DataMap>, List<DataMap>, List<DataMap>, List<DataMap>) BuildStaticsMap()
     {
@@ -153,7 +181,7 @@ public static class WeaponsPatcher
             new(Id: "skyre_MARArtificer",                     Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000dbf|PERK") )
         ]);
 
-        List<DataMap> allWeaponTypes = [
+        List<DataMap> allTypes = [
             new(Id: "type_battleaxe",    Kwda: GetFormKey("WeapTypeBattleaxe")  ),
             new(Id: "type_bow",          Kwda: GetFormKey("WeapTypeBow")        ),
             new(Id: "type_broadsword",   Kwda: GetFormKey("WeapTypeSword")      ),
@@ -164,7 +192,7 @@ public static class WeaponsPatcher
             new(Id: "type_warhammer",    Kwda: GetFormKey("WeapTypeWarhammer")  )
         ];
 
-        List<DataMap> skyreWeaponTypes = [
+        List<DataMap> skyreTypes = [
             new(Id: "type_bastard",      Kwda: GetFormKey("skyre__WeapTypeBastardSword") ),
             new(Id: "type_broadsword",   Kwda: GetFormKey("skyre__WeapTypeBroadsword")   ),
             new(Id: "type_club",         Kwda: GetFormKey("skyre__WeapTypeClub")         ),
@@ -188,7 +216,7 @@ public static class WeaponsPatcher
             new(Id: "type_wakizashi",    Kwda: GetFormKey("skyre__WeapTypeWakizashi")    )
         ];
 
-        allWeaponTypes.InsertRange(0, skyreWeaponTypes);
+        allTypes.InsertRange(0, skyreTypes);
 
         List<DataMap> allMaterials = [
             new(Id: "mat_amber",      Kwda: GetFormKey("cc_WeapMaterialAmber"),          Item: GetFormKey("ingotAmber"),       Perk: [ GetFormKey("perkSmithingGlass"), GetFormKey("perkSmithingEbony") ]         ),
@@ -220,12 +248,12 @@ public static class WeaponsPatcher
         ];
 
         List<DataMap> crossbowSubtypes = [
-            new(Id: "name_recurve",                                                       Desc: "desc_recurve", Perk: [ GetFormKey("skyre_MARCrossbowRecurve")   ),
-            new(Id: "name_lweight",                                                       Desc: "desc_lweight", Perk: [ GetFormKey("skyre_MARCrossbowLight")     ),
+            new(Id: "name_recurve",                                                       Desc: "desc_recurve", Perk: [ GetFormKey("skyre_MARCrossbowRecurve") ] ),
+            new(Id: "name_lweight",                                                       Desc: "desc_lweight", Perk: [ GetFormKey("skyre_MARCrossbowLight") ]   ),
             new(Id: "name_muffled", Kwda: GetFormKey("skyre_MAREnhancedCrossbowMuffled"), Desc: "desc_muffled", Perk: [ GetFormKey("skyre_MARCrossbowMuffled") ] ),
             new(Id: "name_siege",   Kwda: GetFormKey("skyre_MAREnhancedCrossbowSiege"),   Desc: "desc_siege",   Perk: [ GetFormKey("skyre_MARCrossbowSiege") ]   )
         ];
 
-        return (allWeaponTypes, skyreWeaponTypes, allMaterials, crossbowSubtypes);
+        return (allTypes, skyreTypes, crossbowSubtypes, allMaterials);
     }
 }
