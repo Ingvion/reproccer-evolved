@@ -98,7 +98,7 @@ static class Executor
 
         // running patchers
         if (Settings.General.ArmorPatcher) Patchers.ArmorPatcher.Run();
-        if (Settings.General.WeaponsPatcher) Patchers.WeaponsPatcher.Run();
+        //if (Settings.General.WeaponsPatcher) Patchers.WeaponsPatcher.Run();
         Console.WriteLine("");
     }
 
@@ -249,9 +249,6 @@ static class Executor
             new(Id: "skyre_ENCElementalBombard0",             Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000b8d|PERK") ),
             new(Id: "skyre_ENCElementalBombard1",             Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000b8e|PERK") ),
             new(Id: "skyre_MARBallistics",                    Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d80|PERK") ),
-            new(Id: "skyre_SMTLeathercraft",                  Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ec4|PERK") ),
-            new(Id: "skyre_SMTBreakdown",                     Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000edf|PERK") ),
-            new(Id: "skyre_SMTTradecraft",                    Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee0|PERK") ),
-            new(Id: "skyre_SMTDeepSilver",                    Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee4|PERK") )
+            new(Id: "skyre_SMTBreakdown",                     Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000edf|PERK") )
         ];
 }
