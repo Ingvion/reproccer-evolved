@@ -10,8 +10,8 @@ public static class ArmorPatcher
 {
     private static readonly Settings.AllSettings Settings = Executor.Settings!;
     private static readonly JsonObject Rules = Executor.Rules!["armor"]!.AsObject();
-    private static readonly (List<DataMap> LightMaterials,
-                             List<DataMap> AllMaterials,
+    private static readonly (List<DataMap> AllMaterials,
+                             List<DataMap> LightMaterials,
                              List<DataMap> FactionBinds) Statics = BuildStaticsMap();
 
     private static EditorIDs EditorIDs;
@@ -142,6 +142,7 @@ public static class ArmorPatcher
     /// <param name="armor">The armor record as IArmorGetter.</param>
     /// <param name="excludedNames">The list of excluded strings.</param>
     /// <param name="mustHave">The list of keywords formkeys of which at least one must be present on armor.</param>
+    /// <returns>Check result from a filter the record triggered as <see cref="bool"/>.</returns>
     private static bool IsValid(IArmorGetter armor, List<string> excludedNames, List<FormKey> mustHave)
     {
         Logger = new Logger();
@@ -993,7 +994,7 @@ public static class ArmorPatcher
             new(Id: "mat_vampire",     Kwda: GetFormKey("DLC1ArmorMaterialVampire"),       Item: GetFormKey("LeatherStrips"),    Perk: [ GetFormKey("skyre_SMTLeathercraft") ]                              )
         ];
 
-        lightMaterials.AddRange(allMaterials);
+        allMaterials.AddRange(lightMaterials);
         List<DataMap> factionBinds = [
             new(Id: "fact_bandit",     Kwda: GetFormKey("skyre_SPCMasqueradeBandit")     ),
             new(Id: "fact_forsworn",   Kwda: GetFormKey("skyre_SPCMasqueradeForsworn")   ),
