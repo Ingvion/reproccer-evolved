@@ -98,6 +98,7 @@ static class Executor
 
         // running patchers
         if (Settings.General.ArmorPatcher) Patchers.ArmorPatcher.Run();
+        if (Settings.General.WeaponsPatcher) Patchers.WeaponsPatcher.Run();
         Console.WriteLine("");
     }
 
