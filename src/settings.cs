@@ -81,9 +81,9 @@ public class DebugSettings
     public bool ShowVerboseData { get; set; } = false;
 
     [SettingName("Filter patching results")]
-    [Tooltip("Only patching results for records with these values in their names will be displayed when \"Report patching results\" is active.\n"
-        + "Separate values by commas; leave the field empty to display patching results for all processed records (not recommended).")]
-    public string VerboseDataFilter { get; set; } = "";
+    [Tooltip("Only info for records with these values in their names will be displayed. Separate values by commas;\n"
+        + "leave the field empty to display information on all processed records.")]
+    public string ReportFilter { get; set; } = "";
 
     [SettingName("Include non-playables in reports")]
     [Tooltip("Reports of all types will also be displayed for non-playable records.")]
