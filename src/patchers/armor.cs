@@ -876,7 +876,7 @@ public static class ArmorPatcher
         cobj.CreatedObjectCount = 1;
     }
 
-    // local patcher helpers
+    // patcher specific helpers
 
     /// <summary>
     /// Returns the FormKey with id from the statics record.<br/>
@@ -904,7 +904,7 @@ public static class ArmorPatcher
     /// <param name="msgList">The list of list of strings with messages.</param>
     private static void ShowReport(this IArmorGetter armor) => Logger.ShowReport($"{armor.Name}", $"{armor.FormKey}", !RecordData.NonPlayable);
 
-    // armor patcher statics
+    // patcher specific statics
     private static (List<DataMap>, List<DataMap>, List<DataMap>) BuildStaticsMap()
     {
         Executor.Statics!.AddRange(
@@ -938,6 +938,7 @@ public static class ArmorPatcher
             new(Id: "skyre_SPCMasqueradeImperial",            Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f46|KWDA") ),
             new(Id: "skyre_SPCMasqueradeStormcloak",          Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f47|KWDA") ),
             new(Id: "skyre_SPCMasqueradeThalmor",             Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f48|KWDA") ),
+            new(Id: "skyre_SMTLeathercraft",                  Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ec4|PERK") ),
             new(Id: "skyre_SMTWeavingMill",                   Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee1|PERK") )
         ]);
 
