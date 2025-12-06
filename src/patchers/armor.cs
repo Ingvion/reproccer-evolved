@@ -651,27 +651,26 @@ public static class ArmorPatcher
             }
         }
 
-        List<FormKey> armorPerks = RecordData.ArmorType != ArmorType.Clothing ? 
-            [.. Statics.AllMaterials
+        bool isBig = armor.BodyTemplate!.FirstPersonFlags.HasFlag(BipedObjectFlag.Body) || armor.BodyTemplate!.FirstPersonFlags.HasFlag(BipedObjectFlag.Shield);
+        bool isDreamcloth = armor.Keywords!.Contains(GetFormKey("skyre__ArmorDreamcloth"));
+        bool isClothing = RecordData.ArmorType == ArmorType.Clothing && !isDreamcloth;
+
+        List<FormKey> armorPerks = !isClothing && !isDreamcloth ? [.. Statics.AllMaterials
             .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
             .Where(entry => entry.Perk != null)
             .SelectMany(entry => entry.Perk!)
             .Distinct()] : [];
-        List<FormKey> armorItems = RecordData.ArmorType != ArmorType.Clothing ?
-            [.. Statics.AllMaterials
+        List<FormKey> armorItems = !isClothing && !isDreamcloth ? [.. Statics.AllMaterials
             .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
             .Select(entry => (FormKey)entry.Item!)
             .Distinct()] : [GetFormKey("LeatherStrips")];
 
-        if (RecordData.ArmorType != ArmorType.Clothing && armorItems.Count == 0)
+        if (!isClothing && !isDreamcloth && armorItems.Count == 0)
         {
             Logger.Error($"Unable to determine the breakdown recipe resulting item");
             return;
         }
 
-        bool isBig = armor.BodyTemplate != null
-            && (armor.BodyTemplate.FirstPersonFlags.HasFlag(BipedObjectFlag.Body) || armor.BodyTemplate.FirstPersonFlags.HasFlag(BipedObjectFlag.Shield));
-        bool isDreamcloth = armor.Keywords!.Contains(GetFormKey("skyre__ArmorDreamcloth"));
         if (armorItems.IndexOf(GetFormKey("LeatherStrips")) is int index && index != -1)
         {
             if (isDreamcloth)
@@ -686,7 +685,6 @@ public static class ArmorPatcher
             }
         }
 
-        bool isClothing = RecordData.ArmorType == ArmorType.Clothing && !isDreamcloth;
         bool isLeather = armorItems.Contains(GetFormKey("Leather01")) || armorItems.Contains(GetFormKey("LeatherStrips"));
 
         bool fromRecipe = false;
