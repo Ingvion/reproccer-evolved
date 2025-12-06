@@ -268,7 +268,7 @@ public static class ArmorPatcher
 
         if (overrideNode != null && overrideString == null)
         {
-            Logger.Error("The material name returned from the relevant \"materialOverrides\" rule should be a string.");
+            Logger.Error("The material name returned from the relevant \"materialOverrides\" rule should be a string");
             return;
         }
 
@@ -373,7 +373,7 @@ public static class ArmorPatcher
             return Settings.Armor.SlotShield;
         }
 
-        Logger.Error("Unable to determine the equip slot for the record.");
+        Logger.Error("Unable to determine the equip slot for the record");
         return null;
     }
 
@@ -402,16 +402,16 @@ public static class ArmorPatcher
 
         if (factorInt != null)
         {
-            if (materialId == null) Logger.Caution("The record has a \"materials\" rule for its name but no material keyword.");
+            if (materialId == null) Logger.Caution("The record has a \"materials\" rule for its name but no material keyword");
             return factorInt;
         }
 
         if (factorNode != null && factorInt == null)
         {
-            Logger.Error("The armor value in the relevant \"materials\" rule should be a number.");
+            Logger.Error("The armor value in the relevant \"materials\" rule should be a number");
         }
 
-        Logger.Error("Unable to determine the material.");
+        Logger.Error("Unable to determine the material");
         return null;
     }
 
@@ -432,7 +432,7 @@ public static class ArmorPatcher
 
         if (modifierNode != null && modifierFloat == null)
         {
-            Logger.Error("The multiplier value in the relevant \"armorModifiers\" rule should be a number.");
+            Logger.Error("The multiplier value in the relevant \"armorModifiers\" rule should be a number");
         }
 
         return 1.0f;
@@ -624,7 +624,7 @@ public static class ArmorPatcher
     {
         if (RecordData.Unique)
         {
-            Logger.Info($"Cannot have a breakdown recipe due to the \"No breakdown\" keyword", true);
+            Logger.Info($"The breakdown recipe was not generated due to the \"No breakdown\" keyword", true);
             return;
         }
 
@@ -772,7 +772,7 @@ public static class ArmorPatcher
 
         if (!armor.TemplateArmor.IsNull || RecordData.Unique)
         {
-            Logger.Info($"Cannot have a Dreamcloth variant due to having a template or \"No breakdown\" keyword", true);
+            Logger.Info($"The Dreamcloth variant was not generated due to having a template or \"No breakdown\" keyword", true);
             return;
         }
 
@@ -902,7 +902,7 @@ public static class ArmorPatcher
     /// </summary>
     /// <param name="armor">The armor record as IArmorGetter.</param>
     /// <param name="msgList">The list of list of strings with messages.</param>
-    private static void ShowReport(this IArmorGetter armor) => Logger.ShowReport($"{armor.Name}", $"{armor.FormKey}", !RecordData.NonPlayable);
+    private static void ShowReport(this IArmorGetter armor) => Logger.ShowReport($"{armor.Name}", $"{armor.FormKey}", RecordData.NonPlayable);
 
     // patcher specific statics
     private static (List<DataMap>, List<DataMap>, List<DataMap>) BuildStaticsMap()

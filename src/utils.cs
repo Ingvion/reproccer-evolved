@@ -18,11 +18,10 @@ public struct PatchingData()
 
 public struct Logger()
 {
-    private List<string> InfoMsg { get; set; } = [];
-    private List<string> CautionMsg { get; set; } = [];
-    private List<string> ErrorMsg { get; set; } = [];
-    private static readonly string[] Filter = Executor.Settings!.Debug.VerboseDataFilter
-        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    private readonly List<string> InfoMsg = [];
+    private readonly List<string> CautionMsg = [];
+    private readonly List<string> ErrorMsg = [];
+    private static readonly string[] Filter = Executor.Settings!.Debug.ReportFilter.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     public readonly void Info(string msg, bool verboseInfo = false)
     {
@@ -33,7 +32,7 @@ public struct Logger()
 
     public readonly void ShowReport(string name, string formkey, bool nonPlayable)
     {
-        if (Filter.Length > 0 && Filter.Any(value => name.Contains(value.Trim()))) return;
+        if (Filter.Length > 0 && !Filter.Any(name.Contains)) return;
 
         List<List<string>> messages = [InfoMsg, CautionMsg, ErrorMsg];
         if (messages.All(group => group.Count == 0)) return;
@@ -50,7 +49,7 @@ public struct Logger()
 
                 foreach (var msg in msgGroup)
                 {
-                    Console.WriteLine($"           {msg}");
+                    Console.WriteLine($"         - {msg}");
                 }
             }
             Console.WriteLine("====================");
