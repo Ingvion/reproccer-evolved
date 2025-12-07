@@ -30,8 +30,8 @@ public class AllSettings
 public class GeneralSettings
 {
     [SettingName("Game language")]
-    [Tooltip("Keep in mind, that you need a translated strings file in the \"locales\" folder for languages other than English;\n"
-    + "if none, default English strings will be used.")]
+    [Tooltip("Determines which language strings to use first. If there's no translated strings file for specified language\n"
+        + "or no translated string in the file, default English strings will be used.")]
     public Language GameLanguage { get; set; } = Language.English;
 
     [SettingName("Ignored files")]
@@ -144,7 +144,65 @@ public class ArmorSettings
     public bool NoClothingBreak { get; set; } = false;
 
     [SettingName("Show all Dreamcloth recipes")]
-    [Tooltip("Only the Weaving Mill perk is required for Dreamcloth recipes to become visible in the crafting menu.\n"
-        + "By default to declutter the crafting menu Dreamcloth recipes are hidden for clothing pieces you don't have in the inventory.")]
+    [Tooltip("Dreamcloth recipes will always be visible in the crafting menu once the relevant perk is acquired.\n"
+        + "By default, to declutter the crafting menu, Dreamcloth recipes are hidden unless you have a required base clothing item in the inventory.")]
+    public bool ShowAllRecipes { get; set; } = false;
+}
+
+public class WeaponsSettings
+{
+    [SettingName("Base damage for one-handed weapons")]
+    [Tooltip("Base damage for any one-handed weapon.")]
+    public int OneHandedBase { get; set; } = 12;
+
+    [SettingName("Base damage for two-handed weapons")]
+    [Tooltip("Base damage for any two-handed weapon.")]
+    public int TwoHandedBase { get; set; } = 23;
+
+    [SettingName("Base damage for bows")]
+    [Tooltip("Base damage for two-handed weapons.")]
+    public int BowBase { get; set; } = 22;
+
+    [SettingName("Base damage for crossbows")]
+    [Tooltip("Base damage for crossbows.")]
+    public int CrossbowBase { get; set; } = 30;
+
+    [SettingName("Amount of material to be refunded on breakdown")]
+    [Tooltip("This percentage of the weapon material will be refunded on breakdown (based on the crafting recipe if possible).")]
+    public int RefundAmount { get; set; } = 50;
+
+    [SettingName("Price of Refined Silver weapons")]
+    [Tooltip("This percentage of a Silver weapon price will be assigned to its Refined Silver version.\n"
+        + "E.g., the value of 125 means any Refined Silver weapon will cost 25% more than its original.")]
+    public int RefinedSilverPrice { get; set; } = 125;
+
+    [SettingName("Price of SkyRe crossbows")]
+    [Tooltip("This percentage of a regular crossbow price will be assigned to its SkyRe enhanced version.\n"
+        + "E.g., the value of 140 means any enhanced SkyRe crossbow will cost 40% more than its original.\n"
+        + "Regardless of this value, double-enhanced crossbows (via the Engineer perk) additionally cost 20% more.")]
+    public int EnhancedCrossbowsPrice { get; set; } = 140;
+
+    [SettingName("Remove weapon type tags")]
+    [Tooltip("Removes type tags ReProccer uses to mark weapons with overridden types from weapon names (weapon_name [type_tag] -> weapon_name).")]
+    public bool NoTypeTags { get; set; } = true;
+
+    [SettingName("No vanilla Enhanced Crossbows recipes")]
+    [Tooltip("Removes the ability to craft vanilla Enhanced Crossbows (crafting recipes will not be available).\n"
+        + "If unchecked, vanilla Enhanced Crossbows recipes additionally require the Increased Tension perk.")]
+    public bool NoClothingBreak { get; set; } = true;
+
+    [SettingName("Preserve crossbows crafting conditions")]
+    [Tooltip("Preserves recipe conditions not related to the material (like quest stage) in all crossbow recipes.\n"
+        + "With this box unchecked crossbow crafting recipes will be available without completing quests.")]
+    public bool ShowAllRecipes { get; set; } = true;
+
+    [SettingName("Shortspears on right hip")]
+    [Tooltip("Changes shortspears animation type from swords to waraxes.\n"
+        + "Requires modified shortspears models! Install these from the Extra Animations pack (look for it on the SkyRe mod page).")]
+    public bool AltShortspears { get; set; } = false;
+
+    [SettingName("Show all special recipes")]
+    [Tooltip("Refined Silver weapons and SkyRe crossbows recipes will always be visible in the crafting menu once the relevant perk is acquired.\n"
+        + "By default, to declutter the crafting menu, special recipes are hidden unless you have a required base weapon in the inventory.")]
     public bool ShowAllRecipes { get; set; } = false;
 }
