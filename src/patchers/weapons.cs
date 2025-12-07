@@ -31,6 +31,27 @@ public static class WeaponsPatcher
             [.. Rules["excludedSilver"]!.AsArray().Select(value => value!.GetValue<string>())],
             [.. Rules["excludedCrossbows"]!.AsArray().Select(value => value!.GetValue<string>())]
         ];
+
+        foreach (var weapon in records)
+        {
+            ThisRecord = null;
+            RecordData = new PatchingData
+            {
+                AnimType = weapon.Data!.AnimationType,
+                NonPlayable = weapon.MajorFlags.HasFlag(Weapon.MajorFlag.NonPlayable),
+                Unique = weapon.Keywords!.Contains(GetFormKey("skyre__NoMeltdownRecipes"))
+            };
+            Logger = new Logger();
+
+            if (!weapon.Template.IsNull)
+            {
+                PatchRecordNames(weapon, blacklists[0]);
+                weapon.ShowReport();
+                continue;
+            }
+
+            //SetOverriddenData(weapon);
+        }
     }
 
     /// <summary>
@@ -76,7 +97,7 @@ public static class WeaponsPatcher
             if (Settings.Debug.ShowExcluded)
             {
                 Logger.Info($"Found in the \"No patching\" list by EditorID (as {weapon.EditorID})");
-                //weapon.ShowReport();
+                weapon.ShowReport();
             }
             return false;
         }
@@ -90,7 +111,7 @@ public static class WeaponsPatcher
             if (Settings.Debug.ShowExcluded)
             {
                 Logger.Info($"Found in the \"No patching\" list by name");
-                //weapon.ShowReport();
+                weapon.ShowReport();
             }
             return false;
         }
@@ -107,7 +128,78 @@ public static class WeaponsPatcher
         return true;
     }
 
-    // local patcher helpers
+    private static void PatchRecordNames(IWeaponGetter weapon, List<string> excludedNames)
+    {
+        if (weapon.Name!.ToString()!.IsExcluded(excludedNames))
+        {
+            if (Settings.Debug.ShowExcluded) Logger.Info($"Found in the \"No renaming\" list");
+            return;
+        }
+
+        string name = weapon.Name!.ToString()!;
+
+        /* Options:
+         * i - case-insensitive search
+         * g - replace all matches
+         * p - string as part of a word
+         * c - retain capitalization
+         * n - search for the next rule
+         * o - allow overridden records
+         */
+
+        if (Rules["renamer"] is JsonArray renamer)
+        {
+            for (int i = renamer.Count - 1; i >= 0; i--)
+            {
+                string options = renamer[i]!["options"]?.ToString() ?? "ic";
+                char[] flags = options.ToCharArray();
+
+                // processing armor type filter
+                string filter = renamer[i]!["filter"]?.ToString() ?? "";
+                if (filter != "")
+                {
+                    string[] filterArr = filter.Split(',');
+                    if (!filterArr.Any(type => RecordData.AnimType.ToString() == type.Replace(" ", "")))
+                    {
+                        continue;
+                    }
+                }
+
+                if (RecordData.Overridden && !flags.Contains('o'))
+                {
+                    Logger.Info($"Cannot be renamed due to having a type/material override rule", true);
+                    continue;
+                }
+
+                if (!flags.Contains('p'))
+                {
+                    // check if name contains all words from replace in any order
+                    string replace = renamer[i]!["replace"]?.ToString() ?? "";
+                    string[] blacklist = replace.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (replace != "" && blacklist.All(name.Contains)) continue;
+
+                    // check if name contains any word from skipIf
+                    string skipIf = renamer[i]!["skipIf"]?.ToString() ?? "";
+                    blacklist = skipIf.Split(',', StringSplitOptions.TrimEntries);
+                    if (skipIf != "" && blacklist.Any(word => name.Contains(word))) continue;
+                }
+
+                string newName = Helpers.FindReplace(name, renamer[i]!["find"]!.ToString(), renamer[i]!["replace"]!.ToString(), flags);
+                if (newName == name) continue;
+
+                name = newName;
+                if (!flags.Contains('n')) break;
+            }
+        }
+
+        if (name != weapon.Name.ToString())
+        {
+            Logger.Info($"Was renamed to {name}", true);
+            GetAsOverride(weapon).Name = name;
+        }
+    }
+
+    // patcher specific helpers
 
     /// <summary>
     /// Returns the FormKey with id from the statics record.<br/>
@@ -133,9 +225,9 @@ public static class WeaponsPatcher
     /// </summary>
     /// <param name="weapon">The weapon record as IWeaponGetter.</param>
     /// <param name="msgList">The list of list of strings with messages.</param>
-    private static void ShowReport(this IWeaponGetter weapon) => Logger.ShowReport($"{weapon.Name}", $"{weapon.FormKey}", !RecordData.NonPlayable);
+    private static void ShowReport(this IWeaponGetter weapon) => Logger.ShowReport($"{weapon.Name}", $"{weapon.FormKey}", RecordData.NonPlayable);
 
-    // weapons patcher statics
+    // patcher specific statics
     private static (List<DataMap>, List<DataMap>, List<DataMap>, List<DataMap>) BuildStaticsMap()
     {
         Executor.Statics!.AddRange(
@@ -178,7 +270,9 @@ public static class WeaponsPatcher
             new(Id: "skyre_MARCrossbowRecurve",               Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d94|PERK") ),
             new(Id: "skyre_MARCrossbowMuffled",               Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d95|PERK") ),
             new(Id: "skyre_MARCrossbowSiege",                 Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d96|PERK") ),
-            new(Id: "skyre_MARArtificer",                     Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000dbf|PERK") )
+            new(Id: "skyre_MARArtificer",                     Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000dbf|PERK") ),
+            new(Id: "skyre_SMTTradecraft",                    Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee0|PERK") ),
+            new(Id: "skyre_SMTDeepSilver",                    Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee4|PERK") )
         ]);
 
         List<DataMap> allTypes = [
@@ -219,32 +313,32 @@ public static class WeaponsPatcher
         allTypes.InsertRange(0, skyreTypes);
 
         List<DataMap> allMaterials = [
-            new(Id: "mat_amber",      Kwda: GetFormKey("cc_WeapMaterialAmber"),          Item: GetFormKey("ingotAmber"),       Perk: [ GetFormKey("perkSmithingGlass"), GetFormKey("perkSmithingEbony") ]         ),
-            new(Id: "mat_blades",     Kwda: GetFormKey("WAF_WeapMaterialBlades"),        Item: GetFormKey("ingotSteel"),       Perk: [ GetFormKey("perkSmithingSteel") ]                                          ),
-            new(Id: "mat_daedric",    Kwda: GetFormKey("WeapMaterialDaedric"),           Item: GetFormKey("ingotEbony"),       Perk: [ GetFormKey("perkSmithingDaedric") ]                                        ),
-            new(Id: "mat_dawnguard",  Kwda: GetFormKey("WAF_DLC1WeapMaterialDawnguard"), Item: GetFormKey("ingotSteel"),       Perk: [ GetFormKey("perkSmithingSteel") ]                                          ),
-            new(Id: "mat_dark",       Kwda: GetFormKey("cc_WeapMaterialDark"),           Item: GetFormKey("ingotQuicksilver"), Perk: [ GetFormKey("perkSmithingDaedric") ]                                        ),
-            new(Id: "mat_dragonbone", Kwda: GetFormKey("DLC1WeapMaterialDragonbone"),    Item: GetFormKey("dragonbone"),       Perk: [ GetFormKey("perkSmithingDragon") ]                                         ),
-            new(Id: "mat_draugr",     Kwda: GetFormKey("WeapMaterialDraugr"),            Item: GetFormKey("ingotQuicksilver"), Perk: [ GetFormKey("perkSmithingAdvanced") ]                                       ),
-            new(Id: "mat_draugrh",    Kwda: GetFormKey("WeapMaterialDraugrHoned"),       Item: GetFormKey("ingotQuicksilver"), Perk: [ GetFormKey("perkSmithingAdvanced") ]                                       ),
-            new(Id: "mat_dwarven",    Kwda: GetFormKey("WeapMaterialDwarven"),           Item: GetFormKey("ingotDwarven"),     Perk: [ GetFormKey("perkSmithingDwarven") ]                                        ),
-            new(Id: "mat_ebony",      Kwda: GetFormKey("WeapMaterialEbony"),             Item: GetFormKey("ingotEbony"),       Perk: [ GetFormKey("perkSmithingEbony") ]                                          ),
-            new(Id: "mat_elven",      Kwda: GetFormKey("WeapMaterialElven"),             Item: GetFormKey("ingotMoonstone"),   Perk: [ GetFormKey("perkSmithingElven") ]                                          ),
-            new(Id: "mat_falmer",     Kwda: GetFormKey("WeapMaterialFalmer"),            Item: GetFormKey("chaurusChitin"),    Perk: [ GetFormKey("perkSmithingElven") ]                                          ),
-            new(Id: "mat_falmerh",    Kwda: GetFormKey("WeapMaterialFalmerHoned"),       Item: GetFormKey("chaurusChitin"),    Perk: [ GetFormKey("perkSmithingElven") ]                                          ),
-            new(Id: "mat_forsworn",   Kwda: GetFormKey("WAF_WeapMaterialForsworn"),      Item: GetFormKey("ingotIron")                                                                                            ),
-            new(Id: "mat_glass",      Kwda: GetFormKey("WeapMaterialGlass"),             Item: GetFormKey("ingotMalachite"),   Perk: [ GetFormKey("perkSmithingGlass") ]                                          ),
-            new(Id: "mat_golden",     Kwda: GetFormKey("cc_WeapMaterialGolden"),         Item: GetFormKey("ingotMoonstone"),   Perk: [GetFormKey("perkSmithingDaedric") ]                                         ),
-            new(Id: "mat_imperial",   Kwda: GetFormKey("WeapMaterialImperial"),          Item: GetFormKey("ingotSteel"),       Perk: [ GetFormKey("perkSmithingSteel") ]                                          ),
-            new(Id: "mat_iron",       Kwda: GetFormKey("WeapMaterialIron"),              Item: GetFormKey("ingotIron")                                                                                            ),
-            new(Id: "mat_madness",    Kwda: GetFormKey("cc_WeapMaterialMadness"),        Item: GetFormKey("ingotMadness"),     Perk: [ GetFormKey("perkSmithingEbony") ]                                          ),
-            new(Id: "mat_nordic",     Kwda: GetFormKey("DLC2WeaponMaterialNordic"),      Item: GetFormKey("ingotQuicksilver"), Perk: [ GetFormKey("perkSmithingAdvanced") ]                                       ),
-            new(Id: "mat_orcish",     Kwda: GetFormKey("WeapMaterialOrcish"),            Item: GetFormKey("ingotOrichalcum"),  Perk: [ GetFormKey("perkSmithingOrcish") ]                                         ),
-            new(Id: "mat_silverr",    Kwda: GetFormKey("WeapMaterialSilverRefined"),     Item: GetFormKey("ingotQuicksilver"), Perk: [ GetFormKey("perkSmithingSilverRefined"), GetFormKey("perkSmithingSteel") ] ),
-            new(Id: "mat_silver",     Kwda: GetFormKey("WeapMaterialSilver"),            Item: GetFormKey("ingotSilver"),      Perk: [ GetFormKey("perkSmithingTradecraft"), GetFormKey("perkSmithingSteel") ]    ),
-            new(Id: "mat_stalhrim",   Kwda: GetFormKey("DLC2WeaponMaterialStalhrim"),    Item: GetFormKey("oreStalhrim"),      Perk: [ GetFormKey("perkSmithingGlass"), GetFormKey("perkSmithingEbony") ]         ),
-            new(Id: "mat_steel",      Kwda: GetFormKey("WeapMaterialSteel"),             Item: GetFormKey("ingotSteel"),       Perk: [ GetFormKey("perkSmithingSteel") ]                                          ),
-            new(Id: "mat_wood",       Kwda: GetFormKey("WeapMaterialWood"),              Item: GetFormKey("charcoal")                                                                                             )
+            new(Id: "mat_amber",      Kwda: GetFormKey("cc_WeapMaterialAmber"),             Item: GetFormKey("cc_IngotAmber"),    Perk: [ GetFormKey("GlassSmithing"), GetFormKey("EbonySmithing") ]       ),
+            new(Id: "mat_blades",     Kwda: GetFormKey("WAF_WeapMaterialBlades"),           Item: GetFormKey("IngotSteel"),       Perk: [ GetFormKey("SteelSmithing") ]                                    ),
+            new(Id: "mat_daedric",    Kwda: GetFormKey("WeapMaterialDaedric"),              Item: GetFormKey("IngotEbony"),       Perk: [ GetFormKey("DaedricSmithing") ]                                  ),
+            new(Id: "mat_dawnguard",  Kwda: GetFormKey("WAF_DLC1WeapMaterialDawnguard"),    Item: GetFormKey("IngotSteel"),       Perk: [ GetFormKey("SteelSmithing") ]                                    ),
+            new(Id: "mat_dark",       Kwda: GetFormKey("cc_WeapMaterialDark"),              Item: GetFormKey("IngotQuicksilver"), Perk: [ GetFormKey("DaedricSmithing") ]                                  ),
+            new(Id: "mat_dragonbone", Kwda: GetFormKey("DLC1WeapMaterialDragonbone"),       Item: GetFormKey("DragonBone"),       Perk: [ GetFormKey("DragonArmor") ]                                      ),
+            new(Id: "mat_draugr",     Kwda: GetFormKey("WeapMaterialDraugr"),               Item: GetFormKey("IngotQuicksilver"), Perk: [ GetFormKey("AdvancedArmors") ]                                   ),
+            new(Id: "mat_draugrh",    Kwda: GetFormKey("WeapMaterialDraugrHoned"),          Item: GetFormKey("IngotQuicksilver"), Perk: [ GetFormKey("AdvancedArmors") ]                                   ),
+            new(Id: "mat_dwarven",    Kwda: GetFormKey("WeapMaterialDwarven"),              Item: GetFormKey("IngotDwarven"),     Perk: [ GetFormKey("DwarvenSmithing") ]                                  ),
+            new(Id: "mat_ebony",      Kwda: GetFormKey("WeapMaterialEbony"),                Item: GetFormKey("IngotEbony"),       Perk: [ GetFormKey("EbonySmithing") ]                                    ),
+            new(Id: "mat_elven",      Kwda: GetFormKey("WeapMaterialElven"),                Item: GetFormKey("IngotMoonstone"),   Perk: [ GetFormKey("ElvenSmithing") ]                                    ),
+            new(Id: "mat_falmer",     Kwda: GetFormKey("WeapMaterialFalmer"),               Item: GetFormKey("ChaurusChitin"),    Perk: [ GetFormKey("ElvenSmithing") ]                                    ),
+            new(Id: "mat_falmerh",    Kwda: GetFormKey("WeapMaterialFalmerHoned"),          Item: GetFormKey("ChaurusChitin"),    Perk: [ GetFormKey("ElvenSmithing") ]                                    ),
+            new(Id: "mat_forsworn",   Kwda: GetFormKey("WAF_WeapMaterialForsworn"),         Item: GetFormKey("IngotIron")                                                                                  ),
+            new(Id: "mat_glass",      Kwda: GetFormKey("WeapMaterialGlass"),                Item: GetFormKey("IngotMalachite"),   Perk: [ GetFormKey("GlassSmithing") ]                                    ),
+            new(Id: "mat_golden",     Kwda: GetFormKey("cc_WeapMaterialGolden"),            Item: GetFormKey("IngotMoonstone"),   Perk: [ GetFormKey("DaedricSmithing") ]                                  ),
+            new(Id: "mat_imperial",   Kwda: GetFormKey("WeapMaterialImperial"),             Item: GetFormKey("IngotSteel"),       Perk: [ GetFormKey("SteelSmithing") ]                                    ),
+            new(Id: "mat_iron",       Kwda: GetFormKey("WeapMaterialIron"),                 Item: GetFormKey("IngotIron")                                                                                  ),
+            new(Id: "mat_madness",    Kwda: GetFormKey("cc_WeapMaterialMadness"),           Item: GetFormKey("cc_IngotMadness"),  Perk: [ GetFormKey("EbonySmithing") ]                                    ),
+            new(Id: "mat_nordic",     Kwda: GetFormKey("DLC2WeaponMaterialNordic"),         Item: GetFormKey("IngotQuicksilver"), Perk: [ GetFormKey("AdvancedArmors") ]                                   ),
+            new(Id: "mat_orcish",     Kwda: GetFormKey("WeapMaterialOrcish"),               Item: GetFormKey("IngotOrichalcum"),  Perk: [ GetFormKey("OrcishSmithing") ]                                   ),
+            new(Id: "mat_silverr",    Kwda: GetFormKey("skyre__WeapMaterialSilverRefined"), Item: GetFormKey("IngotQuicksilver"), Perk: [ GetFormKey("skyre_SMTDeepSilver"), GetFormKey("SteelSmithing") ] ),
+            new(Id: "mat_silver",     Kwda: GetFormKey("WeapMaterialSilver"),               Item: GetFormKey("IngotSilver"),      Perk: [ GetFormKey("skyre_SMTTradecraft"), GetFormKey("SteelSmithing") ] ),
+            new(Id: "mat_stalhrim",   Kwda: GetFormKey("DLC2WeaponMaterialStalhrim"),       Item: GetFormKey("DLC2OreStalhrim"),  Perk: [ GetFormKey("GlassSmithing"), GetFormKey("EbonySmithing") ]       ),
+            new(Id: "mat_steel",      Kwda: GetFormKey("WeapMaterialSteel"),                Item: GetFormKey("IngotSteel"),       Perk: [ GetFormKey("SteelSmithing") ]                                    ),
+            new(Id: "mat_wood",       Kwda: GetFormKey("WeapMaterialWood"),                 Item: GetFormKey("Charcoal")                                                                                   )
         ];
 
         List<DataMap> crossbowSubtypes = [
