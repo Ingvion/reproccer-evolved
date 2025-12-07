@@ -50,7 +50,8 @@ public static class WeaponsPatcher
                 continue;
             }
 
-            //SetOverriddenData(weapon);
+            SetOverriddenData(weapon);
+            weapon.ShowReport();
         }
     }
 
@@ -198,6 +199,76 @@ public static class WeaponsPatcher
             GetAsOverride(weapon).Name = name;
         }
     }
+
+    /// <summary>
+    /// Modifies weapon materials/types according to the rules.
+    /// </summary>
+    /// <param name="weapon">The armor record as IWeaponGetter.</param>
+    private static void SetOverriddenData(IWeaponGetter weapon)
+    {
+        // type
+        JsonNode? typeOverrideNode = Helpers.RuleByName(
+            weapon.Name!.ToString()!, Rules["typeOverrides"]!.AsArray(), data1: "names", data2: "type", true);
+        string? typeOverrideString = typeOverrideNode?.AsType("string");
+
+        if (typeOverrideNode != null && typeOverrideString == null)
+        {
+            Logger.Error("The type name returned from a \"typeOverrides\" patching rule should be a string");
+            return;
+        }
+
+        DataMap? newType = Statics.AllTypes.FirstOrDefault(entry => entry.Id.ToString().GetT9n() == typeOverrideString);
+        if (newType != null)
+        {
+            foreach (var entry in Statics.SkyReTypes)
+            {
+                if (weapon.Keywords!.Contains((FormKey)entry.Kwda!) && entry.Kwda != newType.Kwda)
+                {
+                    GetAsOverride(weapon).Keywords!.Remove((FormKey)entry.Kwda);
+                }
+            }
+
+            Logger.Info($"The type was changed to {typeOverrideString} in accordance with patching rules", true);
+            string typeTag = (Settings.Weapons.NoTypeTags ? "TYPE " : "") + newType!.Id.GetT9n();
+            GetAsOverride(weapon).Name = GetAsOverride(weapon).Name + " [" + typeTag + "]";
+            RecordData.Overridden = true;
+        }
+
+        // material
+        JsonNode? matOverrideNode = Helpers.RuleByName(
+            weapon.Name!.ToString()!, Rules["materialOverrides"]!.AsArray(), data1: "names", data2: "material");
+        string? matOverrideString = matOverrideNode?.AsType("string");
+
+        if (matOverrideNode != null && matOverrideString == null)
+        {
+            Logger.Error("The material name returned from a \"materialOverrides\" patching rule should be a string");
+            return;
+        }
+
+        DataMap? newMaterial = Statics.AllMaterials.FirstOrDefault(entry => entry.Id.ToString().GetT9n() == matOverrideString);
+        if (newMaterial != null)
+        {
+            FormKey nullRef = new("Skyrim.esm", 0x000000);
+            if (newMaterial.Kwda == nullRef)
+            {
+                Logger.Caution("A relevant \"materialOverrides\" patching rule references a material from Creation Club's \"Saints and Seducers\"");
+                return;
+            }
+
+            foreach (var entry in Statics.AllMaterials)
+            {
+                if (weapon.Keywords!.Contains((FormKey)entry.Kwda!) && entry.Kwda != newMaterial.Kwda)
+                {
+                    GetAsOverride(weapon).Keywords!.Remove((FormKey)entry.Kwda);
+                }
+            }
+
+            Logger.Info($"The material was changed to {matOverrideString} in accordance with patching rules", true);
+            GetAsOverride(weapon).Keywords!.Add((FormKey)newMaterial.Kwda!);
+            RecordData.Overridden = true;
+        }
+    }
+
 
     // patcher specific helpers
 
