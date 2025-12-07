@@ -23,6 +23,9 @@ public class AllSettings
     [SettingName("Armor Patcher")]
     public ArmorSettings Armor { get; set; } = new();
 
+    [SettingName("Weapons Patcher")]
+    public WeaponsSettings Weapons { get; set; } = new();
+
     [SettingName("Debug")]
     public DebugSettings Debug { get; set; } = new();
 }
@@ -146,7 +149,7 @@ public class ArmorSettings
     [SettingName("Show all Dreamcloth recipes")]
     [Tooltip("Dreamcloth recipes will always be visible in the crafting menu once the relevant perk is acquired.\n"
         + "By default, to declutter the crafting menu, Dreamcloth recipes are hidden unless you have a required base clothing item in the inventory.")]
-    public bool ShowAllRecipes { get; set; } = false;
+    public bool AllArmorRecipes { get; set; } = false;
 }
 
 public class WeaponsSettings
@@ -204,5 +207,5 @@ public class WeaponsSettings
     [SettingName("Show all special recipes")]
     [Tooltip("Refined Silver weapons and SkyRe crossbows recipes will always be visible in the crafting menu once the relevant perk is acquired.\n"
         + "By default, to declutter the crafting menu, special recipes are hidden unless you have a required base weapon in the inventory.")]
-    public bool ShowAllRecipes { get; set; } = false;
+    public bool AllWeaponRecipes { get; set; } = false;
 }
