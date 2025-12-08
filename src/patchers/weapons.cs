@@ -1,5 +1,6 @@
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
+using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using ReProccer.Utils;
 using System.Text.Json.Nodes;
@@ -51,7 +52,9 @@ public static class WeaponsPatcher
             }
 
             SetOverriddenData(weapon);
-            weapon.ShowReport();
+            PatchRecordNames(weapon, blacklists[0]);
+
+            ShowReport(weapon);
         }
     }
 
@@ -98,7 +101,7 @@ public static class WeaponsPatcher
             if (Settings.Debug.ShowExcluded)
             {
                 Logger.Info($"Found in the \"No patching\" list by EditorID (as {weapon.EditorID})");
-                weapon.ShowReport();
+                ShowReport(weapon);
             }
             return false;
         }
@@ -112,7 +115,7 @@ public static class WeaponsPatcher
             if (Settings.Debug.ShowExcluded)
             {
                 Logger.Info($"Found in the \"No patching\" list by name");
-                weapon.ShowReport();
+                ShowReport(weapon);
             }
             return false;
         }
@@ -169,7 +172,7 @@ public static class WeaponsPatcher
                 if (RecordData.Overridden && !flags.Contains('o'))
                 {
                     Logger.Info($"Cannot be renamed due to having a type/material override rule", true);
-                    continue;
+                    return;
                 }
 
                 if (!flags.Contains('p'))
@@ -196,7 +199,7 @@ public static class WeaponsPatcher
         if (name != weapon.Name.ToString())
         {
             Logger.Info($"Was renamed to {name}", true);
-            GetAsOverride(weapon).Name = name;
+            weapon.AsOverride(true).Name = name;
         }
     }
 
@@ -217,20 +220,20 @@ public static class WeaponsPatcher
             return;
         }
 
-        DataMap? newType = Statics.AllTypes.FirstOrDefault(entry => entry.Id.ToString().GetT9n() == typeOverrideString);
+        DataMap? newType = Statics.AllTypes.FirstOrDefault(entry => entry.Id.GetT9n() == typeOverrideString);
         if (newType != null)
         {
             foreach (var entry in Statics.SkyReTypes)
             {
                 if (weapon.Keywords!.Contains((FormKey)entry.Kwda!) && entry.Kwda != newType.Kwda)
                 {
-                    GetAsOverride(weapon).Keywords!.Remove((FormKey)entry.Kwda);
+                    weapon.AsOverride().Keywords!.Remove((FormKey)entry.Kwda);
                 }
             }
 
-            Logger.Info($"The type was changed to {typeOverrideString} in accordance with patching rules", true);
+            Logger.Info($"The subtype is forced to {typeOverrideString} in accordance with patching rules", true);
             string typeTag = (Settings.Weapons.NoTypeTags ? "TYPE " : "") + newType!.Id.GetT9n();
-            GetAsOverride(weapon).Name = GetAsOverride(weapon).Name + " [" + typeTag + "]";
+            weapon.AsOverride(true).Name = weapon.AsOverride().Name + " [" + typeTag + "]";
             RecordData.Overridden = true;
         }
 
@@ -245,7 +248,7 @@ public static class WeaponsPatcher
             return;
         }
 
-        DataMap? newMaterial = Statics.AllMaterials.FirstOrDefault(entry => entry.Id.ToString().GetT9n() == matOverrideString);
+        DataMap? newMaterial = Statics.AllMaterials.FirstOrDefault(entry => entry.Id.GetT9n() == matOverrideString);
         if (newMaterial != null)
         {
             FormKey nullRef = new("Skyrim.esm", 0x000000);
@@ -259,36 +262,35 @@ public static class WeaponsPatcher
             {
                 if (weapon.Keywords!.Contains((FormKey)entry.Kwda!) && entry.Kwda != newMaterial.Kwda)
                 {
-                    GetAsOverride(weapon).Keywords!.Remove((FormKey)entry.Kwda);
+                    weapon.AsOverride().Keywords!.Remove((FormKey)entry.Kwda);
                 }
             }
 
-            Logger.Info($"The material was changed to {matOverrideString} in accordance with patching rules", true);
-            GetAsOverride(weapon).Keywords!.Add((FormKey)newMaterial.Kwda!);
+            Logger.Info($"The material is forced to {matOverrideString} in accordance with patching rules", true);
+            weapon.AsOverride(true).Keywords!.Add((FormKey)newMaterial.Kwda!);
             RecordData.Overridden = true;
         }
     }
 
-
     // patcher specific helpers
 
-    /// <summary>
-    /// Returns the FormKey with id from the statics record.<br/>
-    /// </summary>
-    /// <param name="id">The id in the elements with the FormKey to return.</param>
-    /// <returns>A FormKey from the statics list.</returns>
+        /// <summary>
+        /// Returns the FormKey with id from the statics record.<br/>
+        /// </summary>
+        /// <param name="id">The id in the elements with the FormKey to return.</param>
+        /// <returns>A FormKey from the statics list.</returns>
     private static FormKey GetFormKey(string id) => Executor.Statics!.First(elem => elem.Id == id).Formkey;
 
     /// <summary>
     /// Returns the winning override for this-parameter, and copies it to the patch file.<br/>
-    /// Marks it as modified in local record data.
     /// </summary>
     /// <param name="weapon">The weapon record as IWeaponGetter.</param>
-    /// <returns>The winning override as Weapon.</returns>
-    private static Weapon GetAsOverride(this IWeaponGetter weapon)
+    /// <param name="markModified">True to mark as modified in the local record data.</param>
+    /// <returns>The winning override as <see cref="Weapon"/>.</returns>
+    private static Weapon AsOverride(this IWeaponGetter weapon, bool markModified = false)
     {
-        if (!RecordData.Modified) RecordData.Modified = true;
-        return ThisRecord?.FormKey != weapon.FormKey ? Executor.State!.PatchMod.Weapons.GetOrAddAsOverride(weapon) : ThisRecord;
+        if (markModified) RecordData.Modified = true;
+        return Executor.State!.PatchMod.Weapons.GetOrAddAsOverride(weapon);
     }
 
     /// <summary>
@@ -296,7 +298,7 @@ public static class WeaponsPatcher
     /// </summary>
     /// <param name="weapon">The weapon record as IWeaponGetter.</param>
     /// <param name="msgList">The list of list of strings with messages.</param>
-    private static void ShowReport(this IWeaponGetter weapon) => Logger.ShowReport($"{weapon.Name}", $"{weapon.FormKey}", RecordData.NonPlayable);
+    private static void ShowReport(this IWeaponGetter weapon) => Logger.ShowReport($"{weapon.Name}", $"{weapon.FormKey}", $"{weapon.EditorID}", RecordData.NonPlayable, !weapon.Template.IsNull);
 
     // patcher specific statics
     private static (List<DataMap>, List<DataMap>, List<DataMap>, List<DataMap>) BuildStaticsMap()
