@@ -12,6 +12,7 @@ public struct PatchingData()
     public bool Modified { get; set; }
     public bool Overridden { get; set; }
     public bool Unique { get; set; }
+    public bool BoundWeapon { get; set; }
     public ArmorType ArmorType { get; set; }
     public WeaponAnimationType AnimType { get; set; }
 }
@@ -30,7 +31,7 @@ public struct Logger()
     public readonly void Caution(string msg) => CautionMsg.Add(msg);
     public readonly void Error(string msg) => ErrorMsg.Add(msg);
 
-    public readonly void ShowReport(string name, string formkey, bool nonPlayable)
+    public readonly void ShowReport(string name, string formkey, string editorid, bool nonPlayable, bool isTemplated)
     {
         if (Filter.Length > 0 && !Filter.Any(name.Contains)) return;
 
@@ -40,12 +41,16 @@ public struct Logger()
         string[] groups = ["    > INFO:", "    > CAUTION:", "    > ERROR:"];
         if (Executor.Settings!.Debug.ShowNonPlayable || !nonPlayable)
         {
-            string note = nonPlayable ? " | NON-PLAYABLE" : "";
-            Console.WriteLine($"+ REPORT | {name} ({formkey}){note}");
+            Console.WriteLine($"+ REPORT | {name} ({formkey} | {editorid})");
             foreach (var msgGroup in messages)
             {
                 if (msgGroup.Count == 0) continue;
                 Console.WriteLine($"{groups[messages.IndexOf(msgGroup)]}");
+                if (messages.IndexOf(msgGroup) == 0)
+                {
+                    if (nonPlayable) InfoMsg.Insert(0, "Is non-playable");
+                    if (isTemplated) InfoMsg.Insert(0, "Is templated");
+                }
 
                 foreach (var msg in msgGroup)
                 {
@@ -339,7 +344,7 @@ public static class Helpers
         return result;
     }
 
-    private static bool RegexMatch(this string str, string name, bool strict)
+    public static bool RegexMatch(this string str, string name, bool strict)
     {
         if (str.Length < 2) return false;
 
