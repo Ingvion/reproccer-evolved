@@ -251,7 +251,7 @@ public static class ArmorPatcher
 
         if (name != armor.Name.ToString())
         {
-            Logger.Info($"Was renamed to {name}", true);
+            Logger.Info($"Was renamed to {name} in accordance with patching rules", true);
             GetAsOverride(armor).Name = name;
         }
     }
@@ -275,14 +275,12 @@ public static class ArmorPatcher
         FormKey nullRef = new("Skyrim.esm", 0x000000);
         foreach (var entry1 in Statics.AllMaterials)
         {
-            string id = entry1.Id.ToString();
-            id = id.GetT9n();
-
+            string id = entry1.Id.GetT9n();
             if (id == overrideString)
             {
                 if (entry1.Kwda == nullRef)
                 {
-                    Logger.Caution("The relevant \"materialOverrides\" rule references a material from Creation Club's \"Saints and Seducers\"");
+                    Logger.Caution("A \"materialOverrides\" patching rule references a material from Creation Club's \"Saints and Seducers\"");
                     break;
                 }
 
@@ -295,6 +293,7 @@ public static class ArmorPatcher
                 }
 
                 GetAsOverride(armor).Keywords!.Add((FormKey)entry1.Kwda!);
+                Logger.Info($"The material was forced to {overrideString} in accordance with patching rules", true);
                 RecordData.Overridden = true;
                 break;
             }
@@ -341,7 +340,7 @@ public static class ArmorPatcher
         if ((float)newArmorRating != armor.ArmorRating)
         {
             GetAsOverride(armor).ArmorRating = (float)newArmorRating;
-            Logger.Info($"Armor rating modified: {armor.ArmorRating} -> {GetAsOverride(armor).ArmorRating}", true);
+            Logger.Info($"Armor rating: {armor.ArmorRating} -> {GetAsOverride(armor).ArmorRating}", true);
         }
     }
 
@@ -384,6 +383,8 @@ public static class ArmorPatcher
     /// <returns>Armor rating material modifier as <see cref="int"/>, or null if there's no rule or value has incorrect type.</returns>
     private static int? GetMaterialFactor(IArmorGetter armor)
     {
+        if (RecordData.Overridden) armor = GetAsOverride(armor);
+
         string? materialId = null;
         FormKey nullRef = new("Skyrim.esm", 0x000000);
         foreach (var entry in Statics.AllMaterials)
@@ -402,13 +403,13 @@ public static class ArmorPatcher
 
         if (factorInt != null)
         {
-            if (materialId == null) Logger.Caution("The record has a \"materials\" rule for its name but no material keyword");
+            if (materialId == null) Logger.Caution("Has a \"materials\" patching rule for its name, but no material keyword");
             return factorInt;
         }
 
         if (factorNode != null && factorInt == null)
         {
-            Logger.Error("The armor value in the relevant \"materials\" rule should be a number");
+            Logger.Error("The armor value in a relevant \"materials\" patching rule should be a number");
         }
 
         Logger.Error("Unable to determine the material");
@@ -432,14 +433,14 @@ public static class ArmorPatcher
 
         if (modifierNode != null && modifierFloat == null)
         {
-            Logger.Error("The multiplier value in the relevant \"armorModifiers\" rule should be a number");
+            Logger.Error("The multiplier value in a relevant \"armorModifiers\" patching rule should be a number");
         }
 
         return 1.0f;
     }
 
     /// <summary>
-    /// Adds faction keywords for the Masquerade perk to clothig in accordance to the rules.
+    /// Adds faction keywords for the Masquerade perk to clothing according to the rules.
     /// </summary>
     /// <param name="armor">The armor record as IArmorGetter.</param>
     private static void PatchMasqueradeKeywords(IArmorGetter armor)
@@ -865,7 +866,7 @@ public static class ArmorPatcher
         }
 
         cobj.AddHasPerkCondition(GetFormKey("skyre_SMTWeavingMill"));
-        if (!Settings.Armor.ShowAllRecipes)
+        if (!Settings.Armor.AllArmorRecipes)
         {
             cobj.AddGetItemCountCondition(oldArmor.FormKey, CompareOperator.GreaterThanOrEqualTo);
         }
@@ -902,7 +903,7 @@ public static class ArmorPatcher
     /// </summary>
     /// <param name="armor">The armor record as IArmorGetter.</param>
     /// <param name="msgList">The list of list of strings with messages.</param>
-    private static void ShowReport(this IArmorGetter armor) => Logger.ShowReport($"{armor.Name}", $"{armor.FormKey}", RecordData.NonPlayable);
+    private static void ShowReport(this IArmorGetter armor) => Logger.ShowReport($"{armor.Name}", $"{armor.FormKey}", $"{armor.EditorID}", RecordData.NonPlayable, !armor.TemplateArmor.IsNull);
 
     // patcher specific statics
     private static (List<DataMap>, List<DataMap>, List<DataMap>) BuildStaticsMap()
