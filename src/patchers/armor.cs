@@ -264,7 +264,7 @@ public static class ArmorPatcher
     {
         JsonNode? overrideNode = Helpers.RuleByName(
             armor.Name!.ToString()!, Rules["materialOverrides"]!.AsArray(), data1: "names", data2: "material");
-        string? overrideString = overrideNode?.AsType("string");
+        string? overrideString = overrideNode?.AsNullableType<string>();
 
         if (overrideNode != null && overrideString == null)
         {
@@ -399,7 +399,7 @@ public static class ArmorPatcher
 
         JsonNode? factorNode = Helpers.RuleByName(armor.Name!.ToString()!, Rules["materials"]!.AsArray(), data1: "names", data2: "armor");
         if (factorNode == null && materialId != null) factorNode = Helpers.RuleByName(materialId!, Rules["materials"]!.AsArray(), data1: "id", data2: "armor");
-        int? factorInt = factorNode?.AsType("int");
+        int? factorInt = factorNode?.AsType<int>();
 
         if (factorInt != null)
         {
@@ -424,7 +424,7 @@ public static class ArmorPatcher
     private static float GetExtraArmorMod(IArmorGetter armor)
     {
         JsonNode? modifierNode = Helpers.RuleByName(armor.Name!.ToString()!, Rules["armorModifiers"]!.AsArray(), data1: "names", data2: "multiplier");
-        float? modifierFloat = modifierNode?.AsType("float");
+        float? modifierFloat = modifierNode?.AsType<float>();
 
         if (modifierFloat != null)
         {
