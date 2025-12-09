@@ -349,7 +349,7 @@ public static class Helpers
         if (str.Length < 2) return false;
 
         string pattern = strict ?
-             $@"(?<=^|(?<=\s))" + Regex.Escape(str) + @"(?=$|(?=\s))" :
+             $@"(?<=^|(?<=[\s\(\[\-]))" + Regex.Escape(str) + @"(?=$|(?=[\s\,\)\]\-]))" :
              $"{Regex.Escape(str)}";
 
         Match match = Regex.Match(name, pattern, RegexOptions.IgnoreCase);
