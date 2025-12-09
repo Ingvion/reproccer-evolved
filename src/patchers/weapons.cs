@@ -17,7 +17,6 @@ public static class WeaponsPatcher
                              List<DataMap> AllMaterials) Statics = BuildStaticsMap();
 
     private static EditorIDs EditorIDs;
-    private static Weapon? ThisRecord;
     private static PatchingData RecordData;
     private static Logger Logger;
 
@@ -35,10 +34,10 @@ public static class WeaponsPatcher
 
         foreach (var weapon in records)
         {
-            ThisRecord = null;
             RecordData = new PatchingData
             {
                 AnimType = weapon.Data!.AnimationType,
+                BoundWeapon = weapon.Data!.Flags.HasFlag(WeaponData.Flag.BoundWeapon),
                 NonPlayable = weapon.MajorFlags.HasFlag(Weapon.MajorFlag.NonPlayable),
                 Unique = weapon.Keywords!.Contains(GetFormKey("skyre__NoMeltdownRecipes"))
             };
@@ -53,6 +52,7 @@ public static class WeaponsPatcher
 
             SetOverriddenData(weapon);
             PatchRecordNames(weapon, blacklists[0]);
+            PatchWeaponData(weapon);
 
             ShowReport(weapon);
         }
@@ -169,11 +169,7 @@ public static class WeaponsPatcher
                     }
                 }
 
-                if (RecordData.Overridden && !flags.Contains('o'))
-                {
-                    Logger.Info($"Cannot be renamed due to having a type/material override rule", true);
-                    return;
-                }
+                if (RecordData.Overridden && !flags.Contains('o')) return;
 
                 if (!flags.Contains('p'))
                 {
@@ -210,15 +206,9 @@ public static class WeaponsPatcher
     private static void SetOverriddenData(IWeaponGetter weapon)
     {
         // type
-        JsonNode? typeOverrideNode = Helpers.RuleByName(
-            weapon.Name!.ToString()!, Rules["typeOverrides"]!.AsArray(), data1: "names", data2: "type", true);
-        string? typeOverrideString = typeOverrideNode?.AsType("string");
-
-        if (typeOverrideNode != null && typeOverrideString == null)
-        {
-            Logger.Error("The type name returned from a \"typeOverrides\" patching rule should be a string");
-            return;
-        }
+        JsonNode? typeOverrideNode =
+            Helpers.RuleByName(weapon.Name!.ToString()!, Rules["typeOverrides"]!.AsArray(), data1: "names", data2: "type", true);
+        string? typeOverrideString = typeOverrideNode?.AsNullableType<string>();
 
         DataMap? newType = Statics.AllTypes.FirstOrDefault(entry => entry.Id.GetT9n() == typeOverrideString);
         if (newType != null)
@@ -240,13 +230,7 @@ public static class WeaponsPatcher
         // material
         JsonNode? matOverrideNode = Helpers.RuleByName(
             weapon.Name!.ToString()!, Rules["materialOverrides"]!.AsArray(), data1: "names", data2: "material");
-        string? matOverrideString = matOverrideNode?.AsType("string");
-
-        if (matOverrideNode != null && matOverrideString == null)
-        {
-            Logger.Error("The material name returned from a \"materialOverrides\" patching rule should be a string");
-            return;
-        }
+        string? matOverrideString = matOverrideNode?.AsNullableType<string>();
 
         DataMap? newMaterial = Statics.AllMaterials.FirstOrDefault(entry => entry.Id.GetT9n() == matOverrideString);
         if (newMaterial != null)
@@ -266,8 +250,8 @@ public static class WeaponsPatcher
                 }
             }
 
+            if (!weapon.Keywords!.Contains((FormKey)newMaterial.Kwda!)) weapon.AsOverride(true).Keywords!.Add((FormKey)newMaterial.Kwda!);
             Logger.Info($"The material is forced to {matOverrideString} in accordance with patching rules", true);
-            weapon.AsOverride(true).Keywords!.Add((FormKey)newMaterial.Kwda!);
             RecordData.Overridden = true;
         }
     }
