@@ -422,29 +422,22 @@ public static class Helpers
     /// <param name="cobj">A JsonNode as this-parameter</param>
     /// <param name="type">Awaited type</param>
     /// <returns><see cref="JsonValue"/> as one of the basic types (<see cref="string"/>, <see cref="float"/>, <see cref="int"/>), or null.</returns>
-    public static dynamic? AsType(this JsonNode jsonNode, string type)
+    public static T? AsType<T>(this JsonNode jsonNode) where T : struct
     {
-        if (jsonNode is JsonValue jsonVal)
-        {
-            switch (type)
-            {
-                case "string":
-                    if (jsonVal.TryGetValue<string>(out var asString)) return asString;
-                    break;
+        if (jsonNode is JsonValue jsonVal && jsonVal.TryGetValue<T>(out var asType)) return asType;
 
-                case "int":
-                    if (jsonVal.TryGetValue<int>(out var intAsIs)) return intAsIs;
-                    if (jsonVal.TryGetValue<float>(out var intAsFloat)) return (int)intAsFloat;
-                    break;
+        Console.WriteLine($"--> Unexpected type of the value {jsonNode}, should be {typeof(T)}\n" +
+            $"====================");
+        return default;
+    }
 
-                case "float":
-                    if (jsonVal.TryGetValue<float>(out var floatAsIs)) return floatAsIs;
-                    if (jsonVal.TryGetValue<int>(out var floatAsInt)) return floatAsInt;
-                    break;
-            }
-        }
+    public static T? AsNullableType<T>(this JsonNode jsonNode) where T : class
+    {
+        if (jsonNode is JsonValue jsonVal && jsonVal.TryGetValue<T>(out var asType)) return asType;
 
-        return null;
+        Console.WriteLine($"--> Unexpected type of the value {jsonNode}, should be {typeof(T)}\n" +
+            $"====================");
+        return default;
     }
 
     /// <summary>
@@ -458,60 +451,6 @@ public static class Helpers
     {
         return fullMatch ? excludedStrings.Any(value => value.Equals(str)) : excludedStrings.Count > 0 && excludedStrings.Any(str.Contains);
     }
-
-    /*
-    /// <summary>
-    /// Increments editor ID index by 1 until it becomes unique to avoid duplication of existing records editor IDs.<br/>
-    /// </summary>
-    /// <param name="newEditorID">Editor ID as string.</param>
-    /// <returns>Editor ID with a number appended to it as <see cref="string"/></returns>
-    public static string ToUnique(this string newEditorID)
-    {
-
-        int? incr = null;
-        while (Executor.NewEditorIDs.Contains($"{newEditorID}{incr}"))
-        {
-            incr = incr == null ? 1 : ++incr;
-        }
-
-        Executor.NewEditorIDs.Add($"{newEditorID}{incr}");
-        return $"{newEditorID}{incr}";
-    }
-
-    /// <summary>
-    /// Displays reports.<br/>
-    /// </summary>
-    /// <param name="name">Record name.</param>
-    /// <param name="formkey">Record FormKey.</param>
-    /// <param name="nonPlayable">True if the record has a Non-Playable flag.</param>
-    /// <param name="msgList">List of lists of strings with messages.</param>
-    public static void DisplayLog(string name, string formkey, bool nonPlayable, List<List<string>> msgList)
-    {
-        if (Executor.Settings!.Debug.ShowVerboseData) return;
-
-        string[] filter = Executor.Settings!.Debug.VerboseDataFilter.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (filter.Length > 0 && !filter.Any(value => name.Contains(value.Trim()))) return;
-
-
-        string[] group = ["-- ~ INFO", "-- > CAUTION", "-- # ERROR"];
-        if (Executor.Settings!.Debug.ShowNonPlayable || !nonPlayable)
-        {
-            string note = nonPlayable ? " | NON-PLAYABLE" : "";
-            Console.WriteLine($"+ REPORT | {name} ({formkey}){note}");
-            foreach (var msgGroup in msgList)
-            {
-                if (msgGroup.Count > 0) continue;
-                Console.WriteLine($"{group[msgList.IndexOf(msgGroup)]}");
-
-                foreach (var msg in msgGroup)
-                {
-                    Console.WriteLine($"----- {msg}");
-                }
-            }
-            Console.WriteLine("====================");
-        }
-    }
-    */
 }
 
 public static class Conditions
