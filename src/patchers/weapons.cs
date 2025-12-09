@@ -256,6 +256,157 @@ public static class WeaponsPatcher
         }
     }
 
+    private static void PatchWeaponData(IWeaponGetter weapon)
+    {
+        PatchKeywords(weapon);
+
+        int baseData = GetBaseData();
+        (int? typeDamage, float? typeSpeed, float? typeReach, float mult) = GetTypeData(weapon);
+        (int materialDamage, float materialSpeed, float critMult) = GetMaterialData(weapon);
+
+        // SpeedMod and CritMult have fallback values
+        if (new object?[] { typeDamage, typeSpeed, typeReach }.Any(data => data is null))
+        {
+            Logger.Error("Weapon data will not be modified.");
+            return;
+        }
+
+        weapon.AsOverride().Data!.Speed = (float)typeSpeed! + materialSpeed;
+        weapon.AsOverride().Data!.Reach = (float)typeReach!;
+
+        ushort newDamage = (ushort)(Math.Floor(baseData + (float)typeDamage! + materialDamage) * mult);
+        weapon.AsOverride().BasicStats!.Damage = newDamage;
+        weapon.AsOverride().Critical!.Damage = (ushort)(newDamage * critMult);
+
+        if (Settings.Debug.ShowVerboseData)
+        {
+            // Math.Round to deal with floating point presicion issue
+            Logger.Info($"Speed: {weapon.Data!.Speed} -> {Math.Round(weapon.AsOverride().Data!.Speed, 2)} " +
+                $"(type: {typeSpeed}, material: {materialSpeed})");
+            Logger.Info($"Reach: {weapon.Data!.Reach} -> {(decimal)weapon.AsOverride().Data!.Reach} " +
+                $"(type: {typeReach})");
+            Logger.Info($"Damage: {weapon.BasicStats!.Damage} -> {weapon.AsOverride().BasicStats!.Damage} " +
+                $"(base: {baseData}, type: {typeDamage}, material: {materialDamage}, mult: x{mult})");
+            Logger.Info($"Crit: {weapon.Critical!.Damage} -> {weapon.AsOverride().Critical!.Damage} " +
+                $"(damage: {weapon.AsOverride().BasicStats!.Damage}, mult: x{critMult})");
+        }
+    }
+
+    private static int GetBaseData() => RecordData.AnimType switch
+    {
+        WeaponAnimationType.Bow => Settings.Weapons.BowBase,
+        WeaponAnimationType.Crossbow => Settings.Weapons.CrossbowBase,
+        WeaponAnimationType.TwoHandAxe => Settings.Weapons.TwoHandedBase,
+        WeaponAnimationType.TwoHandSword => Settings.Weapons.TwoHandedBase,
+        _ => Settings.Weapons.OneHandedBase,
+    };
+
+    private static void PatchKeywords(IWeaponGetter weapon)
+    {
+        bool isSkyReType = false;
+        // SkyRe type keyword
+        if (!Statics.SkyReTypes.All(type => weapon.Keywords!.Contains((FormKey)type.Kwda!)))
+        {
+            DataMap? newType = Statics.SkyReTypes
+                .FirstOrDefault(type => type.Id.GetT9n().RegexMatch(weapon.AsOverride().Name!.ToString()!, true));
+
+            if (newType is not null)
+            {
+                weapon.AsOverride(true).Keywords!.Add((FormKey)newType.Kwda!);
+                isSkyReType = true;
+                if (!RecordData.Overridden) Logger.Info($"New subtype is {newType.Id.GetT9n("english")}", true);
+            }
+        }
+
+        // bound weapon keyword
+        if (RecordData.BoundWeapon && !weapon.Keywords!.Contains(GetFormKey("skyre__WeapMaterialBound")))
+        {
+            weapon.AsOverride(true).Keywords!.Add(GetFormKey("skyre__WeapMaterialBound"));
+            Logger.Info("Marked as a bound weapon due to the \"bound weapon\" flag", true);
+        }
+
+        // broadsword keyword
+        if (weapon.AsOverride().Keywords!.Contains(GetFormKey("WeapTypeSword")) && !isSkyReType)
+        {
+            weapon.AsOverride(true).Keywords!.Add(GetFormKey("skyre__WeapTypeBroadsword"));
+            if (!RecordData.Overridden) Logger.Info($"New subtype is {"type_broadsword".GetT9n("english")}", true);
+        }
+
+        // shortbow keyword
+        if (weapon.AsOverride().Keywords!.Contains(GetFormKey("WeapTypeBow")) && !isSkyReType)
+        {
+            weapon.AsOverride(true).Keywords!.Add(GetFormKey("skyre__WeapTypeShortbow"));
+            if (!RecordData.Overridden) Logger.Info($"New subtype is {"type_shortbow".GetT9n("english")}", true);
+        }
+    }
+
+    private static (int?, float?, float?, float) GetTypeData(IWeaponGetter weapon)
+    {
+        DataMap? typeEntry = Statics.AllTypes.FirstOrDefault(type => weapon.AsOverride().Keywords!.Contains((FormKey)type.Kwda!));
+
+        if (typeEntry is null)
+        {
+            Logger.Error("Unable to determine the weapon type");
+            return (null, null, null, 1f);
+        }
+
+        // type damage
+        JsonNode? damageNode = 
+            Helpers.RuleByName(weapon.AsOverride().Name!.ToString()!, Rules["types"]!.AsArray(), data1: "names", data2: "damage", true) ?? 
+            Helpers.RuleByName(typeEntry.Id, Rules["types"]!.AsArray(), data1: "id", data2: "damage", true);
+        int? typeDamage = damageNode?.AsType<int>();
+
+        // type speed
+        JsonNode? speedNode = 
+            Helpers.RuleByName(weapon.AsOverride().Name!.ToString()!, Rules["types"]!.AsArray(), data1: "names", data2: "speed", true) ??
+            Helpers.RuleByName(typeEntry.Id, Rules["types"]!.AsArray(), data1: "id", data2: "speed", true);
+        float? typeSpeed = speedNode?.AsType<float>();
+
+        // type reach
+        JsonNode? reachNode = 
+            Helpers.RuleByName(weapon.AsOverride().Name!.ToString()!, Rules["types"]!.AsArray(), data1: "names", data2: "reach", true) ??
+            Helpers.RuleByName(typeEntry.Id, Rules["types"]!.AsArray(), data1: "id", data2: "reach", true);
+        float? typeReach = reachNode?.AsType<float>();
+
+        // damage mult
+        float? modifier = Helpers.RuleByName(weapon.AsOverride().Name!.ToString()!,
+            Rules["damageModifiers"]!.AsArray(), data1: "names", data2: "multiplier")?.AsType<float>();
+
+        return (typeDamage, typeSpeed, typeReach, modifier ?? 1f);
+    }
+
+    private static (int, float, float) GetMaterialData(IWeaponGetter weapon)
+    {
+        DataMap? materialEntry = Statics.AllMaterials.FirstOrDefault(type => weapon.AsOverride().Keywords!.Contains((FormKey)type.Kwda!));
+
+        if (materialEntry is null)
+        {
+            // bound weapons use pseudo-material "bound", that has no material mods
+            if (!RecordData.BoundWeapon) Logger.Error("Unable to determine the weapon material");
+            return (0, 0, 1f);
+        }
+
+        // material damage
+        JsonNode? damageNode =
+            Helpers.RuleByName(weapon.AsOverride().Name!.ToString()!, Rules["materials"]!.AsArray(), data1: "names", data2: "damage") ??
+            Helpers.RuleByName(materialEntry.Id, Rules["materials"]!.AsArray(), data1: "id", data2: "damage");
+        int? materialDamage = damageNode?.AsType<int>();
+
+        // material speed mod
+        JsonNode ? speedNode = 
+            Helpers.RuleByName(weapon.AsOverride().Name!.ToString()!, Rules["materials"]!.AsArray(), data1: "names", data2: "speedMod") ??
+            Helpers.RuleByName(materialEntry.Id, Rules["materials"]!.AsArray(), data1: "id", data2: "speedMod");
+        float? materialSpeedMod = speedNode?.AsType<float>();
+
+        // material crit damage mult
+        JsonNode? critNode = 
+            Helpers.RuleByName(weapon.AsOverride().Name!.ToString()!, Rules["materials"]!.AsArray(), data1: "names", data2: "critMult") ??
+            Helpers.RuleByName(materialEntry.Id, Rules["materials"]!.AsArray(), data1: "id", data2: "critMult");
+        float? materialCritMult = critNode?.AsType<float>();
+
+        return (materialDamage ?? 0, materialSpeedMod ?? 0, materialCritMult ?? 1f);
+    }
+
     // patcher specific helpers
 
         /// <summary>
