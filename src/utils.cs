@@ -1,4 +1,5 @@
 ﻿using Mutagen.Bethesda.Plugins;
+using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -15,9 +16,10 @@ public struct PatchingData()
     public bool BoundWeapon { get; set; }
     public ArmorType ArmorType { get; set; }
     public WeaponAnimationType AnimType { get; set; }
+    public IMajorRecordGetter? ThisRecord { get; set; }
 }
 
-public struct Logger()
+public readonly struct Logger()
 {
     private readonly List<string> InfoMsg = [];
     private readonly List<string> CautionMsg = [];
@@ -78,18 +80,21 @@ public struct EditorIDs()
     }
 }
 
-public record StaticsMap(
-    string Id,
-    FormKey Formkey
-);
+public struct DataMap {
+    public string Id { get; set; }
+    public string Desc { get; set; }
+    public FormKey Kwda { get; set; }
+    public FormKey Item { get; set; }
+    public List<FormKey> Perk { get; set; }
 
-public record DataMap(
-    string Id,
-    string? Desc = null,
-    FormKey? Kwda = null,
-    FormKey? Item = null,
-    List<FormKey>? Perk = null
-);
+    public FormKey FormKey
+    {
+        get => Kwda;
+        set => Kwda = value;
+    }
+
+    public static FormKey NullRef => new("Skyrim.esm", 0x000000);
+};
 
 public record IngredientsMap(
     FormKey Ingr,
@@ -226,7 +231,7 @@ public static class Helpers
             var advDSGS = Executor.State!.LoadOrder
             .FirstOrDefault(plugin => plugin.Key.FileName.Equals(data[0]) && plugin.Value.Enabled);
 
-            if (advDSGS == null) formKey = new("Skyrim.esm", 0x000000);
+            if (advDSGS == null) formKey = DataMap.NullRef;
         }
         else if (!isResolved)
         {
