@@ -7,6 +7,22 @@ using System.Text.Json.Nodes;
 
 namespace ReProccer.Patchers;
 
+public struct CrossbowMods 
+{
+    public int Damage { get; set; }
+    public int Speed { get; set; }
+    public int Weight { get; set; }
+    public SoundLevel SoundLevel { get; set; }
+};
+
+public record CrossbowSubtype(
+    string Id,
+    string EdId,
+    string Desc,
+    List<FormKey> Kwda,
+    List<FormKey> Perk
+);
+
 public static class WeaponsPatcher
 {
     private static readonly Settings.AllSettings Settings = Executor.Settings!;
@@ -14,6 +30,7 @@ public static class WeaponsPatcher
     private static readonly (List<DataMap> AllTypes,
                              List<DataMap> SkyReTypes,
                              List<DataMap> CrossbowSubtypes,
+                             List<CrossbowMods> CrossbowMods,
                              List<DataMap> AllMaterials) Statics = BuildStaticsMap();
 
     private static EditorIDs EditorIDs;
@@ -27,9 +44,9 @@ public static class WeaponsPatcher
         List<IWeaponGetter> records = GetRecords();
         List<List<string>> blacklists = [
             [.. Rules["excludedFromRenaming"]!.AsArray().Select(value => value!.GetValue<string>())],
+            [.. Rules["excludedCrossbows"]!.AsArray().Select(value => value!.GetValue<string>())],
             [.. Rules["excludedFromRecipes"]!.AsArray().Select(value => value!.GetValue<string>())],
-            [.. Rules["excludedSilver"]!.AsArray().Select(value => value!.GetValue<string>())],
-            [.. Rules["excludedCrossbows"]!.AsArray().Select(value => value!.GetValue<string>())]
+            [.. Rules["excludedSilver"]!.AsArray().Select(value => value!.GetValue<string>())]
         ];
 
         foreach (var weapon in records)
@@ -53,6 +70,13 @@ public static class WeaponsPatcher
             SetOverriddenData(weapon);
             PatchRecordNames(weapon, blacklists[0]);
             PatchWeaponData(weapon);
+
+            if (!RecordData.NonPlayable && !RecordData.BoundWeapon)
+            {
+                ProcessCrossbows(weapon, blacklists[1]);
+                //CreateRefinedSilver(weapon);
+                //ProcessRecipes(weapon);
+            }
 
             ShowReport(weapon);
         }
@@ -210,14 +234,14 @@ public static class WeaponsPatcher
             Helpers.RuleByName(weapon.Name!.ToString()!, Rules["typeOverrides"]!.AsArray(), data1: "names", data2: "type", true);
         string? typeOverrideString = typeOverrideNode?.AsNullableType<string>();
 
-        DataMap? newType = Statics.AllTypes.FirstOrDefault(entry => entry.Id.GetT9n() == typeOverrideString);
-        if (newType != null)
+        DataMap newType = Statics.AllTypes.FirstOrDefault(entry => entry.Id.GetT9n() == typeOverrideString);
+        if (newType.Id is not null)
         {
             foreach (var entry in Statics.SkyReTypes)
             {
-                if (weapon.Keywords!.Contains((FormKey)entry.Kwda!) && entry.Kwda != newType.Kwda)
+                if (weapon.Keywords!.Contains(entry.Kwda!) && entry.Kwda != newType.Kwda)
                 {
-                    weapon.AsOverride().Keywords!.Remove((FormKey)entry.Kwda);
+                    weapon.AsOverride().Keywords!.Remove(entry.Kwda);
                 }
             }
 
@@ -232,11 +256,10 @@ public static class WeaponsPatcher
             weapon.Name!.ToString()!, Rules["materialOverrides"]!.AsArray(), data1: "names", data2: "material");
         string? matOverrideString = matOverrideNode?.AsNullableType<string>();
 
-        DataMap? newMaterial = Statics.AllMaterials.FirstOrDefault(entry => entry.Id.GetT9n() == matOverrideString);
-        if (newMaterial != null)
+        DataMap newMaterial = Statics.AllMaterials.FirstOrDefault(entry => entry.Id.GetT9n() == matOverrideString);
+        if (newMaterial.Id is not null)
         {
-            FormKey nullRef = new("Skyrim.esm", 0x000000);
-            if (newMaterial.Kwda == nullRef)
+            if (newMaterial.Kwda == DataMap.NullRef)
             {
                 Logger.Caution("A relevant \"materialOverrides\" patching rule references a material from Creation Club's \"Saints and Seducers\"");
                 return;
@@ -244,13 +267,13 @@ public static class WeaponsPatcher
 
             foreach (var entry in Statics.AllMaterials)
             {
-                if (weapon.Keywords!.Contains((FormKey)entry.Kwda!) && entry.Kwda != newMaterial.Kwda)
+                if (weapon.Keywords!.Contains(entry.Kwda!) && entry.Kwda != newMaterial.Kwda)
                 {
-                    weapon.AsOverride().Keywords!.Remove((FormKey)entry.Kwda);
+                    weapon.AsOverride().Keywords!.Remove(entry.Kwda);
                 }
             }
 
-            if (!weapon.Keywords!.Contains((FormKey)newMaterial.Kwda!)) weapon.AsOverride(true).Keywords!.Add((FormKey)newMaterial.Kwda!);
+            if (!weapon.Keywords!.Contains(newMaterial.Kwda!)) weapon.AsOverride(true).Keywords!.Add(newMaterial.Kwda!);
             Logger.Info($"The material is forced to {matOverrideString} in accordance with patching rules", true);
             RecordData.Overridden = true;
         }
@@ -305,14 +328,14 @@ public static class WeaponsPatcher
     {
         bool isSkyReType = false;
         // SkyRe type keyword
-        if (!Statics.SkyReTypes.All(type => weapon.Keywords!.Contains((FormKey)type.Kwda!)))
+        if (!Statics.SkyReTypes.All(type => weapon.Keywords!.Contains(type.Kwda!)))
         {
-            DataMap? newType = Statics.SkyReTypes
+            DataMap newType = Statics.SkyReTypes
                 .FirstOrDefault(type => type.Id.GetT9n().RegexMatch(weapon.AsOverride().Name!.ToString()!, true));
 
-            if (newType is not null)
+            if (newType.Id is not null)
             {
-                weapon.AsOverride(true).Keywords!.Add((FormKey)newType.Kwda!);
+                weapon.AsOverride(true).Keywords!.Add(newType.Kwda!);
                 isSkyReType = true;
                 if (!RecordData.Overridden) Logger.Info($"New subtype is {newType.Id.GetT9n("english")}", true);
             }
@@ -342,9 +365,9 @@ public static class WeaponsPatcher
 
     private static (int?, float?, float?, float) GetTypeData(IWeaponGetter weapon)
     {
-        DataMap? typeEntry = Statics.AllTypes.FirstOrDefault(type => weapon.AsOverride().Keywords!.Contains((FormKey)type.Kwda!));
+        DataMap typeEntry = Statics.AllTypes.FirstOrDefault(type => weapon.AsOverride().Keywords!.Contains(type.Kwda!));
 
-        if (typeEntry is null)
+        if (typeEntry.Id is null)
         {
             Logger.Error("Unable to determine the weapon type");
             return (null, null, null, 1f);
@@ -377,9 +400,9 @@ public static class WeaponsPatcher
 
     private static (int, float, float) GetMaterialData(IWeaponGetter weapon)
     {
-        DataMap? materialEntry = Statics.AllMaterials.FirstOrDefault(type => weapon.AsOverride().Keywords!.Contains((FormKey)type.Kwda!));
+        DataMap materialEntry = Statics.AllMaterials.FirstOrDefault(type => weapon.AsOverride().Keywords!.Contains(type.Kwda!));
 
-        if (materialEntry is null)
+        if (materialEntry.Id is null)
         {
             // bound weapons use pseudo-material "bound", that has no material mods
             if (!RecordData.BoundWeapon) Logger.Error("Unable to determine the weapon material");
@@ -407,14 +430,220 @@ public static class WeaponsPatcher
         return (materialDamage ?? 0, materialSpeedMod ?? 0, materialCritMult ?? 1f);
     }
 
+    private static void ProcessCrossbows(IWeaponGetter weapon, List<string> excludedNames)
+    {
+        if (RecordData.AnimType != WeaponAnimationType.Crossbow) return;
+
+        // Detection sound level patching
+        if (weapon.DetectionSoundLevel != SoundLevel.Normal)
+        {
+            weapon.AsOverride(true).DetectionSoundLevel = SoundLevel.Normal;
+        }
+
+        if ("name_enhanced".GetT9n().RegexMatch(weapon.AsOverride().Name!.ToString()!, true))
+        {
+            weapon.AsOverride(true).Keywords!.Add(GetFormKey("MagicDisallowEnchanting"));
+            return;
+        }
+
+        if (weapon.Name!.ToString()!.IsExcluded(excludedNames))
+        {
+            if (Settings.Debug.ShowExcluded) Logger.Info($"Found in the \"No crossbow variants\" list");
+            return;
+        }
+
+        DataMap? materialEntry = Statics.AllMaterials.FirstOrDefault(type => weapon.AsOverride().Keywords!.Contains(type.Kwda!));
+        if (materialEntry is null) return;
+
+        int i = 0;
+        foreach (var subtypeA in Statics.CrossbowSubtypes)
+        {
+            for (int j = i; j < 4; j++)
+            {
+                DataMap subtypeB = Statics.CrossbowSubtypes[j];
+                CrossbowSubtype newSubtype = new(
+                    Id: subtypeA.Id.GetT9n(),
+                    EdId: subtypeA.Id.GetT9n("english"),
+                    Desc: "desc_enhanced".GetT9n() + " " + subtypeA.Desc!.GetT9n(),
+                    Kwda: [subtypeA.Kwda!, GetFormKey("DLC1CrossbowIsEnhanced"), GetFormKey("MagicDisallowEnchanting")],
+                    Perk: subtypeA.Perk!
+                );
+
+                if (subtypeB.Id != subtypeA.Id)
+                {
+                    newSubtype = new(
+                        Id: subtypeB.Id.GetT9n() + " " + newSubtype.Id,
+                        EdId: subtypeB.Id.GetT9n("english") + newSubtype.EdId,
+                        Desc: newSubtype.Desc + " " + subtypeB.Desc!.GetT9n(),
+                        Kwda: [.. newSubtype.Kwda, subtypeB.Kwda!],
+                        Perk: [.. newSubtype.Perk, subtypeB.Perk![0]]
+                    );
+                }
+
+                CreateCrossbowVariant(weapon.AsOverride(), (DataMap)materialEntry, newSubtype, i, j);
+            }
+
+            i++;
+        }
+    }
+
+    private static void CreateCrossbowVariant(Weapon weapon, DataMap material, CrossbowSubtype subtype, int pIndex, int sIndex)
+    {
+        Weapon newCrossbow = Executor.State!.PatchMod.Weapons.DuplicateInAsNewRecord(weapon);
+
+        newCrossbow.Name = Settings.Weapons.SuffixedNames ? 
+            weapon.Name! + ", " + subtype.Id.ToLower() : 
+            subtype.Id + " " + weapon.Name!;
+
+        string newEditorID = "RP_WEAP_" + subtype.EdId + "_" + weapon.EditorID;
+        newCrossbow.EditorID = EditorIDs.Unique(newEditorID);
+        newCrossbow.Description = subtype.Desc;
+
+        // setting script
+        newCrossbow.VirtualMachineAdapter ??= new VirtualMachineAdapter();
+        var newScript = new ScriptEntry
+        {
+            Name = "DLC1EnhancedCrossBowAddPerkScript",
+            Flags = ScriptEntry.Flag.Local
+        };
+        var newProperty = new ScriptObjectProperty
+        {
+            Name = "DLC1EnchancedCrossbowArmorPiercingPerk",
+            Flags = ScriptProperty.Flag.Edited,
+            Object = new FormLink<IPerkGetter>(GetFormKey("DLC1EnchancedCrossbowArmorPiercingPerk"))
+        };
+
+        newScript.Properties.Add(newProperty);
+        newCrossbow.VirtualMachineAdapter.Scripts.Insert(newCrossbow.VirtualMachineAdapter.Scripts.Count, newScript);
+
+        // adding keywords
+        foreach (var kwda in subtype.Kwda)
+        {
+            if (!kwda.IsNull && !newCrossbow.Keywords!.Contains(kwda)) newCrossbow.Keywords!.Add(kwda);
+        }
+
+        // modifying stats
+        bool isDouble = pIndex != sIndex;
+
+        newCrossbow.BasicStats!.Damage = (ushort)
+            (newCrossbow.BasicStats!.Damage * (Statics.CrossbowMods[pIndex].Damage / 100f) * (isDouble ? (Statics.CrossbowMods[sIndex].Damage / 100f) : 1));
+        newCrossbow.BasicStats.Weight *= Statics.CrossbowMods[pIndex].Weight / 100f * (isDouble ? (Statics.CrossbowMods[sIndex].Weight / 100f) : 1);
+        newCrossbow.BasicStats.Value = 
+            (uint)(newCrossbow.BasicStats.Value * (Settings.Weapons.EnhancedCrossbowsPrice / 100f) * (isDouble ? 1.2f : 1f));
+        newCrossbow.Data!.Speed *= Statics.CrossbowMods[pIndex].Speed / 100f * (isDouble ? (Statics.CrossbowMods[sIndex].Speed / 100f) : 1);
+        newCrossbow.DetectionSoundLevel = Statics.CrossbowMods[sIndex].SoundLevel;
+
+        //  
+        if (subtype.Perk.Count > 1)
+        {
+            subtype.Perk.Add(GetFormKey("skyre_MARArtificer"));
+            weapon = (Weapon)RecordData.ThisRecord!;
+        }
+        else
+        {
+            RecordData.ThisRecord = newCrossbow;
+        }
+
+        List<IngredientsMap> ingredients = [
+            new(Ingr: GetFormKey("LeatherStrips"), Qty: 2, Type: "MISC"),
+            new(Ingr: GetFormKey("SprigganSap"),   Qty: 1, Type: "INGR"),
+            new(Ingr: material.Item,               Qty: 1, Type: "MISC")
+        ];
+
+        List<List<FormKey>> perks = [subtype.Perk];
+        if (material.Perk is not null) perks.Add(material.Perk);
+
+        AddCraftingRecipe(newCrossbow, weapon, perks, ingredients);
+    }
+
+
+    private static void AddCraftingRecipe(Weapon newWeapon, Weapon oldWeapon, List<List<FormKey>> perks, List<IngredientsMap> ingredients)
+    {
+        string newEditorID = newWeapon.EditorID!.Replace("RP_WEAP_", "RP_WEAP_CRAFT_");
+        ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
+
+        newRecipe.EditorID = EditorIDs.Unique(newEditorID);
+        newRecipe.Items = [];
+
+        ContainerItem baseItem = new();
+        baseItem.Item = oldWeapon.ToNullableLink();
+        ContainerEntry baseEntry = new();
+        baseEntry.Item = baseItem;
+        baseEntry.Item.Count = 1;
+        newRecipe.Items.Add(baseEntry);
+
+        foreach (var entry in ingredients)
+        {
+            ContainerItem newItem = new();
+
+            switch (entry.Type)
+            {
+                case "MISC":
+                    newItem.Item = Executor.State!.LinkCache.Resolve<IMiscItemGetter>(entry.Ingr).ToNullableLink();
+                    break;
+
+                case "INGR":
+                    newItem.Item = Executor.State!.LinkCache.Resolve<IIngredientGetter>(entry.Ingr).ToNullableLink();
+                    break;
+            }
+
+            ContainerEntry newEntry = new();
+            newEntry.Item = newItem;
+            newEntry.Item.Count = entry.Qty;
+            newRecipe.Items.Add(newEntry);
+        }
+
+        // retaining original conditions
+        if (Settings.Weapons.KeepConditions)
+        {
+            var craftingRecipe = Executor.AllRecipes!.FirstOrDefault(
+                cobj => cobj.CreatedObject.FormKey == oldWeapon.FormKey &&
+                cobj.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingForge"));
+
+            if (craftingRecipe is not null && craftingRecipe.Conditions.Count != 0)
+            {
+                foreach (var cond in craftingRecipe.Conditions)
+                {
+                    newRecipe.Conditions.Add(cond.DeepCopy());
+                }
+            }
+        }
+
+        // subtype perks
+        foreach (var perk in perks[0])
+        {
+            newRecipe.AddHasPerkCondition(perk);
+        }
+
+        // material perks
+        if (perks.Count > 1)
+        {
+            foreach (var perk in perks[1])
+            {
+                Condition.Flag flag = perks[1].IndexOf(perk) == perks[1].Count - 1 ? 0 : Condition.Flag.OR;
+                newRecipe.AddHasPerkCondition(perk, flag);
+            }
+        }
+
+        if (!Settings.Weapons.AllWeaponRecipes)
+            newRecipe.AddGetItemCountCondition(oldWeapon.FormKey, CompareOperator.GreaterThanOrEqualTo);
+
+        newRecipe.AddGetEquippedCondition(oldWeapon.FormKey, CompareOperator.NotEqualTo);
+
+        newRecipe.CreatedObject = newWeapon.ToNullableLink();
+        newRecipe.WorkbenchKeyword = Executor.State!.LinkCache.Resolve<IKeywordGetter>(GetFormKey("CraftingSmithingForge")).ToNullableLink();
+        newRecipe.CreatedObjectCount = 1;
+    }
+    
+
     // patcher specific helpers
 
-        /// <summary>
-        /// Returns the FormKey with id from the statics record.<br/>
-        /// </summary>
-        /// <param name="id">The id in the elements with the FormKey to return.</param>
-        /// <returns>A FormKey from the statics list.</returns>
-    private static FormKey GetFormKey(string id) => Executor.Statics!.First(elem => elem.Id == id).Formkey;
+    /// <summary>
+    /// Returns the FormKey with id from the statics record.<br/>
+    /// </summary>
+    /// <param name="id">The id in the elements with the FormKey to return.</param>
+    /// <returns>A FormKey from the statics list.</returns>
+    private static FormKey GetFormKey(string id) => Executor.Statics!.First(elem => elem.Id == id).FormKey;
 
     /// <summary>
     /// Returns the winning override for this-parameter, and copies it to the patch file.<br/>
@@ -436,126 +665,133 @@ public static class WeaponsPatcher
     private static void ShowReport(this IWeaponGetter weapon) => Logger.ShowReport($"{weapon.Name}", $"{weapon.FormKey}", $"{weapon.EditorID}", RecordData.NonPlayable, !weapon.Template.IsNull);
 
     // patcher specific statics
-    private static (List<DataMap>, List<DataMap>, List<DataMap>, List<DataMap>) BuildStaticsMap()
+    private static (List<DataMap>, List<DataMap>, List<DataMap>, List<CrossbowMods>, List<DataMap>) BuildStaticsMap()
     {
         Executor.Statics!.AddRange(
         [
-            new(Id: "WeapTypeSword",                          Formkey: Helpers.ParseFormKey("Skyrim.esm|0x01e711|KWDA")                  ),
-            new(Id: "WeapTypeWaraxe",                         Formkey: Helpers.ParseFormKey("Skyrim.esm|0x01e712|KWDA")                  ),
-            new(Id: "WeapTypeDagger",                         Formkey: Helpers.ParseFormKey("Skyrim.esm|0x01e713|KWDA")                  ),
-            new(Id: "WeapTypeMace",                           Formkey: Helpers.ParseFormKey("Skyrim.esm|0x01e714|KWDA")                  ),
-            new(Id: "WeapTypeBow",                            Formkey: Helpers.ParseFormKey("Skyrim.esm|0x01e715|KWDA")                  ),
-            new(Id: "WeapTypeWarhammer",                      Formkey: Helpers.ParseFormKey("Skyrim.esm|0x06d930|KWDA")                  ),
-            new(Id: "WeapTypeGreatsword",                     Formkey: Helpers.ParseFormKey("Skyrim.esm|0x06d931|KWDA")                  ),
-            new(Id: "WeapTypeBattleaxe",                      Formkey: Helpers.ParseFormKey("Skyrim.esm|0x06d932|KWDA")                  ),
-            new(Id: "skyre__WeapTypeBastardSword",            Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000813|KWDA") ),
-            new(Id: "skyre__WeapTypeQuarterstaff",            Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000814|KWDA") ),
-            new(Id: "skyre__WeapMaterialBound",               Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000815|KWDA") ),
-            new(Id: "skyre__WeapTypeShortbow",                Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000817|KWDA") ),
-            new(Id: "skyre__WeapTypeBroadsword",              Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000818|KWDA") ),
-            new(Id: "skyre__WeapTypeClub",                    Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000819|KWDA") ),
-            new(Id: "skyre__WeapTypeCrossbow",                Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00081a|KWDA") ),
-            new(Id: "skyre__WeapTypeGlaive",                  Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00081b|KWDA") ),
-            new(Id: "skyre__WeapTypeHalberd",                 Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00081c|KWDA") ),
-            new(Id: "skyre__WeapTypeHatchet",                 Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00081d|KWDA") ),
-            new(Id: "skyre__WeapTypeKatana",                  Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00081e|KWDA") ),
-            new(Id: "skyre__WeapTypeLongbow",                 Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000816|KWDA") ),
-            new(Id: "skyre__WeapTypeLongmace",                Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00081f|KWDA") ),
-            new(Id: "skyre__WeapTypeLongspear",               Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000820|KWDA") ),
-            new(Id: "skyre__WeapTypeLongsword",               Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000821|KWDA") ),
-            new(Id: "skyre__WeapTypeMaul",                    Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000822|KWDA") ),
-            new(Id: "skyre__WeapTypeNodachi",                 Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000823|KWDA") ),
-            new(Id: "skyre__WeapTypeScimitar",                Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000824|KWDA") ),
-            new(Id: "skyre__WeapTypeShortspear",              Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000825|KWDA") ),
-            new(Id: "skyre__WeapTypeShortsword",              Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000826|KWDA") ),
-            new(Id: "skyre__WeapTypeTanto",                   Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000827|KWDA") ),
-            new(Id: "skyre__WeapTypeWakizashi",               Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000828|KWDA") ),
-            new(Id: "skyre__WeapMaterialSilverRefined",       Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000829|KWDA") ),
-            new(Id: "skyre_MAREnhancedCrossbowMuffled",       Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d97|KWDA") ),
-            new(Id: "skyre_MAREnhancedCrossbowSiege",         Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d98|KWDA") ),
-            new(Id: "SilverPerk",                             Formkey: Helpers.ParseFormKey("Skyrim.esm|0x10d685|PERK")                  ),
-            new(Id: "skyre_MARCrossbowLight",                 Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d93|PERK") ),
-            new(Id: "skyre_MARCrossbowRecurve",               Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d94|PERK") ),
-            new(Id: "skyre_MARCrossbowMuffled",               Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d95|PERK") ),
-            new(Id: "skyre_MARCrossbowSiege",                 Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d96|PERK") ),
-            new(Id: "skyre_MARArtificer",                     Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000dbf|PERK") ),
-            new(Id: "skyre_SMTTradecraft",                    Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee0|PERK") ),
-            new(Id: "skyre_SMTDeepSilver",                    Formkey: Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee4|PERK") )
+            new DataMap{Id = "WeapTypeSword",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e711|KWDA")                  },
+            new DataMap{Id = "WeapTypeWaraxe",                         FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e712|KWDA")                  },
+            new DataMap{Id = "WeapTypeDagger",                         FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e713|KWDA")                  },
+            new DataMap{Id = "WeapTypeMace",                           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e714|KWDA")                  },
+            new DataMap{Id = "WeapTypeBow",                            FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e715|KWDA")                  },
+            new DataMap{Id = "WeapTypeWarhammer",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06d930|KWDA")                  },
+            new DataMap{Id = "WeapTypeGreatsword",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06d931|KWDA")                  },
+            new DataMap{Id = "WeapTypeBattleaxe",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06d932|KWDA")                  },
+            new DataMap{Id = "skyre__WeapTypeBastardSword",            FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000813|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeQuarterstaff",            FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000814|KWDA") },
+            new DataMap{Id = "skyre__WeapMaterialBound",               FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000815|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeLongbow",                 FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000816|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeShortbow",                FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000817|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeBroadsword",              FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000818|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeClub",                    FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000819|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeCrossbow",                FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00081a|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeGlaive",                  FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00081b|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeHalberd",                 FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00081c|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeHatchet",                 FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00081d|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeKatana",                  FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00081e|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeLongmace",                FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00081f|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeLongspear",               FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000820|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeLongsword",               FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000821|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeMaul",                    FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000822|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeNodachi",                 FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000823|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeScimitar",                FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000824|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeShortspear",              FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000825|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeShortsword",              FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000826|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeTanto",                   FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000827|KWDA") },
+            new DataMap{Id = "skyre__WeapTypeWakizashi",               FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000828|KWDA") },
+            new DataMap{Id = "skyre__WeapMaterialSilverRefined",       FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000829|KWDA") },
+            new DataMap{Id = "skyre_MAREnhancedCrossbowMuffled",       FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d97|KWDA") },
+            new DataMap{Id = "skyre_MAREnhancedCrossbowSiege",         FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d98|KWDA") },
+            new DataMap{Id = "SilverPerk",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x10d685|PERK")                  },
+            new DataMap{Id = "skyre_MARCrossbowLight",                 FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d93|PERK") },
+            new DataMap{Id = "skyre_MARCrossbowRecurve",               FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d94|PERK") },
+            new DataMap{Id = "skyre_MARCrossbowMuffled",               FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d95|PERK") },
+            new DataMap{Id = "skyre_MARCrossbowSiege",                 FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d96|PERK") },
+            new DataMap{Id = "skyre_MARArtificer",                     FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000dbf|PERK") },
+            new DataMap{Id = "skyre_SMTTradecraft",                    FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee0|PERK") },
+            new DataMap{Id = "skyre_SMTDeepSilver",                    FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee4|PERK") }
         ]);
 
         List<DataMap> allTypes = [
-            new(Id: "type_battleaxe",    Kwda: GetFormKey("WeapTypeBattleaxe")  ),
-            new(Id: "type_bow",          Kwda: GetFormKey("WeapTypeBow")        ),
-            new(Id: "type_broadsword",   Kwda: GetFormKey("WeapTypeSword")      ),
-            new(Id: "type_dagger",       Kwda: GetFormKey("WeapTypeDagger")     ),
-            new(Id: "type_greatsword",   Kwda: GetFormKey("WeapTypeGreatsword") ),
-            new(Id: "type_mace",         Kwda: GetFormKey("WeapTypeMace")       ),
-            new(Id: "type_waraxe",       Kwda: GetFormKey("WeapTypeWaraxe")     ),
-            new(Id: "type_warhammer",    Kwda: GetFormKey("WeapTypeWarhammer")  )
+            new DataMap{Id = "type_battleaxe",    Kwda = GetFormKey("WeapTypeBattleaxe")  },
+            new DataMap{Id = "type_bow",          Kwda = GetFormKey("WeapTypeBow")        },
+            new DataMap{Id = "type_broadsword",   Kwda = GetFormKey("WeapTypeSword")      },
+            new DataMap{Id = "type_dagger",       Kwda = GetFormKey("WeapTypeDagger")     },
+            new DataMap{Id = "type_greatsword",   Kwda = GetFormKey("WeapTypeGreatsword") },
+            new DataMap{Id = "type_mace",         Kwda = GetFormKey("WeapTypeMace")       },
+            new DataMap{Id = "type_waraxe",       Kwda = GetFormKey("WeapTypeWaraxe")     },
+            new DataMap{Id = "type_warhammer",    Kwda = GetFormKey("WeapTypeWarhammer")  }
         ];
 
         List<DataMap> skyreTypes = [
-            new(Id: "type_bastard",      Kwda: GetFormKey("skyre__WeapTypeBastardSword") ),
-            new(Id: "type_broadsword",   Kwda: GetFormKey("skyre__WeapTypeBroadsword")   ),
-            new(Id: "type_club",         Kwda: GetFormKey("skyre__WeapTypeClub")         ),
-            new(Id: "type_crossbow",     Kwda: GetFormKey("skyre__WeapTypeCrossbow")     ),
-            new(Id: "type_glaive",       Kwda: GetFormKey("skyre__WeapTypeGlaive")       ),
-            new(Id: "type_halberd",      Kwda: GetFormKey("skyre__WeapTypeHalberd")      ),
-            new(Id: "type_hatchet",      Kwda: GetFormKey("skyre__WeapTypeHatchet")      ),
-            new(Id: "type_katana",       Kwda: GetFormKey("skyre__WeapTypeKatana")       ),
-            new(Id: "type_longbow",      Kwda: GetFormKey("skyre__WeapTypeLongbow")      ),
-            new(Id: "type_longmace",     Kwda: GetFormKey("skyre__WeapTypeLongmace")     ),
-            new(Id: "type_longspear",    Kwda: GetFormKey("skyre__WeapTypeLongspear")    ),
-            new(Id: "type_longsword",    Kwda: GetFormKey("skyre__WeapTypeLongsword")    ),
-            new(Id: "type_maul",         Kwda: GetFormKey("skyre__WeapTypeMaul")         ),
-            new(Id: "type_nodachi",      Kwda: GetFormKey("skyre__WeapTypeNodachi")      ),
-            new(Id: "type_quarterstaff", Kwda: GetFormKey("skyre__WeapTypeQuarterstaff") ),
-            new(Id: "type_scimitar",     Kwda: GetFormKey("skyre__WeapTypeScimitar")     ),
-            new(Id: "type_shortbow",     Kwda: GetFormKey("skyre__WeapTypeShortbow")     ),
-            new(Id: "type_shortspear",   Kwda: GetFormKey("skyre__WeapTypeShortspear")   ),
-            new(Id: "type_shortsword",   Kwda: GetFormKey("skyre__WeapTypeShortsword")   ),
-            new(Id: "type_tanto",        Kwda: GetFormKey("skyre__WeapTypeTanto")        ),
-            new(Id: "type_wakizashi",    Kwda: GetFormKey("skyre__WeapTypeWakizashi")    )
+            new DataMap{Id = "type_bastard",      Kwda = GetFormKey("skyre__WeapTypeBastardSword") },
+            new DataMap{Id = "type_broadsword",   Kwda = GetFormKey("skyre__WeapTypeBroadsword")   },
+            new DataMap{Id = "type_club",         Kwda = GetFormKey("skyre__WeapTypeClub")         },
+            new DataMap{Id = "type_crossbow",     Kwda = GetFormKey("skyre__WeapTypeCrossbow")     },
+            new DataMap{Id = "type_glaive",       Kwda = GetFormKey("skyre__WeapTypeGlaive")       },
+            new DataMap{Id = "type_halberd",      Kwda = GetFormKey("skyre__WeapTypeHalberd")      },
+            new DataMap{Id = "type_hatchet",      Kwda = GetFormKey("skyre__WeapTypeHatchet")      },
+            new DataMap{Id = "type_katana",       Kwda = GetFormKey("skyre__WeapTypeKatana")       },
+            new DataMap{Id = "type_longbow",      Kwda = GetFormKey("skyre__WeapTypeLongbow")      },
+            new DataMap{Id = "type_longmace",     Kwda = GetFormKey("skyre__WeapTypeLongmace")     },
+            new DataMap{Id = "type_longspear",    Kwda = GetFormKey("skyre__WeapTypeLongspear")    },
+            new DataMap{Id = "type_longsword",    Kwda = GetFormKey("skyre__WeapTypeLongsword")    },
+            new DataMap{Id = "type_maul",         Kwda = GetFormKey("skyre__WeapTypeMaul")         },
+            new DataMap{Id = "type_nodachi",      Kwda = GetFormKey("skyre__WeapTypeNodachi")      },
+            new DataMap{Id = "type_quarterstaff", Kwda = GetFormKey("skyre__WeapTypeQuarterstaff") },
+            new DataMap{Id = "type_scimitar",     Kwda = GetFormKey("skyre__WeapTypeScimitar")     },
+            new DataMap{Id = "type_shortbow",     Kwda = GetFormKey("skyre__WeapTypeShortbow")     },
+            new DataMap{Id = "type_shortspear",   Kwda = GetFormKey("skyre__WeapTypeShortspear")   },
+            new DataMap{Id = "type_shortsword",   Kwda = GetFormKey("skyre__WeapTypeShortsword")   },
+            new DataMap{Id = "type_tanto",        Kwda = GetFormKey("skyre__WeapTypeTanto")        },
+            new DataMap{Id = "type_wakizashi",    Kwda = GetFormKey("skyre__WeapTypeWakizashi")    }
         ];
 
         allTypes.InsertRange(0, skyreTypes);
 
         List<DataMap> allMaterials = [
-            new(Id: "mat_amber",      Kwda: GetFormKey("cc_WeapMaterialAmber"),             Item: GetFormKey("cc_IngotAmber"),    Perk: [ GetFormKey("GlassSmithing"), GetFormKey("EbonySmithing") ]       ),
-            new(Id: "mat_blades",     Kwda: GetFormKey("WAF_WeapMaterialBlades"),           Item: GetFormKey("IngotSteel"),       Perk: [ GetFormKey("SteelSmithing") ]                                    ),
-            new(Id: "mat_daedric",    Kwda: GetFormKey("WeapMaterialDaedric"),              Item: GetFormKey("IngotEbony"),       Perk: [ GetFormKey("DaedricSmithing") ]                                  ),
-            new(Id: "mat_dawnguard",  Kwda: GetFormKey("WAF_DLC1WeapMaterialDawnguard"),    Item: GetFormKey("IngotSteel"),       Perk: [ GetFormKey("SteelSmithing") ]                                    ),
-            new(Id: "mat_dark",       Kwda: GetFormKey("cc_WeapMaterialDark"),              Item: GetFormKey("IngotQuicksilver"), Perk: [ GetFormKey("DaedricSmithing") ]                                  ),
-            new(Id: "mat_dragonbone", Kwda: GetFormKey("DLC1WeapMaterialDragonbone"),       Item: GetFormKey("DragonBone"),       Perk: [ GetFormKey("DragonArmor") ]                                      ),
-            new(Id: "mat_draugr",     Kwda: GetFormKey("WeapMaterialDraugr"),               Item: GetFormKey("IngotQuicksilver"), Perk: [ GetFormKey("AdvancedArmors") ]                                   ),
-            new(Id: "mat_draugrh",    Kwda: GetFormKey("WeapMaterialDraugrHoned"),          Item: GetFormKey("IngotQuicksilver"), Perk: [ GetFormKey("AdvancedArmors") ]                                   ),
-            new(Id: "mat_dwarven",    Kwda: GetFormKey("WeapMaterialDwarven"),              Item: GetFormKey("IngotDwarven"),     Perk: [ GetFormKey("DwarvenSmithing") ]                                  ),
-            new(Id: "mat_ebony",      Kwda: GetFormKey("WeapMaterialEbony"),                Item: GetFormKey("IngotEbony"),       Perk: [ GetFormKey("EbonySmithing") ]                                    ),
-            new(Id: "mat_elven",      Kwda: GetFormKey("WeapMaterialElven"),                Item: GetFormKey("IngotMoonstone"),   Perk: [ GetFormKey("ElvenSmithing") ]                                    ),
-            new(Id: "mat_falmer",     Kwda: GetFormKey("WeapMaterialFalmer"),               Item: GetFormKey("ChaurusChitin"),    Perk: [ GetFormKey("ElvenSmithing") ]                                    ),
-            new(Id: "mat_falmerh",    Kwda: GetFormKey("WeapMaterialFalmerHoned"),          Item: GetFormKey("ChaurusChitin"),    Perk: [ GetFormKey("ElvenSmithing") ]                                    ),
-            new(Id: "mat_forsworn",   Kwda: GetFormKey("WAF_WeapMaterialForsworn"),         Item: GetFormKey("IngotIron")                                                                                  ),
-            new(Id: "mat_glass",      Kwda: GetFormKey("WeapMaterialGlass"),                Item: GetFormKey("IngotMalachite"),   Perk: [ GetFormKey("GlassSmithing") ]                                    ),
-            new(Id: "mat_golden",     Kwda: GetFormKey("cc_WeapMaterialGolden"),            Item: GetFormKey("IngotMoonstone"),   Perk: [ GetFormKey("DaedricSmithing") ]                                  ),
-            new(Id: "mat_imperial",   Kwda: GetFormKey("WeapMaterialImperial"),             Item: GetFormKey("IngotSteel"),       Perk: [ GetFormKey("SteelSmithing") ]                                    ),
-            new(Id: "mat_iron",       Kwda: GetFormKey("WeapMaterialIron"),                 Item: GetFormKey("IngotIron")                                                                                  ),
-            new(Id: "mat_madness",    Kwda: GetFormKey("cc_WeapMaterialMadness"),           Item: GetFormKey("cc_IngotMadness"),  Perk: [ GetFormKey("EbonySmithing") ]                                    ),
-            new(Id: "mat_nordic",     Kwda: GetFormKey("DLC2WeaponMaterialNordic"),         Item: GetFormKey("IngotQuicksilver"), Perk: [ GetFormKey("AdvancedArmors") ]                                   ),
-            new(Id: "mat_orcish",     Kwda: GetFormKey("WeapMaterialOrcish"),               Item: GetFormKey("IngotOrichalcum"),  Perk: [ GetFormKey("OrcishSmithing") ]                                   ),
-            new(Id: "mat_silverr",    Kwda: GetFormKey("skyre__WeapMaterialSilverRefined"), Item: GetFormKey("IngotQuicksilver"), Perk: [ GetFormKey("skyre_SMTDeepSilver"), GetFormKey("SteelSmithing") ] ),
-            new(Id: "mat_silver",     Kwda: GetFormKey("WeapMaterialSilver"),               Item: GetFormKey("IngotSilver"),      Perk: [ GetFormKey("skyre_SMTTradecraft"), GetFormKey("SteelSmithing") ] ),
-            new(Id: "mat_stalhrim",   Kwda: GetFormKey("DLC2WeaponMaterialStalhrim"),       Item: GetFormKey("DLC2OreStalhrim"),  Perk: [ GetFormKey("GlassSmithing"), GetFormKey("EbonySmithing") ]       ),
-            new(Id: "mat_steel",      Kwda: GetFormKey("WeapMaterialSteel"),                Item: GetFormKey("IngotSteel"),       Perk: [ GetFormKey("SteelSmithing") ]                                    ),
-            new(Id: "mat_wood",       Kwda: GetFormKey("WeapMaterialWood"),                 Item: GetFormKey("Charcoal")                                                                                   )
+            new DataMap{Id = "mat_amber",      Kwda = GetFormKey("cc_WeapMaterialAmber"),             Item = GetFormKey("cc_IngotAmber"),    Perk = [ GetFormKey("GlassSmithing"), GetFormKey("EbonySmithing") ]       },
+            new DataMap{Id = "mat_blades",     Kwda = GetFormKey("WAF_WeapMaterialBlades"),           Item = GetFormKey("IngotSteel"),       Perk = [ GetFormKey("SteelSmithing")]                                     },
+            new DataMap{Id = "mat_daedric",    Kwda = GetFormKey("WeapMaterialDaedric"),              Item = GetFormKey("IngotEbony"),       Perk = [ GetFormKey("DaedricSmithing")]                                   },
+            new DataMap{Id = "mat_dawnguard",  Kwda = GetFormKey("WAF_DLC1WeapMaterialDawnguard"),    Item = GetFormKey("IngotSteel"),       Perk = [ GetFormKey("SteelSmithing")]                                     },
+            new DataMap{Id = "mat_dark",       Kwda = GetFormKey("cc_WeapMaterialDark"),              Item = GetFormKey("IngotQuicksilver"), Perk = [ GetFormKey("DaedricSmithing")]                                   },
+            new DataMap{Id = "mat_dragonbone", Kwda = GetFormKey("DLC1WeapMaterialDragonbone"),       Item = GetFormKey("DragonBone"),       Perk = [ GetFormKey("DragonArmor")]                                       },
+            new DataMap{Id = "mat_draugr",     Kwda = GetFormKey("WeapMaterialDraugr"),               Item = GetFormKey("IngotQuicksilver"), Perk = [ GetFormKey("AdvancedArmors")]                                    },
+            new DataMap{Id = "mat_draugrh",    Kwda = GetFormKey("WeapMaterialDraugrHoned"),          Item = GetFormKey("IngotQuicksilver"), Perk = [ GetFormKey("AdvancedArmors") ]                                   },
+            new DataMap{Id = "mat_dwarven",    Kwda = GetFormKey("WeapMaterialDwarven"),              Item = GetFormKey("IngotDwarven"),     Perk = [ GetFormKey("DwarvenSmithing") ]                                  },
+            new DataMap{Id = "mat_ebony",      Kwda = GetFormKey("WeapMaterialEbony"),                Item = GetFormKey("IngotEbony"),       Perk = [ GetFormKey("EbonySmithing") ]                                    },
+            new DataMap{Id = "mat_elven",      Kwda = GetFormKey("WeapMaterialElven"),                Item = GetFormKey("IngotMoonstone"),   Perk = [ GetFormKey("ElvenSmithing") ]                                    },
+            new DataMap{Id = "mat_falmer",     Kwda = GetFormKey("WeapMaterialFalmer"),               Item = GetFormKey("ChaurusChitin"),    Perk = [ GetFormKey("ElvenSmithing") ]                                    },
+            new DataMap{Id = "mat_falmerh",    Kwda = GetFormKey("WeapMaterialFalmerHoned"),          Item = GetFormKey("ChaurusChitin"),    Perk = [ GetFormKey("ElvenSmithing") ]                                    },
+            new DataMap{Id = "mat_forsworn",   Kwda = GetFormKey("WAF_WeapMaterialForsworn"),         Item = GetFormKey("IngotIron")                                                                                   },
+            new DataMap{Id = "mat_glass",      Kwda = GetFormKey("WeapMaterialGlass"),                Item = GetFormKey("IngotMalachite"),   Perk = [ GetFormKey("GlassSmithing") ]                                    },
+            new DataMap{Id = "mat_golden",     Kwda = GetFormKey("cc_WeapMaterialGolden"),            Item = GetFormKey("IngotMoonstone"),   Perk = [ GetFormKey("DaedricSmithing") ]                                  },
+            new DataMap{Id = "mat_imperial",   Kwda = GetFormKey("WeapMaterialImperial"),             Item = GetFormKey("IngotSteel"),       Perk = [ GetFormKey("SteelSmithing") ]                                    },
+            new DataMap{Id = "mat_iron",       Kwda = GetFormKey("WeapMaterialIron"),                 Item = GetFormKey("IngotIron")                                                                                   },
+            new DataMap{Id = "mat_madness",    Kwda = GetFormKey("cc_WeapMaterialMadness"),           Item = GetFormKey("cc_IngotMadness"),  Perk = [ GetFormKey("EbonySmithing") ]                                    },
+            new DataMap{Id = "mat_nordic",     Kwda = GetFormKey("DLC2WeaponMaterialNordic"),         Item = GetFormKey("IngotQuicksilver"), Perk = [ GetFormKey("AdvancedArmors") ]                                   },
+            new DataMap{Id = "mat_orcish",     Kwda = GetFormKey("WeapMaterialOrcish"),               Item = GetFormKey("IngotOrichalcum"),  Perk = [ GetFormKey("OrcishSmithing") ]                                   },
+            new DataMap{Id = "mat_silverr",    Kwda = GetFormKey("skyre__WeapMaterialSilverRefined"), Item = GetFormKey("IngotQuicksilver"), Perk = [ GetFormKey("skyre_SMTDeepSilver"), GetFormKey("SteelSmithing") ] },
+            new DataMap{Id = "mat_silver",     Kwda = GetFormKey("WeapMaterialSilver"),               Item = GetFormKey("IngotSilver"),      Perk = [ GetFormKey("skyre_SMTTradecraft"), GetFormKey("SteelSmithing") ] },
+            new DataMap{Id = "mat_stalhrim",   Kwda = GetFormKey("DLC2WeaponMaterialStalhrim"),       Item = GetFormKey("DLC2OreStalhrim"),  Perk = [ GetFormKey("GlassSmithing"), GetFormKey("EbonySmithing") ]       },
+            new DataMap{Id = "mat_steel",      Kwda = GetFormKey("WeapMaterialSteel"),                Item = GetFormKey("IngotSteel"),       Perk = [ GetFormKey("SteelSmithing") ]                                    },
+            new DataMap{Id = "mat_wood",       Kwda = GetFormKey("WeapMaterialWood"),                 Item = GetFormKey("Charcoal")                                                                                    }
         ];
 
         List<DataMap> crossbowSubtypes = [
-            new(Id: "name_recurve",                                                       Desc: "desc_recurve", Perk: [ GetFormKey("skyre_MARCrossbowRecurve") ] ),
-            new(Id: "name_lweight",                                                       Desc: "desc_lweight", Perk: [ GetFormKey("skyre_MARCrossbowLight") ]   ),
-            new(Id: "name_muffled", Kwda: GetFormKey("skyre_MAREnhancedCrossbowMuffled"), Desc: "desc_muffled", Perk: [ GetFormKey("skyre_MARCrossbowMuffled") ] ),
-            new(Id: "name_siege",   Kwda: GetFormKey("skyre_MAREnhancedCrossbowSiege"),   Desc: "desc_siege",   Perk: [ GetFormKey("skyre_MARCrossbowSiege") ]   )
+            new DataMap{Id = "name_recurve",                                                        Desc = "desc_recurve", Perk = [ GetFormKey("skyre_MARCrossbowRecurve") ] },
+            new DataMap{Id = "name_lweight",                                                        Desc = "desc_lweight", Perk = [ GetFormKey("skyre_MARCrossbowLight") ]   },
+            new DataMap{Id = "name_muffled", Kwda = GetFormKey("skyre_MAREnhancedCrossbowMuffled"), Desc = "desc_muffled", Perk = [ GetFormKey("skyre_MARCrossbowMuffled") ] },
+            new DataMap{Id = "name_siege",   Kwda = GetFormKey("skyre_MAREnhancedCrossbowSiege"),   Desc = "desc_siege",   Perk = [ GetFormKey("skyre_MARCrossbowSiege") ]   }
         ];
 
-        return (allTypes, skyreTypes, crossbowSubtypes, allMaterials);
+        List<CrossbowMods> crossbowMods = [
+            new CrossbowMods{Damage = Settings.Weapons.RecurveDamage, Speed = Settings.Weapons.RecurveSpeed, Weight = Settings.Weapons.RecurveWeight, SoundLevel = SoundLevel.Normal },
+            new CrossbowMods{Damage = Settings.Weapons.LightDamage,   Speed = Settings.Weapons.LightSpeed,   Weight = Settings.Weapons.LightWeight,   SoundLevel = SoundLevel.Normal },
+            new CrossbowMods{Damage = Settings.Weapons.MuffledDamage, Speed = Settings.Weapons.MuffledSpeed, Weight = Settings.Weapons.MuffledWeight, SoundLevel = SoundLevel.Silent },
+            new CrossbowMods{Damage = Settings.Weapons.SiegeDamage,   Speed = Settings.Weapons.SiegeSpeed,   Weight = Settings.Weapons.SiegeWeight,   SoundLevel = SoundLevel.Loud   }
+        ];
+
+        return (allTypes, skyreTypes, crossbowSubtypes, crossbowMods, allMaterials);
     }
 }
