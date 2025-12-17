@@ -7,7 +7,31 @@ using System.Text.RegularExpressions;
 
 namespace ReProccer.Utils;
 
-public struct PatchingData()
+public struct DataMap
+{
+    public int Qty { get; set; }
+    public string Id { get; set; }
+    public string Desc { get; set; }
+    public FormKey Kwda { get; set; }
+    public FormKey Item { get; set; }
+    public List<FormKey> Perk { get; set; }
+
+    public FormKey FormKey
+    {
+        get => Kwda;
+        set => Kwda = value;
+    }
+
+    public FormKey Ingr
+    {
+        get => Item;
+        set => Item = value;
+    }
+
+    public static FormKey NullRef => new("Skyrim.esm", 0x000000);
+};
+
+public struct PatchingData
 {
     public bool NonPlayable{ get; set; }
     public bool Modified { get; set; }
@@ -17,6 +41,22 @@ public struct PatchingData()
     public ArmorType ArmorType { get; set; }
     public WeaponAnimationType AnimType { get; set; }
     public IMajorRecordGetter? ThisRecord { get; set; }
+}
+
+public struct EditorIDs()
+{
+    public List<string> List { get; set; } = [];
+    public readonly string Unique(string editorID)
+    {
+        int? incr = null;
+        while (List.Contains($"{editorID}{incr}"))
+        {
+            incr = incr == null ? 1 : ++incr;
+        }
+
+        List.Add($"{editorID}{incr}");
+        return $"{editorID}{incr}";
+    }
 }
 
 public readonly struct Logger()
@@ -63,44 +103,6 @@ public readonly struct Logger()
         }
     }
 }
-
-public struct EditorIDs()
-{
-    public List<string> List { get; set; } = [];
-    public readonly string Unique(string editorID)
-    {
-        int? incr = null;
-        while (List.Contains($"{editorID}{incr}"))
-        {
-            incr = incr == null ? 1 : ++incr;
-        }
-
-        List.Add($"{editorID}{incr}");
-        return $"{editorID}{incr}";
-    }
-}
-
-public struct DataMap {
-    public string Id { get; set; }
-    public string Desc { get; set; }
-    public FormKey Kwda { get; set; }
-    public FormKey Item { get; set; }
-    public List<FormKey> Perk { get; set; }
-
-    public FormKey FormKey
-    {
-        get => Kwda;
-        set => Kwda = value;
-    }
-
-    public static FormKey NullRef => new("Skyrim.esm", 0x000000);
-};
-
-public record IngredientsMap(
-    FormKey Ingr,
-    int Qty,
-    string Type
-);
 
 public static class Helpers
 {
@@ -533,6 +535,29 @@ public static class Conditions
         {
             CompareOperator = type,
             Data = getEquipped,
+            Flags = flag,
+            ComparisonValue = 1
+        });
+    }
+
+    /// <summary>
+    /// Adds a TemperingItemIsEnchanted-type condition to the array of conditions in a constructible object record.<br/>
+    /// </summary>
+    /// <param name="cobj">A constructible object as this-parameter</param>
+    /// <param name="flag">Pass Condition.Flag.OR enum to set the OR flag or 0 as None.</param>
+    /// <param name="pos">Condition position in the array of conditions (is the last element by default).</param>
+    public static void AddIsEnchantedCondition(this ConstructibleObject cobj, Condition.Flag flag = 0, int pos = -1)
+    {
+        var hasPerk = new EPTemperingItemIsEnchantedConditionData()
+        {
+            RunOnType = Condition.RunOnType.Subject
+        };
+
+        pos = pos == -1 ? cobj.Conditions.Count : pos;
+        cobj.Conditions.Insert(pos, new ConditionFloat
+        {
+            CompareOperator = CompareOperator.NotEqualTo,
+            Data = hasPerk,
             Flags = flag,
             ComparisonValue = 1
         });
