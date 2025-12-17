@@ -185,6 +185,43 @@ public class WeaponsSettings
         + "Regardless of this value, double-enhanced crossbows (via the Engineer perk) additionally cost 20% more.")]
     public int EnhancedCrossbowsPrice { get; set; } = 140;
 
+    // SkyRe enhanced crossbows
+    [Ignore]
+    public int RecurveDamage { get; set; } = 105;
+
+    [Ignore]
+    public int SiegeDamage { get; set; } = 115;
+
+    [Ignore]
+    public int LightDamage { get; set; } = 85;
+
+    [Ignore]
+    public int MuffledDamage { get; set; } = 95;
+
+    [Ignore]
+    public int RecurveSpeed { get; set; } = 90;
+
+    [Ignore]
+    public int SiegeSpeed { get; set; } = 80;
+
+    [Ignore]
+    public int LightSpeed { get; set; } = 125;
+
+    [Ignore]
+    public int MuffledSpeed { get; set; } = 110;
+
+    [Ignore]
+    public int RecurveWeight { get; set; } = 110;
+
+    [Ignore]
+    public int SiegeWeight { get; set; } = 125;
+
+    [Ignore]
+    public int LightWeight { get; set; } = 75;
+
+    [Ignore]
+    public int MuffledWeight { get; set; } = 90;
+
     [SettingName("Remove weapon type tags")]
     [Tooltip("Removes type tags ReProccer uses to mark weapons with overridden types from weapon names (weapon_name [type_tag] -> weapon_name).")]
     public bool NoTypeTags { get; set; } = true;
@@ -192,12 +229,12 @@ public class WeaponsSettings
     [SettingName("No vanilla Enhanced Crossbows recipes")]
     [Tooltip("Removes the ability to craft vanilla Enhanced Crossbows (crafting recipes will not be available).\n"
         + "If unchecked, vanilla Enhanced Crossbows recipes additionally require the Increased Tension perk.")]
-    public bool NoClothingBreak { get; set; } = true;
+    public bool NoVanillEnhanced { get; set; } = true;
 
     [SettingName("Preserve crossbows crafting conditions")]
     [Tooltip("Preserves recipe conditions not related to the material (like quest stage) in all crossbow recipes.\n"
         + "With this box unchecked crossbow crafting recipes will be available without completing quests.")]
-    public bool ShowAllRecipes { get; set; } = true;
+    public bool KeepConditions { get; set; } = true;
 
     [SettingName("Shortspears on right hip")]
     [Tooltip("Changes shortspears animation type from swords to waraxes.\n"
@@ -208,4 +245,9 @@ public class WeaponsSettings
     [Tooltip("Refined Silver weapons and SkyRe crossbows recipes will always be visible in the crafting menu once the relevant perk is acquired.\n"
         + "By default, to declutter the crafting menu, special recipes are hidden unless you have a required base weapon in the inventory.")]
     public bool AllWeaponRecipes { get; set; } = false;
+
+    [SettingName("Alternative naming")]
+    [Tooltip("Changes the position of weapon variant names from prefixed to suffixed.\n"
+        + "E.g. Siege Dwarven Crossbow -> Dwarven Crossbow, siege; Refined Silver Greatsword -> <b>Silver Greatsword, refined.")]
+    public bool SuffixedNames { get; set; } = false;
 }
