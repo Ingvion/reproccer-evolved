@@ -491,8 +491,8 @@ public static class WeaponsPatcher
     {
         Weapon newCrossbow = Executor.State!.PatchMod.Weapons.DuplicateInAsNewRecord(weapon);
 
-        newCrossbow.Name = Settings.Weapons.SuffixedNames ? 
-            weapon.Name! + ", " + subtype.Id.ToLower() : 
+        newCrossbow.Name = Settings.Weapons.SuffixedNames ?
+            weapon.Name! + ", " + subtype.Id.ToLower() :
             subtype.Id + " " + weapon.Name!;
 
         string newEditorID = "RP_WEAP_" + subtype.EdId + "_" + weapon.EditorID;
@@ -528,12 +528,12 @@ public static class WeaponsPatcher
         newCrossbow.BasicStats!.Damage = (ushort)
             (newCrossbow.BasicStats!.Damage * (Statics.CrossbowMods[pIndex].Damage / 100f) * (isDouble ? (Statics.CrossbowMods[sIndex].Damage / 100f) : 1));
         newCrossbow.BasicStats.Weight *= Statics.CrossbowMods[pIndex].Weight / 100f * (isDouble ? (Statics.CrossbowMods[sIndex].Weight / 100f) : 1);
-        newCrossbow.BasicStats.Value = 
+        newCrossbow.BasicStats.Value =
             (uint)(newCrossbow.BasicStats.Value * (Settings.Weapons.EnhancedCrossbowsPrice / 100f) * (isDouble ? 1.2f : 1f));
         newCrossbow.Data!.Speed *= Statics.CrossbowMods[pIndex].Speed / 100f * (isDouble ? (Statics.CrossbowMods[sIndex].Speed / 100f) : 1);
         newCrossbow.DetectionSoundLevel = Statics.CrossbowMods[sIndex].SoundLevel;
 
-        //  
+        // source crossbow
         if (subtype.Perk.Count > 1)
         {
             subtype.Perk.Add(GetFormKey("skyre_MARArtificer"));
@@ -544,20 +544,18 @@ public static class WeaponsPatcher
             RecordData.ThisRecord = newCrossbow;
         }
 
-        List<IngredientsMap> ingredients = [
-            new(Ingr: GetFormKey("LeatherStrips"), Qty: 2, Type: "MISC"),
-            new(Ingr: GetFormKey("SprigganSap"),   Qty: 1, Type: "INGR"),
-            new(Ingr: material.Item,               Qty: 1, Type: "MISC")
+        // source ingredients
+        List<DataMap> ingredients = [
+            new DataMap{Ingr = GetFormKey("LeatherStrips"), Qty = 2, Id = "MISC"},
+            new DataMap{Ingr = GetFormKey("SprigganSap"),   Qty = 1, Id = "INGR"},
+            new DataMap{Ingr = material.Item,               Qty = 1, Id = "MISC"}
         ];
 
-        List<List<FormKey>> perks = [subtype.Perk];
-        if (material.Perk is not null) perks.Add(material.Perk);
-
-        AddCraftingRecipe(newCrossbow, weapon, perks, ingredients);
+        AddCraftingRecipe(newCrossbow, weapon, subtype.Perk, material, ingredients);
     }
 
 
-    private static void AddCraftingRecipe(Weapon newWeapon, Weapon oldWeapon, List<List<FormKey>> perks, List<IngredientsMap> ingredients)
+    private static void AddCraftingRecipe(Weapon newWeapon, Weapon oldWeapon, List<FormKey> perks, DataMap material, List<DataMap> ingredients)
     {
         string newEditorID = newWeapon.EditorID!.Replace("RP_WEAP_", "RP_WEAP_CRAFT_");
         ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
@@ -576,7 +574,7 @@ public static class WeaponsPatcher
         {
             ContainerItem newItem = new();
 
-            switch (entry.Type)
+            switch (entry.Id)
             {
                 case "MISC":
                     newItem.Item = Executor.State!.LinkCache.Resolve<IMiscItemGetter>(entry.Ingr).ToNullableLink();
@@ -610,17 +608,17 @@ public static class WeaponsPatcher
         }
 
         // subtype perks
-        foreach (var perk in perks[0])
+        foreach (var perk in perks)
         {
             newRecipe.AddHasPerkCondition(perk);
         }
 
         // material perks
-        if (perks.Count > 1)
+        if (material.Perk is not null)
         {
-            foreach (var perk in perks[1])
+            foreach (var perk in material.Perk)
             {
-                Condition.Flag flag = perks[1].IndexOf(perk) == perks[1].Count - 1 ? 0 : Condition.Flag.OR;
+                Condition.Flag flag = material.Perk.IndexOf(perk) == material.Perk.Count - 1 ? 0 : Condition.Flag.OR;
                 newRecipe.AddHasPerkCondition(perk, flag);
             }
         }
@@ -633,8 +631,40 @@ public static class WeaponsPatcher
         newRecipe.CreatedObject = newWeapon.ToNullableLink();
         newRecipe.WorkbenchKeyword = Executor.State!.LinkCache.Resolve<IKeywordGetter>(GetFormKey("CraftingSmithingForge")).ToNullableLink();
         newRecipe.CreatedObjectCount = 1;
+
+        AddTemperingRecipe(newWeapon, material);
     }
-    
+
+    private static void AddTemperingRecipe(Weapon newWeapon, DataMap material)
+    {
+        string newEditorID = newWeapon.EditorID!.Replace("RP_WEAP_", "RP_WEAP_TEMP_");
+        ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
+
+        newRecipe.EditorID = EditorIDs.Unique(newEditorID);
+        newRecipe.Items = [];
+
+        ContainerItem baseItem = new();
+        baseItem.Item = Executor.State!.LinkCache.Resolve<IMiscItemGetter>(material.Item).ToNullableLink();
+        ContainerEntry baseEntry = new();
+        baseEntry.Item = baseItem;
+        baseEntry.Item.Count = 1;
+        newRecipe.Items.Add(baseEntry);
+
+        newRecipe.AddIsEnchantedCondition(Condition.Flag.OR);
+        newRecipe.AddHasPerkCondition(GetFormKey("ArcaneBlacksmith"));
+
+        foreach (var perk in material.Perk)
+        {
+            Condition.Flag flag = material.Perk.IndexOf(perk) == material.Perk.Count - 1 ? 0 : Condition.Flag.OR;
+            newRecipe.AddHasPerkCondition(perk, flag);
+        }
+
+        newRecipe.CreatedObject = newWeapon.ToNullableLink();
+        newRecipe.WorkbenchKeyword = Executor.State!.LinkCache.Resolve<IKeywordGetter>(GetFormKey("CraftingSmithingSharpeningWheel")).ToNullableLink();
+        newRecipe.CreatedObjectCount = 1;
+
+        //AddBreakdownRecipe(newWeapon, material);
+    }
 
     // patcher specific helpers
 
@@ -662,7 +692,8 @@ public static class WeaponsPatcher
     /// </summary>
     /// <param name="weapon">The weapon record as IWeaponGetter.</param>
     /// <param name="msgList">The list of list of strings with messages.</param>
-    private static void ShowReport(this IWeaponGetter weapon) => Logger.ShowReport($"{weapon.Name}", $"{weapon.FormKey}", $"{weapon.EditorID}", RecordData.NonPlayable, !weapon.Template.IsNull);
+    private static void ShowReport(this IWeaponGetter weapon) => 
+        Logger.ShowReport($"{weapon.Name}", $"{weapon.FormKey}", $"{weapon.EditorID}", RecordData.NonPlayable, !weapon.Template.IsNull);
 
     // patcher specific statics
     private static (List<DataMap>, List<DataMap>, List<DataMap>, List<CrossbowMods>, List<DataMap>) BuildStaticsMap()
@@ -779,10 +810,10 @@ public static class WeaponsPatcher
         ];
 
         List<DataMap> crossbowSubtypes = [
-            new DataMap{Id = "name_recurve",                                                        Desc = "desc_recurve", Perk = [ GetFormKey("skyre_MARCrossbowRecurve") ] },
-            new DataMap{Id = "name_lweight",                                                        Desc = "desc_lweight", Perk = [ GetFormKey("skyre_MARCrossbowLight") ]   },
-            new DataMap{Id = "name_muffled", Kwda = GetFormKey("skyre_MAREnhancedCrossbowMuffled"), Desc = "desc_muffled", Perk = [ GetFormKey("skyre_MARCrossbowMuffled") ] },
-            new DataMap{Id = "name_siege",   Kwda = GetFormKey("skyre_MAREnhancedCrossbowSiege"),   Desc = "desc_siege",   Perk = [ GetFormKey("skyre_MARCrossbowSiege") ]   }
+            new DataMap{Id = "name_recurve",                                                        Desc = "desc_recurve", Perk = [ GetFormKey("skyre_MARCrossbowRecurve") ]},
+            new DataMap{Id = "name_lweight",                                                        Desc = "desc_lweight", Perk = [ GetFormKey("skyre_MARCrossbowLight") ]  },
+            new DataMap{Id = "name_muffled", Kwda = GetFormKey("skyre_MAREnhancedCrossbowMuffled"), Desc = "desc_muffled", Perk = [ GetFormKey("skyre_MARCrossbowMuffled") ]},
+            new DataMap{Id = "name_siege",   Kwda = GetFormKey("skyre_MAREnhancedCrossbowSiege"),   Desc = "desc_siege",   Perk = [ GetFormKey("skyre_MARCrossbowSiege") ]  }
         ];
 
         List<CrossbowMods> crossbowMods = [
