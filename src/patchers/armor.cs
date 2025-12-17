@@ -278,7 +278,7 @@ public static class ArmorPatcher
             string id = entry1.Id.GetT9n();
             if (id == overrideString)
             {
-                if (entry1.Kwda == Helpers.NullRef)
+                if (entry1.Kwda == DataMap.NullRef)
                 {
                     Logger.Caution("A \"materialOverrides\" patching rule references a material from Creation Club's \"Saints and Seducers\"");
                     break;
@@ -389,7 +389,7 @@ public static class ArmorPatcher
         foreach (var entry in Statics.AllMaterials)
         {
             FormKey kwda = (FormKey)entry.Kwda!;
-            if (kwda != Helpers.NullRef && armor.Keywords!.Contains(kwda))
+            if (kwda != DataMap.NullRef && armor.Keywords!.Contains(kwda))
             {
                 materialId = entry.Id;
                 break;
@@ -794,10 +794,10 @@ public static class ArmorPatcher
         float priceMult = Settings.Armor.DreamclothPrice / 100f;
         newArmor.Value = (uint)(priceMult * newArmor.Value);
 
-        List<IngredientsMap> ingredients = [
-            new(Ingr: GetFormKey("SoulGemPettyFilled"), Qty: 2, Type: "SLGM"),
-            new(Ingr: GetFormKey("LeatherStrips"),      Qty: 1, Type: "MISC"),
-            new(Ingr: GetFormKey("WispWrappings"),      Qty: 1, Type: "INGR")
+        List<DataMap> ingredients = [
+            new DataMap{Ingr = GetFormKey("SoulGemPettyFilled"), Qty = 2, Id = "SLGM"},
+            new DataMap{Ingr = GetFormKey("LeatherStrips"),      Qty = 1, Id = "MISC"},
+            new DataMap{Ingr = GetFormKey("WispWrappings"),      Qty = 1, Id = "INGR"}
         ];
 
         if (newArmor.Keywords!.Contains(GetFormKey("ClothingBody")))
@@ -824,7 +824,7 @@ public static class ArmorPatcher
     /// <param name="newArmor">The Dreamcloth variant of the oldArmor as IArmorGetter.</param>
     /// <param name="oldArmor">The armor record as IArmorGetter.</param>
     /// <param name="ingredients">List of ingredients and their quantity.</param>
-    private static void AddCraftingRecipe(IArmorGetter newArmor, IArmorGetter oldArmor, List<IngredientsMap> ingredients)
+    private static void AddCraftingRecipe(IArmorGetter newArmor, IArmorGetter oldArmor, List<DataMap> ingredients)
     {
         string newEditorID = "RP_ARMO_CRAFT_" + oldArmor.EditorID;
         ConstructibleObject cobj = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
@@ -843,7 +843,7 @@ public static class ArmorPatcher
         {
             ContainerItem newItem = new();
 
-            switch (entry.Type)
+            switch (entry.Id)
             {
                 case "SLGM":
                     newItem.Item = Executor.State!.LinkCache.Resolve<ISoulGemGetter>(entry.Ingr).ToNullableLink();
