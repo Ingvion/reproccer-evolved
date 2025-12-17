@@ -663,8 +663,115 @@ public static class WeaponsPatcher
         newRecipe.WorkbenchKeyword = Executor.State!.LinkCache.Resolve<IKeywordGetter>(GetFormKey("CraftingSmithingSharpeningWheel")).ToNullableLink();
         newRecipe.CreatedObjectCount = 1;
 
-        //AddBreakdownRecipe(newWeapon, material);
+        AddBreakdownRecipe(newWeapon, material);
     }
+
+    /// <summary>
+    /// Generates a breakdown recipe for the weapon.
+    /// </summary>
+    /// <param name="weapon">The weapon record as IWeaponGetter.</param>
+    /// <param name="noRecipes">True for weapon-type records with no material keywords.</param>
+    private static void AddBreakdownRecipe(IWeaponGetter weapon, DataMap material, bool noRecipes = false)
+    {
+        if (RecordData.Unique)
+        {
+            Logger.Info($"The breakdown recipe was not generated due to the \"No breakdown\" keyword", true);
+            return;
+        }
+
+        IConstructibleObjectGetter? craftingRecipe = null;
+        if (!noRecipes)
+        {
+            foreach (var recipe in Executor.AllRecipes!)
+            {
+                if (Settings.General.SkipExisting
+                    && recipe.Items?.FirstOrDefault()?.Item == weapon
+                    && recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmelter"))
+                {
+                    Logger.Info($"Already has a breakdown recipe in the {recipe.FormKey.ModKey.FileName}");
+                    return;
+                }
+
+                if (craftingRecipe == null
+                    && recipe.CreatedObject.FormKey == weapon.FormKey
+                    && recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingForge"))
+                {
+                    craftingRecipe = recipe;
+                }
+            }
+        }
+
+        bool isBig = RecordData.AnimType == WeaponAnimationType.TwoHandAxe || 
+            RecordData.AnimType == WeaponAnimationType.TwoHandSword || 
+            weapon.Keywords!.Contains(GetFormKey("skyre__WeapTypeLongbow"));
+
+        bool isWeak = material.Perk.Count == 0 || weapon.Keywords!.Contains(GetFormKey("WeapMaterialDraugrHoned")) ||
+            weapon.Keywords!.Contains(GetFormKey("WAF_WeapMaterialForsworn"));
+
+        List<FormKey> weaponPerks = [.. Statics.AllMaterials
+            .Where(entry => weapon.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
+            .Where(entry => entry.Perk != null)
+            .SelectMany(entry => entry.Perk!)
+            .Distinct()];
+        List<FormKey> weaponItems = [.. Statics.AllMaterials
+            .Where(entry => weapon.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
+            .Select(entry => entry.Item!)
+            .Distinct()];
+
+        bool fromRecipe = false;
+        int qty = 1;
+        FormKey ingr = weaponItems[0];
+        if (craftingRecipe != null)
+        {
+            foreach (var entry in weaponItems)
+            {
+                if (craftingRecipe.Items!.Count == 0) continue;
+                foreach (var elem in craftingRecipe.Items)
+                {
+                    if (elem.Item.Item.FormKey == entry && elem.Item.Count > qty)
+                    {
+                        ingr = entry;
+                        qty = elem.Item.Count;
+                        fromRecipe = true;
+                    }
+                }
+            }
+        }
+
+        int mod = isBig && !isWeak ? 1 : 0;
+        float outputQty = (qty + mod) * (Settings.Weapons.RefundAmount / 100f);
+        int inputQty = (int)(outputQty < 1 && fromRecipe ? Math.Round(1 / outputQty) : 1);
+
+        string newEditorID = "RP_WEAP_BREAK_" + weapon.EditorID!.Replace("RP_WEAP_", "");
+        ConstructibleObject cobj = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
+
+        cobj.EditorID = EditorIDs.Unique(newEditorID);
+        cobj.Items = [];
+
+        ContainerItem newItem = new();
+        newItem.Item = weapon.ToNullableLink();
+        ContainerEntry newEntry = new();
+        newEntry.Item = newItem;
+        newEntry.Item.Count = inputQty;
+        cobj.Items.Add(newEntry);
+
+        cobj.AddHasPerkCondition(GetFormKey("skyre_SMTBreakdown"));
+        if (weaponPerks.Count > 0)
+        {
+            Condition.Flag flag = Condition.Flag.OR;
+            foreach (var perk in weaponPerks)
+            {
+                if (weaponPerks.IndexOf(perk) == weaponPerks.Count - 1) flag = 0;
+                cobj.AddHasPerkCondition(perk, flag);
+            }
+        }
+        cobj.AddGetItemCountCondition(weapon.FormKey, CompareOperator.GreaterThanOrEqualTo);
+        cobj.AddGetEquippedCondition(weapon.FormKey, CompareOperator.NotEqualTo);
+        cobj.CreatedObject = Executor.State!.LinkCache.Resolve<IMiscItemGetter>(ingr).ToNullableLink();
+        cobj.WorkbenchKeyword = Executor.State!.LinkCache.Resolve<IKeywordGetter>(GetFormKey("CraftingSmelter")).ToNullableLink();
+        cobj.CreatedObjectCount = (ushort)Math.Clamp(Math.Floor(outputQty), 1, qty + (fromRecipe ? 0 : mod));
+    }
+
 
     // patcher specific helpers
 
