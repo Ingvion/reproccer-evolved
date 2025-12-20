@@ -13,19 +13,13 @@ public struct DataMap
     public string Id { get; set; }
     public string Desc { get; set; }
     public FormKey Kwda { get; set; }
-    public FormKey Item { get; set; }
-    public List<FormKey> Perk { get; set; }
+    public List<FormKey> Items { get; set; }
+    public List<FormKey> Perks { get; set; }
 
     public FormKey FormKey
     {
         get => Kwda;
         set => Kwda = value;
-    }
-
-    public FormKey Ingr
-    {
-        get => Item;
-        set => Item = value;
     }
 
     public static FormKey NullRef => new("Skyrim.esm", 0x000000);
