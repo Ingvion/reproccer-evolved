@@ -34,8 +34,6 @@ static class Executor
         // initiating settings
         Settings = AllSettings.Value;
 
-        Console.WriteLine("");
-
         // getting state
         State = patcherState;
 

@@ -20,10 +20,10 @@ public class AllSettings
     [SettingName("General")]
     public GeneralSettings General { get; set; } = new();
 
-    [SettingName("Armor Patcher")]
+    [SettingName("Armor patcher settings")]
     public ArmorSettings Armor { get; set; } = new();
 
-    [SettingName("Weapons Patcher")]
+    [SettingName("Weapons patcher settings")]
     public WeaponsSettings Weapons { get; set; } = new();
 
     [SettingName("Debug")]

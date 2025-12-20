@@ -107,12 +107,12 @@ public readonly struct Logger()
 public static class Helpers
 {
     /// <summary>
-    /// Returns the JSON file as JsonNode.<br/>
+    /// Returns JSON file as JsonNode.<br/>
     /// Regular and JSONC style (with single- and multiline comments) files are allowed, but not JSON5 ones.
     /// </summary>
     /// <param name="dir">The directory in which to look for the file (use AppContext.BaseDirectory + folder name)</param>
     /// <param name="file">The file to look for (any .json*)</param>
-    /// <param name="noSkip">Throw exception if the file is not unparseable or does not exist</param>
+    /// <param name="noSkip">Throw exception if the file is not a parseable JSON or does not exist</param>
     /// <returns>A specified JSON file as <see cref="JsonNode"/>.</returns>
     /// <exception cref="FileNotFoundException"><paramref name="dir" /> contains no specified file.</exception>
     /// <exception cref="JsonException"><paramref name="file" /> cannot be parsed due to sytax errors.</exception>
@@ -265,7 +265,8 @@ public static class Helpers
     public static string FindReplace(string name, string findStr, string replaceStr, char[] flags)
     {
         string pattern = !flags.Contains('p') ?
-             $@"(?<=^|(?<=\s))" + Regex.Escape(findStr) + @"(?=$|(?=\s))" :
+             //$@"(?<=^|(?<=\s))" + Regex.Escape(findStr) + @"(?=$|(?=\s))" :
+             $@"(?<=^|(?<=[\s\(\[\-]))" + Regex.Escape(findStr) + @"(?=$|(?=[\s\,\)\]\-]))" :
              $"{Regex.Escape(findStr)}";
 
         RegexOptions options = flags.Contains('i') ? RegexOptions.IgnoreCase : RegexOptions.None;
