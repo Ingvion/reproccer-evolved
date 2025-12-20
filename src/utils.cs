@@ -352,7 +352,7 @@ public static class Helpers
         return result;
     }
 
-    public static bool RegexMatch(this string str, string name, bool strict)
+    public static bool RegexMatch(this string str, string name, bool strict = false)
     {
         if (str.Length < 2) return false;
 
