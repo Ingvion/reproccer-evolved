@@ -26,6 +26,9 @@ public class AllSettings
     [SettingName("Weapons patcher settings")]
     public WeaponsSettings Weapons { get; set; } = new();
 
+    [SettingName("Projectiles patcher settings")]
+    public ProjectilesSettings Projectiles { get; set; } = new();
+
     [SettingName("Debug")]
     public DebugSettings Debug { get; set; } = new();
 }
@@ -250,4 +253,20 @@ public class WeaponsSettings
     [Tooltip("Changes the position of weapon variant names from prefixed to suffixed.\n"
         + "E.g. Siege Dwarven Crossbow -> Dwarven Crossbow, siege; Refined Silver Greatsword -> <b>Silver Greatsword, refined.")]
     public bool SuffixedNames { get; set; } = false;
+}
+
+public class ProjectilesSettings
+{
+    [SettingName("Ammo qty for reforge recipes")]
+    [Tooltip("Ammunition reforge recipes will require (and result in) this amount of ammo.")]
+    public int AmmoQty { get; set; } = 10;
+
+    [SettingName("Ingredients qty for reforge recipes")]
+    [Tooltip("Ammunition reforge recipes will require this amount of each secondary ingredient.")]
+    public int IngredsQty { get; set; } = 1;
+
+    [SettingName("Preserve ammo crafting conditions")]
+    [Tooltip("Preserves original conditions in all ammo crafting recipes.\n"
+    + "Unchecked this to make ammo crafting recipes available based on smithing mastery only.")]
+    public bool KeepConditions { get; set; } = true;
 }
