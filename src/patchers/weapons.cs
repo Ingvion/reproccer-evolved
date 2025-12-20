@@ -564,7 +564,7 @@ public static class WeaponsPatcher
     }
 
 
-    private static void AddCraftingRecipe(Weapon newWeapon, Weapon oldWeapon, List<FormKey> perks, DataMap material, List<DataMap> ingredients)
+    private static void AddCraftingRecipe(IWeaponGetter newWeapon, IWeaponGetter oldWeapon, List<FormKey> perks, DataMap material, List<DataMap> ingredients)
     {
         string newEditorID = newWeapon.EditorID!.Replace("RP_WEAP_", "RP_WEAP_CRAFT_");
         ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
@@ -600,12 +600,13 @@ public static class WeaponsPatcher
             newRecipe.Items.Add(newEntry);
         }
 
-        // retaining original conditions
-        if (Settings.Weapons.KeepConditions)
+        // retaining original conditions (for crossbows)
+        if (Settings.Weapons.KeepConditions && RecordData.AnimType == WeaponAnimationType.Crossbow)
         {
             var craftingRecipe = Executor.AllRecipes!.FirstOrDefault(
                 cobj => cobj.CreatedObject.FormKey == oldWeapon.FormKey &&
-                cobj.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingForge"));
+                (cobj.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingForge") || 
+                cobj.WorkbenchKeyword.FormKey == GetFormKey("DLC1CraftingDawnguard")));
 
             if (craftingRecipe is not null && craftingRecipe.Conditions.Count != 0)
             {
@@ -613,6 +614,8 @@ public static class WeaponsPatcher
                 {
                     newRecipe.Conditions.Add(cond.DeepCopy());
                 }
+
+                newRecipe.WorkbenchKeyword = Executor.State!.LinkCache.Resolve(craftingRecipe.WorkbenchKeyword).ToNullableLink();
             }
         }
 
@@ -627,7 +630,11 @@ public static class WeaponsPatcher
         {
             foreach (var perk in material.Perk)
             {
-                Condition.Flag flag = material.Perk.IndexOf(perk) == material.Perk.Count - 1 ? 0 : Condition.Flag.OR;
+                if (newRecipe.Conditions.Any(cond => cond.Data is HasPerkConditionData hasPerk && perk == hasPerk.Perk.Link.FormKey))
+                    continue;
+
+                Condition.Flag flag = material.Perk.IndexOf(perk) == material.Perk.Count - 1 || 
+                RecordData.AnimType != WeaponAnimationType.Crossbow ? 0 : Condition.Flag.OR;
                 newRecipe.AddHasPerkCondition(perk, flag);
             }
         }
@@ -638,13 +645,19 @@ public static class WeaponsPatcher
         newRecipe.AddGetEquippedCondition(oldWeapon.FormKey, CompareOperator.NotEqualTo);
 
         newRecipe.CreatedObject = newWeapon.ToNullableLink();
-        newRecipe.WorkbenchKeyword = Executor.State!.LinkCache.Resolve<IKeywordGetter>(GetFormKey("CraftingSmithingForge")).ToNullableLink();
+        if (newRecipe.WorkbenchKeyword.IsNull) newRecipe.WorkbenchKeyword = 
+            Executor.State!.LinkCache.Resolve<IKeywordGetter>(GetFormKey("CraftingSmithingForge")).ToNullableLink();
         newRecipe.CreatedObjectCount = 1;
 
         AddTemperingRecipe(newWeapon, material);
     }
 
-    private static void AddTemperingRecipe(Weapon newWeapon, DataMap material)
+    /// <summary>
+    /// Generates a tempering recipe for the weapon.
+    /// </summary>
+    /// <param name="weapon">The weapon record as IWeaponGetter.</param>
+    /// <param name="material">An associated material as DataMap struct.</param>
+    private static void AddTemperingRecipe(IWeaponGetter newWeapon, DataMap material)
     {
         string newEditorID = newWeapon.EditorID!.Replace("RP_WEAP_", "RP_WEAP_TEMP_");
         ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
@@ -672,7 +685,7 @@ public static class WeaponsPatcher
         newRecipe.WorkbenchKeyword = Executor.State!.LinkCache.Resolve<IKeywordGetter>(GetFormKey("CraftingSmithingSharpeningWheel")).ToNullableLink();
         newRecipe.CreatedObjectCount = 1;
 
-        AddBreakdownRecipe(newWeapon, material);
+        AddBreakdownRecipe(newWeapon);
     }
 
     /// <summary>
@@ -680,7 +693,7 @@ public static class WeaponsPatcher
     /// </summary>
     /// <param name="weapon">The weapon record as IWeaponGetter.</param>
     /// <param name="noRecipes">True for weapon-type records with no material keywords.</param>
-    private static void AddBreakdownRecipe(IWeaponGetter weapon, DataMap material, bool noRecipes = false)
+    private static void AddBreakdownRecipe(IWeaponGetter weapon, bool noRecipes = false)
     {
         if (RecordData.Unique)
         {
