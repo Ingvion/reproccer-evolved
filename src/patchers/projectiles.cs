@@ -1,4 +1,6 @@
-﻿using Mutagen.Bethesda.Plugins;
+﻿using Mutagen.Bethesda;
+using Mutagen.Bethesda.Plugins;
+using Mutagen.Bethesda.Skyrim;
 using ReProccer.Utils;
 using System.Text.Json.Nodes;
 
@@ -18,7 +20,82 @@ public static class ProjectilesPatcher
 
     public static void Run()
     {
+        EditorIDs = new EditorIDs();
 
+        List<IAmmunitionGetter> records = GetRecords();
+        List<List<string>> blacklists = [
+            [.. Rules["excludedAmmunitionVariants"]!.AsArray().Select(value => value!.GetValue<string>())],
+            [.. Rules["excludedAmmunition"]!.AsArray().Select(value => value!.GetValue<string>())]
+        ];
+
+        foreach (var ammo in records)
+        {
+
+        }
+    }
+
+    /// <summary>
+    /// Records loader.
+    /// </summary>
+    /// <returns>The list of ammo records eligible for patching.</returns>
+    private static List<IAmmunitionGetter> GetRecords()
+    {
+        IEnumerable<IAmmunitionGetter> ammoWinners = Executor.State!.LoadOrder.PriorityOrder
+            .Where(plugin => !Settings.General.IgnoredFiles.Any(name => name == plugin.ModKey.FileName))
+            .Where(plugin => plugin.Enabled)
+            .WinningOverrides<IAmmunitionGetter>();
+
+        Console.WriteLine($"\n~~~ {ammoWinners.Count()} ammunition records found, filtering... ~~~\n");
+
+        List<IAmmunitionGetter> ammoRecords = [];
+
+        List<string> excludedNames = [.. Rules["excludedAmmunition"]!.AsArray().Select(value => value!.GetValue<string>())];
+        foreach (var record in ammoWinners)
+        {
+            if (IsValid(record, excludedNames)) ammoRecords.Add(record);
+        }
+
+        Console.WriteLine($"~~~ {ammoRecords.Count} ammunition records are eligible for patching ~~~\n\n"
+            + "====================");
+        return ammoRecords;
+    }
+
+    /// <summary>
+    /// Checks if the ammo matches necessary conditions to be patched.
+    /// </summary>
+    /// <param name="ammo">The ammo record as IAmmunitionGetter.</param>
+    /// <param name="excludedNames">The list of excluded strings.</param>
+    /// <returns>Check result from a filter the record triggered as <see cref="bool"/>.</returns>
+    private static bool IsValid(IAmmunitionGetter ammo, List<string> excludedNames)
+    {
+        Logger = new Logger();
+
+        // invalid if found in the excluded records list by edid
+        if (Settings.General.ExclByEdID && ammo.EditorID!.IsExcluded(excludedNames, true))
+        {
+            if (Settings.Debug.ShowExcluded)
+            {
+                Logger.Info($"Found in the \"No patching\" list by EditorID (as {ammo.EditorID})");
+                //ShowReport(ammo);
+            }
+            return false;
+        }
+
+        // invalid if has no name
+        if (ammo.Name is null) return false;
+
+        // invalid if found in the excluded records list by name
+        if (ammo.Name!.ToString()!.IsExcluded(excludedNames))
+        {
+            if (Settings.Debug.ShowExcluded)
+            {
+                Logger.Info($"Found in the \"No patching\" list by name");
+                //ShowReport(ammo);
+            }
+            return false;
+        }
+
+        return true;
     }
 
     // patcher specific helpers
