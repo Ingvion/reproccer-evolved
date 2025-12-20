@@ -1,7 +1,7 @@
 # Reproccer Evolved
 Reproccer Reborn, rewritten on C# with Mutagen, to be used with Synthesis patching framework.
 
-WIP, ***currently only the armor patcher is available***. While the patcher it's fully functional, the release is for testing purposes for now.
+WIP, ***currently only armor and weapons patchers are available***. While both are fully functional, the release is for testing purposes for now.
 
 # Installation
 * Download and install [Synthesis](https://github.com/Mutagen-Modding/Synthesis/releases)
