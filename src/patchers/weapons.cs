@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace ReProccer.Patchers;
 
-public struct CrossbowMods 
+public struct CrossbowMods
 {
     public int Damage { get; set; }
     public int Speed { get; set; }
