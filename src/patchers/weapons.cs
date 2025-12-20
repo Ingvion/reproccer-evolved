@@ -80,6 +80,7 @@ public static class WeaponsPatcher
                 ProcessRecipes(weapon, blacklists[3]);
             }
 
+            Finalizer(weapon.AsOverride());
             ShowReport(weapon);
         }
     }
@@ -1015,6 +1016,58 @@ public static class WeaponsPatcher
         cobj.CreatedObjectCount = (ushort)Math.Clamp(Math.Floor(outputQty), 1, qty + (fromRecipe ? 0 : mod));
     }
 
+    private static void Finalizer(Weapon weapon)
+    {
+        // shortspears animation type 
+        if (weapon.Keywords!.Contains(GetFormKey("skyre__WeapTypeShortspear")) && Settings.Weapons.AltShortspears)
+        {
+            if (RecordData.AnimType == WeaponAnimationType.OneHandSword)
+            {
+                weapon.AsOverride(true).Data!.AnimationType = WeaponAnimationType.OneHandAxe;
+            }
+        };
+
+        // add/remove silver weapon script
+        if (!weapon.Keywords!.Contains(GetFormKey("WeapTypeBow")))
+        {
+            bool hasVMAD = weapon.VirtualMachineAdapter is not null;
+            if (weapon.Keywords!.Contains(GetFormKey("WeapMaterialSilver")))
+            {
+                if (!hasVMAD) weapon.VirtualMachineAdapter = new VirtualMachineAdapter();
+                if (!weapon.VirtualMachineAdapter!.Scripts.Any(script => script.Name == "SilverSwordScript"))
+                {
+                    var newScript = new ScriptEntry
+                    {
+                        Name = "SilverSwordScript",
+                        Flags = ScriptEntry.Flag.Local
+                    };
+                    var newProperty = new ScriptObjectProperty
+                    {
+                        Name = "SilverPerk",
+                        Flags = ScriptProperty.Flag.Edited,
+                        Object = new FormLink<IPerkGetter>(GetFormKey("SilverPerk"))
+                    };
+
+                    newScript.Properties.Add(newProperty);
+                    weapon.AsOverride(true).VirtualMachineAdapter!.Scripts.Insert(weapon.VirtualMachineAdapter.Scripts.Count, newScript);
+                }
+            }
+            else if (hasVMAD && weapon.VirtualMachineAdapter!.Scripts.Any(script => script.Name == "SilverSwordScript"))
+            {
+                weapon.AsOverride(true).VirtualMachineAdapter!.Scripts.RemoveAll(script => script.Name == "SilverSwordScript");
+            }
+        };
+
+        // removing type tags
+        if (Settings.Weapons.NoTypeTags && weapon.Name!.ToString().Contains("TYPETAG"))
+        {
+            string pattern = @"\s\[TYPETAG\s.*\]";
+            weapon.AsOverride(true).Name = Regex.Replace(weapon.Name!.ToString(), pattern, "");
+        }
+
+        // removing ITPOs
+        if (!RecordData.Modified) Executor.State!.PatchMod.Weapons.Remove(weapon);
+    }
 
     // patcher specific helpers
 
