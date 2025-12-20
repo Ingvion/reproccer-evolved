@@ -727,9 +727,6 @@ public static class WeaponsPatcher
             RecordData.AnimType == WeaponAnimationType.TwoHandSword || 
             weapon.Keywords!.Contains(GetFormKey("skyre__WeapTypeLongbow"));
 
-        bool isWeak = material.Perk.Count == 0 || weapon.Keywords!.Contains(GetFormKey("WeapMaterialDraugrHoned")) ||
-            weapon.Keywords!.Contains(GetFormKey("WAF_WeapMaterialForsworn"));
-
         List<FormKey> weaponPerks = [.. Statics.AllMaterials
             .Where(entry => weapon.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
             .Where(entry => entry.Perk != null)
@@ -739,6 +736,11 @@ public static class WeaponsPatcher
             .Where(entry => weapon.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
             .Select(entry => entry.Item!)
             .Distinct()];
+
+        bool isWeak = weaponPerks.Count == 0 || weapon.Keywords!.Contains(GetFormKey("WeapMaterialDraugrHoned")) ||
+            weapon.Keywords!.Contains(GetFormKey("WAF_WeapMaterialForsworn"));
+
+        bool extraOutput = weapon.Keywords!.Contains(GetFormKey("WeapMaterialWood"));
 
         bool fromRecipe = false;
         int qty = 1;
@@ -760,7 +762,7 @@ public static class WeaponsPatcher
             }
         }
 
-        int mod = isBig && !isWeak ? 1 : 0;
+        int mod = Math.Clamp((isBig ? 1 : 0) + (isWeak ? -1 : 0) + (extraOutput ? 1 : 0), 1, 2);
         float outputQty = (qty + mod) * (Settings.Weapons.RefundAmount / 100f);
         int inputQty = (int)(outputQty < 1 && fromRecipe ? Math.Round(1 / outputQty) : 1);
 
