@@ -9,14 +9,25 @@ namespace ReProccer.Utils;
 
 public struct DataMap
 {
-    public int Qty { get; set; }
     public string Id { get; set; }
     public string Desc { get; set; }
     public FormKey Kwda { get; set; }
     public List<FormKey> Items { get; set; }
     public List<FormKey> Perks { get; set; }
 
+    public int Qty
+    {
+        get => int.Parse(Desc);
+        set => Desc = value.ToString();
+    }
+
     public FormKey FormKey
+    {
+        get => Kwda;
+        set => Kwda = value;
+    }
+
+    public FormKey Expl
     {
         get => Kwda;
         set => Kwda = value;
