@@ -108,7 +108,7 @@ public static class ArmorPatcher
             .Where(plugin => plugin.Enabled)
             .WinningOverrides<IArmorGetter>();
 
-        Console.WriteLine($"~~~ {armoWinners.Count()} armor records found, filtering... ~~~\n\n"
+        Console.WriteLine($"\n~~~ {armoWinners.Count()} armor records found, filtering... ~~~\n\n"
             + "====================");
 
         List<IArmorGetter> armoRecords = [];
