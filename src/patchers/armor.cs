@@ -15,7 +15,6 @@ public static class ArmorPatcher
                              List<DataMap> FactionBinds) Statics = BuildStaticsMap();
 
     private static EditorIDs EditorIDs;
-    private static Armor? ThisRecord;
     private static PatchingData RecordData;
     private static Logger Logger;
 
@@ -33,7 +32,6 @@ public static class ArmorPatcher
 
         foreach (var armor in records)
         {
-            ThisRecord = null;
             RecordData = new PatchingData
             {
                 ArmorType = armor.BodyTemplate!.ArmorType,
@@ -84,23 +82,19 @@ public static class ArmorPatcher
     {
         FormKey armorScalingFactor = new("Skyrim.esm", 0x021a72);
 
-        IGameSettingGetter conflictWinner = Executor.State!.LinkCache.Resolve<IGameSettingGetter>(armorScalingFactor);
+        var conflictWinner = Executor.State!.LinkCache.Resolve<IGameSettingGetter>(armorScalingFactor);
         GameSetting record = Executor.State!.PatchMod.GameSettings.GetOrAddAsOverride(conflictWinner);
 
         if (record is GameSettingFloat gmstArmorScalingFactor)
-        {
             gmstArmorScalingFactor.Data = Settings.Armor.ArmorScalingFactor;
-        }
 
         FormKey maxArmorRating = new("Skyrim.esm", 0x037deb);
 
         conflictWinner = Executor.State!.LinkCache.Resolve<IGameSettingGetter>(maxArmorRating);
         record = Executor.State!.PatchMod.GameSettings.GetOrAddAsOverride(conflictWinner);
 
-        if (record is GameSettingFloat gmstMaxArmorRating)
-        {
+        if (record is GameSettingFloat gmstMaxArmorRating) 
             gmstMaxArmorRating.Data = Settings.Armor.MaxArmorRating;
-        }
     }
 
     /// <summary>
@@ -127,6 +121,7 @@ public static class ArmorPatcher
             GetFormKey("ArmorClothing"),
             GetFormKey("ArmorJewelry")
         ];
+
         foreach (var record in armoWinners)
         {
             if (IsValid(record, excludedNames, mustHave)) armoRecords.Add(record);
@@ -160,7 +155,7 @@ public static class ArmorPatcher
         }
 
         // invalid if has no name
-        if (armor.Name == null) return false;
+        if (armor.Name is null) return false;
 
         // invalid if found in the excluded records list by name
         if (armor.Name!.ToString()!.IsExcluded(excludedNames))
@@ -174,13 +169,13 @@ public static class ArmorPatcher
         }
 
         // invalid if has no body template)
-        if (armor.BodyTemplate == null) return false;
+        if (armor.BodyTemplate is null) return false;
 
         // valid if has a template (to skip keyword checks below)
         if (!armor.TemplateArmor.IsNull) return true;
 
         // invalid if has no keywords or have empty kw array (rare)
-        if (armor.Keywords == null || armor.Keywords.Count == 0) return false;
+        if (armor.Keywords is null || armor.Keywords.Count == 0) return false;
 
         // invalid if it does not have any required keywords
         if (!mustHave.Any(keyword => armor.Keywords.Contains(keyword))) return false;
@@ -223,10 +218,7 @@ public static class ArmorPatcher
                 if (filter != "")
                 {
                     string[] filterArr = filter.Split(',');
-                    if (!filterArr.Any(type => RecordData.ArmorType.ToString() == type.Replace(" ", "")))
-                    {
-                        continue;
-                    }
+                    if (!filterArr.Any(type => RecordData.ArmorType.ToString() == type.Replace(" ", ""))) continue;
                 }
 
                 if (!flags.Contains('p'))
@@ -253,7 +245,7 @@ public static class ArmorPatcher
         if (name != armor.Name.ToString())
         {
             Logger.Info($"Was renamed to {name} in accordance with patching rules", true);
-            GetAsOverride(armor).Name = name;
+            armor.AsOverride(true).Name = name;
         }
     }
 
@@ -263,15 +255,11 @@ public static class ArmorPatcher
     /// <param name="armor">The armor record as IArmorGetter.</param>
     private static void SetOverriddenData(IArmorGetter armor)
     {
-        JsonNode? overrideNode = Helpers.RuleByName(
-            armor.Name!.ToString()!, Rules["materialOverrides"]!.AsArray(), data1: "names", data2: "material");
+        JsonNode? overrideNode = 
+            Helpers.RuleByName(armor.Name!.ToString()!, Rules["materialOverrides"]!.AsArray(), data1: "names", data2: "material");
         string? overrideString = overrideNode?.AsNullableType<string>();
 
-        if (overrideNode != null && overrideString == null)
-        {
-            Logger.Error("The material name returned from the relevant \"materialOverrides\" rule should be a string");
-            return;
-        }
+        if (overrideString is null) return;
 
         foreach (var entry1 in Statics.AllMaterials)
         {
@@ -286,13 +274,11 @@ public static class ArmorPatcher
 
                 foreach (var entry2 in Statics.AllMaterials)
                 {
-                    if (armor.Keywords!.Contains((FormKey)entry2.Kwda!) && entry2.Kwda != entry1.Kwda)
-                    {
-                        GetAsOverride(armor).Keywords!.Remove((FormKey)entry2.Kwda);
-                    }
+                    if (armor.Keywords!.Contains(entry2.Kwda!) && entry2.Kwda != entry1.Kwda)
+                        armor.AsOverride().Keywords!.Remove(entry2.Kwda);
                 }
 
-                GetAsOverride(armor).Keywords!.Add((FormKey)entry1.Kwda!);
+                armor.AsOverride(true).Keywords!.Add(entry1.Kwda!);
                 Logger.Info($"The material was forced to {overrideString} in accordance with patching rules", true);
                 RecordData.Overridden = true;
                 break;
@@ -311,15 +297,15 @@ public static class ArmorPatcher
 
         if (armorType == ArmorType.HeavyArmor && !armor.Keywords!.Contains(GetFormKey("skyre__ArmorShieldHeavy")))
         {
-            GetAsOverride(armor).Keywords!.Add(GetFormKey("skyre__ArmorShieldHeavy"));
-            GetAsOverride(armor).BashImpactDataSet = new FormLinkNullable<IImpactDataSetGetter>(GetFormKey("WPNBashShieldHeavyImpactSet"));
-            GetAsOverride(armor).AlternateBlockMaterial = new FormLinkNullable<IMaterialTypeGetter>(GetFormKey("MaterialShieldHeavy"));
+            armor.AsOverride(true).Keywords!.Add(GetFormKey("skyre__ArmorShieldHeavy"));
+            armor.AsOverride().BashImpactDataSet = new FormLinkNullable<IImpactDataSetGetter>(GetFormKey("WPNBashShieldHeavyImpactSet"));
+            armor.AsOverride().AlternateBlockMaterial = new FormLinkNullable<IMaterialTypeGetter>(GetFormKey("MaterialShieldHeavy"));
         }
         else if (armorType == ArmorType.LightArmor && !armor.Keywords!.Contains(GetFormKey("skyre__ArmorShieldLight")))
         {
-            GetAsOverride(armor).Keywords!.Add(GetFormKey("skyre__ArmorShieldLight"));
-            GetAsOverride(armor).BashImpactDataSet = new FormLinkNullable<IImpactDataSetGetter>(GetFormKey("WPNBashShieldLightImpactSet"));
-            GetAsOverride(armor).AlternateBlockMaterial = new FormLinkNullable<IMaterialTypeGetter>(GetFormKey("MaterialShieldLight"));
+            armor.AsOverride(true).Keywords!.Add(GetFormKey("skyre__ArmorShieldLight"));
+            armor.AsOverride().BashImpactDataSet = new FormLinkNullable<IImpactDataSetGetter>(GetFormKey("WPNBashShieldLightImpactSet"));
+            armor.AsOverride().AlternateBlockMaterial = new FormLinkNullable<IMaterialTypeGetter>(GetFormKey("MaterialShieldLight"));
         }
     }
 
@@ -332,15 +318,15 @@ public static class ArmorPatcher
         float? slotFactor = GetSlotFactor(armor);
         int? materialFactor = GetMaterialFactor(armor);
 
-        if (slotFactor == null || materialFactor == null) return;
+        if (slotFactor is null || materialFactor is null) return;
 
         float extraMod = GetExtraArmorMod(armor);
         double newArmorRating = Math.Floor((float)slotFactor * (int)materialFactor * extraMod);
 
         if ((float)newArmorRating != armor.ArmorRating)
         {
-            GetAsOverride(armor).ArmorRating = (float)newArmorRating;
-            Logger.Info($"Armor rating: {armor.ArmorRating} -> {GetAsOverride(armor).ArmorRating}", true);
+            armor.AsOverride(true).ArmorRating = (float)newArmorRating;
+            Logger.Info($"Armor rating: {armor.ArmorRating} -> {armor.AsOverride().ArmorRating}", true);
         }
     }
 
@@ -351,26 +337,11 @@ public static class ArmorPatcher
     /// <returns>Armor rating slot modifier as <see cref="float"/>, or null if the armor has no slot keyword.</returns>
     private static float? GetSlotFactor(IArmorGetter armor)
     {
-        if (armor.Keywords!.Contains(GetFormKey("ArmorSlotBoots")))
-        {
-            return Settings.Armor.SlotBoots;
-        }
-        else if (armor.Keywords!.Contains(GetFormKey("ArmorSlotCuirass")))
-        {
-            return Settings.Armor.SlotCuirass;
-        }
-        else if (armor.Keywords!.Contains(GetFormKey("ArmorSlotGauntlets")))
-        {
-            return Settings.Armor.SlotGauntlets;
-        }
-        else if (armor.Keywords!.Contains(GetFormKey("ArmorSlotHelmet")))
-        {
-            return Settings.Armor.SlotHelmet;
-        }
-        else if (armor.Keywords!.Contains(GetFormKey("ArmorShield")))
-        {
-            return Settings.Armor.SlotShield;
-        }
+        if (armor.Keywords!.Contains(GetFormKey("ArmorSlotBoots"))) return Settings.Armor.SlotBoots;
+        if (armor.Keywords!.Contains(GetFormKey("ArmorSlotCuirass"))) return Settings.Armor.SlotCuirass;
+        if (armor.Keywords!.Contains(GetFormKey("ArmorSlotGauntlets"))) return Settings.Armor.SlotGauntlets;
+        if (armor.Keywords!.Contains(GetFormKey("ArmorSlotHelmet"))) return Settings.Armor.SlotHelmet;
+        if (armor.Keywords!.Contains(GetFormKey("ArmorShield"))) return Settings.Armor.SlotShield;
 
         Logger.Error("Unable to determine the equip slot for the record");
         return null;
@@ -383,12 +354,12 @@ public static class ArmorPatcher
     /// <returns>Armor rating material modifier as <see cref="int"/>, or null if there's no rule or value has incorrect type.</returns>
     private static int? GetMaterialFactor(IArmorGetter armor)
     {
-        if (RecordData.Overridden) armor = GetAsOverride(armor);
+        if (RecordData.Overridden) armor = armor.AsOverride();
 
         string? materialId = null;
         foreach (var entry in Statics.AllMaterials)
         {
-            FormKey kwda = (FormKey)entry.Kwda!;
+            FormKey kwda = entry.Kwda!;
             if (kwda != DataMap.NullRef && armor.Keywords!.Contains(kwda))
             {
                 materialId = entry.Id;
@@ -397,18 +368,14 @@ public static class ArmorPatcher
         }
 
         JsonNode? factorNode = Helpers.RuleByName(armor.Name!.ToString()!, Rules["materials"]!.AsArray(), data1: "names", data2: "armor");
-        if (factorNode == null && materialId != null) factorNode = Helpers.RuleByName(materialId!, Rules["materials"]!.AsArray(), data1: "id", data2: "armor");
+        if (factorNode is null && materialId is not null) 
+            factorNode = Helpers.RuleByName(materialId!, Rules["materials"]!.AsArray(), data1: "id", data2: "armor");
         int? factorInt = factorNode?.AsType<int>();
 
-        if (factorInt != null)
+        if (factorInt is not null)
         {
-            if (materialId == null) Logger.Caution("Has a \"materials\" patching rule for its name, but no material keyword");
+            if (materialId is null) Logger.Caution("Has a \"materials\" patching rule for its name, but no material keyword");
             return factorInt;
-        }
-
-        if (factorNode != null && factorInt == null)
-        {
-            Logger.Error("The armor value in a relevant \"materials\" patching rule should be a number");
         }
 
         Logger.Error("Unable to determine the material");
@@ -425,15 +392,8 @@ public static class ArmorPatcher
         JsonNode? modifierNode = Helpers.RuleByName(armor.Name!.ToString()!, Rules["armorModifiers"]!.AsArray(), data1: "names", data2: "multiplier");
         float? modifierFloat = modifierNode?.AsType<float>();
 
-        if (modifierFloat != null)
-        {
+        if (modifierFloat is not null)
             return (float)(modifierFloat > 0.0f ? modifierFloat : 1.0f);
-        }
-
-        if (modifierNode != null && modifierFloat == null)
-        {
-            Logger.Error("The multiplier value in a relevant \"armorModifiers\" patching rule should be a number");
-        }
 
         return 1.0f;
     }
@@ -458,9 +418,9 @@ public static class ArmorPatcher
             string factions = rule!["faction"]!.ToString();
             foreach (var entry in Statics.FactionBinds)
             {
-                if (factions.Contains(entry.Id.GetT9n()) && !armor.Keywords!.Contains((FormKey)entry.Kwda!))
+                if (factions.Contains(entry.Id.GetT9n()) && !armor.Keywords!.Contains(entry.Kwda!))
                 {
-                    GetAsOverride(armor).Keywords!.Add((FormKey)entry.Kwda);
+                    armor.AsOverride(true).Keywords!.Add(entry.Kwda);
                     addedFactions.Add($"{entry.Id.GetT9n()}");
                 }
             }
@@ -472,11 +432,10 @@ public static class ArmorPatcher
     /// Recipes processor.
     /// </summary>
     /// <param name="armor">The armor record as IArmorGetter.</param>
-    /// <param name="allRecipes">List of all constructible object records.</param>
     /// <param name="excludedNames">The list of excluded strings.</param>
     private static void ProcessRecipes(IArmorGetter armor, List<string> excludedNames)
     {
-        if (RecordData.Modified) armor = GetAsOverride(armor);
+        if (RecordData.Modified) armor = armor.AsOverride();
 
         if (armor.Name!.ToString()!.IsExcluded(excludedNames))
         {
@@ -486,15 +445,15 @@ public static class ArmorPatcher
             return;
         }
 
-        foreach (var cobj in Executor.AllRecipes!)
+        foreach (var recipe in Executor.AllRecipes!)
         {
-            if (cobj.CreatedObject.FormKey == armor.FormKey)
+            if (recipe.CreatedObject.FormKey == armor.FormKey)
             {
-                if (Settings.Armor.FixCraftRecipes && cobj.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingForge"))
-                    ModCraftingRecipe(cobj, armor);
+                if (Settings.Armor.FixCraftRecipes && recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingForge"))
+                    ModCraftingRecipe(recipe, armor);
 
-                if (cobj.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingArmorTable"))
-                    ModTemperingRecipe(cobj, armor);
+                if (recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingArmorTable"))
+                    ModTemperingRecipe(recipe, armor);
             }
         }
 
@@ -515,7 +474,7 @@ public static class ArmorPatcher
         {
             if (recipe.Conditions.Count != 0)
             {
-                if (material.Perk != null
+                if (material.Perk is not null
                     && recipe.Conditions.Any(condition => condition.Data is HasPerkConditionData hasPerk
                     && material.Perk.Any(perk => hasPerk.Perk.Link.FormKey == perk)))
                 {
@@ -524,22 +483,17 @@ public static class ArmorPatcher
             }
         }
 
-        bool isLeather = false;
         foreach (var material in Statics.LightMaterials)
         {
-            if (material.Perk != null
+            if (material.Perk is not null
                 && material.Perk[0] == GetFormKey("skyre_SMTLeathercraft")
-                && armor.Keywords!.Contains((FormKey)material.Kwda!))
+                && armor.Keywords!.Contains(material.Kwda!))
             {
-                isLeather = true;
+                ConstructibleObject craftingRecipe = Executor.State!.PatchMod.ConstructibleObjects.GetOrAddAsOverride(recipe);
+                craftingRecipe.AddHasPerkCondition(GetFormKey("skyre_SMTLeathercraft"));
+
                 break;
             }
-        }
-
-        if (isLeather)
-        {
-            ConstructibleObject cobj = Executor.State!.PatchMod.ConstructibleObjects.GetOrAddAsOverride(recipe);
-            cobj.AddHasPerkCondition(GetFormKey("skyre_SMTLeathercraft"));
         }
     }
 
@@ -556,17 +510,17 @@ public static class ArmorPatcher
         if (recipe.Conditions.Count != 0 && recipe.Conditions.Any(condition => condition.Data is EPTemperingItemIsEnchantedConditionData))
         {
             List<FormKey> allPerks = [.. Statics.AllMaterials
-                .Where(entry => entry.Perk != null)
+                .Where(entry => entry.Perk is not null)
                 .SelectMany(entry => entry.Perk!)
                 .Distinct()];
             List<FormKey> materialPerks = [.. Statics.AllMaterials
                 .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
-                .Where(entry => entry.Perk != null)
+                .Where(entry => entry.Perk is not null)
                 .SelectMany(entry => entry.Perk!)
                 .Distinct()];
             List<FormKey> materialItems = [.. Statics.AllMaterials
                 .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
-                .Select(entry => (FormKey)entry.Item!)
+                .Select(entry => entry.Item!)
                 .Distinct()];
 
 
@@ -642,7 +596,7 @@ public static class ArmorPatcher
                     return;
                 }
 
-                if (craftingRecipe == null
+                if (craftingRecipe is null
                     && recipe.CreatedObject.FormKey == armor.FormKey
                     && (recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingTanningRack")
                     || recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingForge")))
@@ -658,12 +612,12 @@ public static class ArmorPatcher
 
         List<FormKey> armorPerks = !isClothing && !isDreamcloth ? [.. Statics.AllMaterials
             .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
-            .Where(entry => entry.Perk != null)
+            .Where(entry => entry.Perk is not null)
             .SelectMany(entry => entry.Perk!)
             .Distinct()] : [];
         List<FormKey> armorItems = !isClothing && !isDreamcloth ? [.. Statics.AllMaterials
             .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
-            .Select(entry => (FormKey)entry.Item!)
+            .Select(entry => entry.Item!)
             .Distinct()] : [GetFormKey("LeatherStrips")];
 
         if (!isClothing && !isDreamcloth && armorItems.Count == 0)
@@ -691,7 +645,7 @@ public static class ArmorPatcher
         bool fromRecipe = false;
         int qty = 1;
         FormKey ingr = armorItems[0];
-        if (craftingRecipe != null)
+        if (craftingRecipe is not null)
         {
             foreach (var entry in armorItems)
             {
@@ -766,8 +720,11 @@ public static class ArmorPatcher
     {
         if (armor.Name!.ToString()!.IsExcluded(excludedNames))
         {
-            if (Settings.Debug.ShowExcluded) Logger.Info($"Found in the \"No Dreamcloth variant\" list");
-            return;
+            if (Settings.Debug.ShowExcluded)
+            {
+                Logger.Info($"Found in the \"No Dreamcloth variant\" list");
+                return;
+            }
         }
 
         if (!armor.TemplateArmor.IsNull || RecordData.Unique)
@@ -776,14 +733,12 @@ public static class ArmorPatcher
             return;
         }
 
-        bool isModified = RecordData.Modified;
-
         string label = Settings.Armor.DreamclothLabel == "" ? $" [{"name_dcloth".GetT9n()}]" : Settings.Armor.DreamclothLabel;
-        string newName = GetAsOverride(armor).Name!.ToString() + label;
+        string newName = armor.AsOverride().Name!.ToString() + label;
         string newEditorID = "RP_ARMO_" + armor.EditorID;
 
-        Armor newArmor = Executor.State!.PatchMod.Armors.DuplicateInAsNewRecord(GetAsOverride(armor));
-        if (!isModified) Executor.State!.PatchMod.Armors.Remove(armor);
+        Armor newArmor = Executor.State!.PatchMod.Armors.DuplicateInAsNewRecord(armor.AsOverride());
+        if (!RecordData.Modified) Executor.State!.PatchMod.Armors.Remove(armor);
 
         newArmor.Name = newName;
         newArmor.EditorID = EditorIDs.Unique(newEditorID);
@@ -865,10 +820,9 @@ public static class ArmorPatcher
         }
 
         cobj.AddHasPerkCondition(GetFormKey("skyre_SMTWeavingMill"));
-        if (!Settings.Armor.AllArmorRecipes)
-        {
+        if (!Settings.Armor.AllArmorRecipes) 
             cobj.AddGetItemCountCondition(oldArmor.FormKey, CompareOperator.GreaterThanOrEqualTo);
-        }
+
         cobj.AddGetEquippedCondition(oldArmor.FormKey, CompareOperator.NotEqualTo);
 
         cobj.CreatedObject = newArmor.ToNullableLink();
@@ -883,26 +837,26 @@ public static class ArmorPatcher
     /// </summary>
     /// <param name="id">The id in the elements with the FormKey to return.</param>
     /// <returns>A FormKey from the statics list.</returns>
-    private static FormKey GetFormKey(string id) => Executor.Statics!.First(elem => elem.Id == id).FormKey;
+    private static FormKey GetFormKey(string stringId) => Executor.Statics!.First(elem => elem.Id == stringId).FormKey;
 
     /// <summary>
     /// Returns the winning override for this-parameter, and copies it to the patch file.<br/>
-    /// Marks it as modified in local record data.
     /// </summary>
     /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <param name="markModified">True to mark as modified in the patching data.</param>
     /// <returns>The winning override as Armor.</returns>
-    private static Armor GetAsOverride(this IArmorGetter armor)
+    private static Armor AsOverride(this IArmorGetter armor, bool markModified = false)
     {
-        if (!RecordData.Modified) RecordData.Modified = true;
-        return ThisRecord?.FormKey != armor.FormKey ? Executor.State!.PatchMod.Armors.GetOrAddAsOverride(armor) : ThisRecord;
+        if (markModified) RecordData.Modified = true;
+        return Executor.State!.PatchMod.Armors.GetOrAddAsOverride(armor);
     }
 
     /// <summary>
-    /// Displays info and errors.<br/>
+    /// Displays info.<br/>
     /// </summary>
     /// <param name="armor">The armor record as IArmorGetter.</param>
-    /// <param name="msgList">The list of list of strings with messages.</param>
-    private static void ShowReport(this IArmorGetter armor) => Logger.ShowReport($"{armor.Name}", $"{armor.FormKey}", $"{armor.EditorID}", RecordData.NonPlayable, !armor.TemplateArmor.IsNull);
+    private static void ShowReport(this IArmorGetter armor) => 
+        Logger.ShowReport($"{armor.Name}", $"{armor.FormKey}", $"{armor.EditorID}", RecordData.NonPlayable, !armor.TemplateArmor.IsNull);
 
     // patcher specific statics
     private static (List<DataMap>, List<DataMap>, List<DataMap>) BuildStaticsMap()
