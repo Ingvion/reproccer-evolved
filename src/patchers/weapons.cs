@@ -114,7 +114,7 @@ public static class WeaponsPatcher
     /// <summary>
     /// Checks if the weapon matches necessary conditions to be patched.
     /// </summary>
-    /// <param name="armor">The weapon record as IWeaponGetter.</param>
+    /// <param name="weapon">The weapon record as IWeaponGetter.</param>
     /// <param name="excludedNames">The list of excluded strings.</param>
     /// <returns>Check result from a filter the record triggered as <see cref="bool"/>.</returns>
     private static bool IsValid(IWeaponGetter weapon, List<string> excludedNames)
