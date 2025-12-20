@@ -474,9 +474,9 @@ public static class ArmorPatcher
         {
             if (recipe.Conditions.Count != 0)
             {
-                if (material.Perk is not null
+                if (material.Perks is not null
                     && recipe.Conditions.Any(condition => condition.Data is HasPerkConditionData hasPerk
-                    && material.Perk.Any(perk => hasPerk.Perk.Link.FormKey == perk)))
+                    && material.Perks.Any(perk => hasPerk.Perk.Link.FormKey == perk)))
                 {
                     return;
                 }
@@ -485,8 +485,8 @@ public static class ArmorPatcher
 
         foreach (var material in Statics.LightMaterials)
         {
-            if (material.Perk is not null
-                && material.Perk[0] == GetFormKey("skyre_SMTLeathercraft")
+            if (material.Perks is not null
+                && material.Perks[0] == GetFormKey("skyre_SMTLeathercraft")
                 && armor.Keywords!.Contains(material.Kwda!))
             {
                 ConstructibleObject craftingRecipe = Executor.State!.PatchMod.ConstructibleObjects.GetOrAddAsOverride(recipe);
@@ -510,17 +510,17 @@ public static class ArmorPatcher
         if (recipe.Conditions.Count != 0 && recipe.Conditions.Any(condition => condition.Data is EPTemperingItemIsEnchantedConditionData))
         {
             List<FormKey> allPerks = [.. Statics.AllMaterials
-                .Where(entry => entry.Perk is not null)
-                .SelectMany(entry => entry.Perk!)
+                .Where(entry => entry.Perks is not null)
+                .SelectMany(entry => entry.Perks)
                 .Distinct()];
             List<FormKey> materialPerks = [.. Statics.AllMaterials
                 .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
-                .Where(entry => entry.Perk is not null)
-                .SelectMany(entry => entry.Perk!)
+                .Where(entry => entry.Perks is not null)
+                .SelectMany(entry => entry.Perks)
                 .Distinct()];
             List<FormKey> materialItems = [.. Statics.AllMaterials
                 .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
-                .Select(entry => entry.Item!)
+                .Select(entry => entry.Items[0])
                 .Distinct()];
 
 
@@ -612,12 +612,12 @@ public static class ArmorPatcher
 
         List<FormKey> armorPerks = !isClothing && !isDreamcloth ? [.. Statics.AllMaterials
             .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
-            .Where(entry => entry.Perk is not null)
-            .SelectMany(entry => entry.Perk!)
+            .Where(entry => entry.Perks is not null)
+            .SelectMany(entry => entry.Perks)
             .Distinct()] : [];
         List<FormKey> armorItems = !isClothing && !isDreamcloth ? [.. Statics.AllMaterials
             .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
-            .Select(entry => entry.Item!)
+            .Select(entry => entry.Items[0])
             .Distinct()] : [GetFormKey("LeatherStrips")];
 
         if (!isClothing && !isDreamcloth && armorItems.Count == 0)
@@ -750,14 +750,14 @@ public static class ArmorPatcher
         newArmor.Value = (uint)(priceMult * newArmor.Value);
 
         List<DataMap> ingredients = [
-            new DataMap{Ingr = GetFormKey("SoulGemPettyFilled"), Qty = 2, Id = "SLGM"},
-            new DataMap{Ingr = GetFormKey("LeatherStrips"),      Qty = 1, Id = "MISC"},
-            new DataMap{Ingr = GetFormKey("WispWrappings"),      Qty = 1, Id = "INGR"}
+            new DataMap{Items = [ GetFormKey("SoulGemPettyFilled") ], Qty = 2, Id = "SLGM"},
+            new DataMap{Items = [ GetFormKey("LeatherStrips") ],      Qty = 1, Id = "MISC"},
+            new DataMap{Items = [ GetFormKey("WispWrappings") ],      Qty = 1, Id = "INGR"}
         ];
 
         if (newArmor.Keywords!.Contains(GetFormKey("ClothingBody")))
         {
-            ingredients[0] = ingredients[0] with { Ingr = GetFormKey("SoulGemCommonFilled"), Qty = 1 };
+            ingredients[0] = ingredients[0] with { Items = [ GetFormKey("SoulGemCommonFilled") ], Qty = 1 };
             ingredients[1] = ingredients[1] with { Qty = 3 };
             ingredients[2] = ingredients[2] with { Qty = 2 };
 
@@ -765,7 +765,7 @@ public static class ArmorPatcher
         }
         else if (newArmor.Keywords!.Contains(GetFormKey("ClothingHead")))
         {
-            ingredients[0] = ingredients[0] with { Ingr = GetFormKey("SoulGemLesserFilled"), Qty = 1 };
+            ingredients[0] = ingredients[0] with { Items = [ GetFormKey("SoulGemLesserFilled") ], Qty = 1 };
             ingredients[1] = ingredients[1] with { Qty = 2 };
         }
 
@@ -801,15 +801,15 @@ public static class ArmorPatcher
             switch (entry.Id)
             {
                 case "SLGM":
-                    newItem.Item = Executor.State!.LinkCache.Resolve<ISoulGemGetter>(entry.Ingr).ToNullableLink();
+                    newItem.Item = Executor.State!.LinkCache.Resolve<ISoulGemGetter>(entry.Items[0]).ToNullableLink();
                     break;
 
                 case "MISC":
-                    newItem.Item = Executor.State!.LinkCache.Resolve<IMiscItemGetter>(entry.Ingr).ToNullableLink();
+                    newItem.Item = Executor.State!.LinkCache.Resolve<IMiscItemGetter>(entry.Items[0]).ToNullableLink();
                     break;
 
                 case "INGR":
-                    newItem.Item = Executor.State!.LinkCache.Resolve<IIngredientGetter>(entry.Ingr).ToNullableLink();
+                    newItem.Item = Executor.State!.LinkCache.Resolve<IIngredientGetter>(entry.Items[0]).ToNullableLink();
                     break;
             }
 
@@ -948,56 +948,56 @@ public static class ArmorPatcher
         ]);
 
         List<DataMap> allMaterials = [
-            new DataMap{Id = "mat_ancientnord", Kwda = GetFormKey("WAF_ArmorMaterialDraugr"),              Item = GetFormKey("IngotCorundum"),    Perk = [ GetFormKey("AdvancedArmors") ]                             },
-            new DataMap{Id = "mat_blades",      Kwda = GetFormKey("ArmorMaterialBlades"),                  Item = GetFormKey("IngotSteel"),       Perk = [ GetFormKey("SteelSmithing") ]                              },
-            new DataMap{Id = "mat_bonemoldh",   Kwda = GetFormKey("DLC2ArmorMaterialBonemoldHeavy"),       Item = GetFormKey("DLC2NetchLeather"), Perk = [ GetFormKey("AdvancedArmors") ]                             },
-            new DataMap{Id = "mat_chitinh",     Kwda = GetFormKey("DLC2ArmorMaterialChitinHeavy"),         Item = GetFormKey("DLC2ChitinPlate"),  Perk = [ GetFormKey("ElvenSmithing") ]                              },
-            new DataMap{Id = "mat_daedric",     Kwda = GetFormKey("ArmorMaterialDaedric"),                 Item = GetFormKey("IngotEbony"),       Perk = [ GetFormKey("DaedricSmithing") ]                            },
-            new DataMap{Id = "mat_dawnguard",   Kwda = GetFormKey("DLC1ArmorMaterialDawnguard"),           Item = GetFormKey("IngotSteel"),       Perk = [ GetFormKey("SteelSmithing") ]                              },
-            new DataMap{Id = "mat_dawnguardh",  Kwda = GetFormKey("DLC1ArmorMaterialHunter"),              Item = GetFormKey("IngotSteel"),       Perk = [ GetFormKey("SteelSmithing") ]                              },
-            new DataMap{Id = "mat_dragonplate", Kwda = GetFormKey("ArmorMaterialDragonplate"),             Item = GetFormKey("DragonBone"),       Perk = [ GetFormKey("DragonArmor") ]                                },
-            new DataMap{Id = "mat_dwarven",     Kwda = GetFormKey("ArmorMaterialDwarven"),                 Item = GetFormKey("IngotDwarven"),     Perk = [ GetFormKey("DwarvenSmithing") ]                            },
-            new DataMap{Id = "mat_ebony",       Kwda = GetFormKey("ArmorMaterialEbony"),                   Item = GetFormKey("IngotEbony"),       Perk = [ GetFormKey("EbonySmithing") ]                              },
-            new DataMap{Id = "mat_falmerhr",    Kwda = GetFormKey("DLC1ArmorMaterialFalmerHardened"),      Item = GetFormKey("ChaurusChitin"),    Perk = [ GetFormKey("ElvenSmithing") ]                              },
-            new DataMap{Id = "mat_falmerhv",    Kwda = GetFormKey("DLC1ArmorMaterialFalmerHeavy"),         Item = GetFormKey("ChaurusChitin"),    Perk = [ GetFormKey("ElvenSmithing") ]                              },
-            new DataMap{Id = "mat_falmer",      Kwda = GetFormKey("DLC1ArmorMaterialFalmerHeavyOriginal"), Item = GetFormKey("ChaurusChitin"),    Perk = [ GetFormKey("ElvenSmithing") ]                              },
-            new DataMap{Id = "mat_golden",      Kwda = GetFormKey("cc_ArmorMaterialGolden"),               Item = GetFormKey("IngotGold"),        Perk = [ GetFormKey("DaedricSmithing") ]                            },
-            new DataMap{Id = "mat_imperialh",   Kwda = GetFormKey("ArmorMaterialImperialHeavy"),           Item = GetFormKey("IngotSteel"),       Perk = [ GetFormKey("SteelSmithing") ]                              },
-            new DataMap{Id = "mat_iron",        Kwda = GetFormKey("ArmorMaterialIron"),                    Item = GetFormKey("IngotIron")                                                                            },
-            new DataMap{Id = "mat_ironb",       Kwda = GetFormKey("ArmorMaterialIronBanded"),              Item = GetFormKey("IngotIron")                                                                            },
-            new DataMap{Id = "mat_madness",     Kwda = GetFormKey("cc_ArmorMaterialMadness"),              Item = GetFormKey("cc_IngotMadness"),  Perk = [ GetFormKey("EbonySmithing") ]                              },
-            new DataMap{Id = "mat_nordic",      Kwda = GetFormKey("DLC2ArmorMaterialNordicHeavy"),         Item = GetFormKey("IngotQuicksilver"), Perk = [ GetFormKey("AdvancedArmors") ]                             },
-            new DataMap{Id = "mat_orcish",      Kwda = GetFormKey("ArmorMaterialOrcish"),                  Item = GetFormKey("IngotOrichalcum"),  Perk = [ GetFormKey("OrcishSmithing") ]                             },
-            new DataMap{Id = "mat_stalhrimh",   Kwda = GetFormKey("DLC2ArmorMaterialStalhrimHeavy"),       Item = GetFormKey("DLC2OreStalhrim"),  Perk = [ GetFormKey("GlassSmithing"), GetFormKey("EbonySmithing") ] },
-            new DataMap{Id = "mat_steel",       Kwda = GetFormKey("ArmorMaterialSteel"),                   Item = GetFormKey("IngotSteel"),       Perk = [ GetFormKey("SteelSmithing") ]                              },
-            new DataMap{Id = "mat_steelp",      Kwda = GetFormKey("ArmorMaterialSteelPlate"),              Item = GetFormKey("IngotSteel"),       Perk = [ GetFormKey("AdvancedArmors") ]                             },
-            new DataMap{Id = "mat_wolf",        Kwda = GetFormKey("WAF_ArmorWolf"),                        Item = GetFormKey("IngotSteel"),       Perk = [ GetFormKey("SteelSmithing") ]                              }
+            new DataMap{Id = "mat_ancientnord", Kwda = GetFormKey("WAF_ArmorMaterialDraugr"),              Items = [ GetFormKey("IngotCorundum") ],    Perks = [ GetFormKey("AdvancedArmors") ]                             },
+            new DataMap{Id = "mat_blades",      Kwda = GetFormKey("ArmorMaterialBlades"),                  Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("SteelSmithing") ]                              },
+            new DataMap{Id = "mat_bonemoldh",   Kwda = GetFormKey("DLC2ArmorMaterialBonemoldHeavy"),       Items = [ GetFormKey("DLC2NetchLeather") ], Perks = [ GetFormKey("AdvancedArmors") ]                             },
+            new DataMap{Id = "mat_chitinh",     Kwda = GetFormKey("DLC2ArmorMaterialChitinHeavy"),         Items = [ GetFormKey("DLC2ChitinPlate") ],  Perks = [ GetFormKey("ElvenSmithing") ]                              },
+            new DataMap{Id = "mat_daedric",     Kwda = GetFormKey("ArmorMaterialDaedric"),                 Items = [ GetFormKey("IngotEbony") ],       Perks = [ GetFormKey("DaedricSmithing") ]                            },
+            new DataMap{Id = "mat_dawnguard",   Kwda = GetFormKey("DLC1ArmorMaterialDawnguard"),           Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("SteelSmithing") ]                              },
+            new DataMap{Id = "mat_dawnguardh",  Kwda = GetFormKey("DLC1ArmorMaterialHunter"),              Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("SteelSmithing") ]                              },
+            new DataMap{Id = "mat_dragonplate", Kwda = GetFormKey("ArmorMaterialDragonplate"),             Items = [ GetFormKey("DragonBone") ],       Perks = [ GetFormKey("DragonArmor") ]                                },
+            new DataMap{Id = "mat_dwarven",     Kwda = GetFormKey("ArmorMaterialDwarven"),                 Items = [ GetFormKey("IngotDwarven") ],     Perks = [ GetFormKey("DwarvenSmithing") ]                            },
+            new DataMap{Id = "mat_ebony",       Kwda = GetFormKey("ArmorMaterialEbony"),                   Items = [ GetFormKey("IngotEbony") ],       Perks = [ GetFormKey("EbonySmithing") ]                              },
+            new DataMap{Id = "mat_falmerhr",    Kwda = GetFormKey("DLC1ArmorMaterialFalmerHardened"),      Items = [ GetFormKey("ChaurusChitin") ],    Perks = [ GetFormKey("ElvenSmithing") ]                              },
+            new DataMap{Id = "mat_falmerhv",    Kwda = GetFormKey("DLC1ArmorMaterialFalmerHeavy"),         Items = [ GetFormKey("ChaurusChitin") ],    Perks = [ GetFormKey("ElvenSmithing") ]                              },
+            new DataMap{Id = "mat_falmer",      Kwda = GetFormKey("DLC1ArmorMaterialFalmerHeavyOriginal"), Items = [ GetFormKey("ChaurusChitin") ],    Perks = [ GetFormKey("ElvenSmithing") ]                              },
+            new DataMap{Id = "mat_golden",      Kwda = GetFormKey("cc_ArmorMaterialGolden"),               Items = [ GetFormKey("IngotGold") ],        Perks = [ GetFormKey("DaedricSmithing") ]                            },
+            new DataMap{Id = "mat_imperialh",   Kwda = GetFormKey("ArmorMaterialImperialHeavy"),           Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("SteelSmithing") ]                              },
+            new DataMap{Id = "mat_iron",        Kwda = GetFormKey("ArmorMaterialIron"),                    Items = [ GetFormKey("IngotIron") ]                                                                             },
+            new DataMap{Id = "mat_ironb",       Kwda = GetFormKey("ArmorMaterialIronBanded"),              Items = [ GetFormKey("IngotIron") ]                                                                             },
+            new DataMap{Id = "mat_madness",     Kwda = GetFormKey("cc_ArmorMaterialMadness"),              Items = [ GetFormKey("cc_IngotMadness") ],  Perks = [ GetFormKey("EbonySmithing") ]                              },
+            new DataMap{Id = "mat_nordic",      Kwda = GetFormKey("DLC2ArmorMaterialNordicHeavy"),         Items = [ GetFormKey("IngotQuicksilver") ], Perks = [ GetFormKey("AdvancedArmors") ]                             },
+            new DataMap{Id = "mat_orcish",      Kwda = GetFormKey("ArmorMaterialOrcish"),                  Items = [ GetFormKey("IngotOrichalcum") ],  Perks = [ GetFormKey("OrcishSmithing") ]                             },
+            new DataMap{Id = "mat_stalhrimh",   Kwda = GetFormKey("DLC2ArmorMaterialStalhrimHeavy"),       Items = [ GetFormKey("DLC2OreStalhrim") ],  Perks = [ GetFormKey("GlassSmithing"), GetFormKey("EbonySmithing") ] },
+            new DataMap{Id = "mat_steel",       Kwda = GetFormKey("ArmorMaterialSteel"),                   Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("SteelSmithing") ]                              },
+            new DataMap{Id = "mat_steelp",      Kwda = GetFormKey("ArmorMaterialSteelPlate"),              Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("AdvancedArmors") ]                             },
+            new DataMap{Id = "mat_wolf",        Kwda = GetFormKey("WAF_ArmorWolf"),                        Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("SteelSmithing") ]                              }
         ];
 
         List<DataMap> lightMaterials = [
-            new DataMap{Id = "mat_amber",       Kwda = GetFormKey("cc_ArmorMaterialAmber"),          Item = GetFormKey("cc_IngotAmber"),    Perk = [ GetFormKey("GlassSmithing"), GetFormKey("EbonySmithing") ]         },
-            new DataMap{Id = "mat_bonemold",    Kwda = GetFormKey("DLC2ArmorMaterialBonemoldLight"), Item = GetFormKey("DLC2NetchLeather"), Perk = [ GetFormKey("AdvancedArmors") ]                                     },
-            new DataMap{Id = "mat_chitin",      Kwda = GetFormKey("DLC2ArmorMaterialChitinLight"),   Item = GetFormKey("DLC2ChitinPlate"),  Perk = [ GetFormKey("ElvenSmithing") ]                                      },
-            new DataMap{Id = "mat_dark",        Kwda = GetFormKey("cc_ArmorMaterialDark"),           Item = GetFormKey("IngotQuicksilver"), Perk = [ GetFormKey("DaedricSmithing") ]                                    },
-            new DataMap{Id = "mat_dragonscale", Kwda = GetFormKey("ArmorMaterialDragonscale"),       Item = GetFormKey("DragonScales"),     Perk = [ GetFormKey("DragonArmor") ]                                        },
-            new DataMap{Id = "mat_elven",       Kwda = GetFormKey("ArmorMaterialElven"),             Item = GetFormKey("IngotMoonstone"),   Perk = [ GetFormKey("ElvenSmithing") ]                                      },
-            new DataMap{Id = "mat_elveng",      Kwda = GetFormKey("ArmorMaterialElvenGilded"),       Item = GetFormKey("IngotMoonstone"),   Perk = [ GetFormKey("ElvenSmithing") ]                                      },
-            new DataMap{Id = "mat_forsworn",    Kwda = GetFormKey("ArmorMaterialForsworn"),          Item = GetFormKey("LeatherStrips")                                                                                },
-            new DataMap{Id = "mat_glass",       Kwda = GetFormKey("ArmorMaterialGlass"),             Item = GetFormKey("IngotMalachite"),   Perk = [ GetFormKey("GlassSmithing") ]                                      },
-            new DataMap{Id = "mat_guard",       Kwda = GetFormKey("WAF_ArmorMaterialGuard"),         Item = GetFormKey("IngotIron"),        Perk = [ GetFormKey("skyre_SMTLeathercraft"), GetFormKey("SteelSmithing") ] },
-            new DataMap{Id = "mat_hide",        Kwda = GetFormKey("ArmorMaterialHide"),              Item = GetFormKey("LeatherStrips")                                                                                },
-            new DataMap{Id = "mat_imperial",    Kwda = GetFormKey("ArmorMaterialImperialLight"),     Item = GetFormKey("IngotSteel"),       Perk = [ GetFormKey("skyre_SMTLeathercraft"), GetFormKey("SteelSmithing") ] },
-            new DataMap{Id = "mat_imperials",   Kwda = GetFormKey("ArmorMaterialImperialStudded"),   Item = GetFormKey("LeatherStrips"),    Perk = [ GetFormKey("skyre_SMTLeathercraft") ]                              },
-            new DataMap{Id = "mat_leather",     Kwda = GetFormKey("ArmorMaterialLeather"),           Item = GetFormKey("LeatherStrips"),    Perk = [ GetFormKey("skyre_SMTLeathercraft") ]                              },
-            new DataMap{Id = "mat_nightingale", Kwda = GetFormKey("ArmorNightingale"),               Item = GetFormKey("LeatherStrips"),    Perk = [ GetFormKey("skyre_SMTLeathercraft") ]                              },
-            new DataMap{Id = "mat_scaled",      Kwda = GetFormKey("ArmorMaterialScaled"),            Item = GetFormKey("IngotCorundum"),    Perk = [ GetFormKey("AdvancedArmors") ]                                     },
-            new DataMap{Id = "mat_shrouded",    Kwda = GetFormKey("ArmorDarkBrotherhood"),           Item = GetFormKey("LeatherStrips"),    Perk = [ GetFormKey("skyre_SMTLeathercraft") ]                              },
-            new DataMap{Id = "mat_stalhrim",    Kwda = GetFormKey("DLC2ArmorMaterialStalhrimLight"), Item = GetFormKey("DLC2OreStalhrim"),  Perk = [ GetFormKey("GlassSmithing"), GetFormKey("EbonySmithing") ]         },
-            new DataMap{Id = "mat_stormcloak",  Kwda = GetFormKey("ArmorMaterialStormcloak"),        Item = GetFormKey("IngotIron"),        Perk = [ GetFormKey("skyre_SMTLeathercraft"), GetFormKey("SteelSmithing") ] },
-            new DataMap{Id = "mat_stormcloakh", Kwda = GetFormKey("ArmorMaterialBearStormcloak"),    Item = GetFormKey("IngotSteel"),       Perk = [ GetFormKey("skyre_SMTLeathercraft"), GetFormKey("SteelSmithing") ] },
-            new DataMap{Id = "mat_studded",     Kwda = GetFormKey("ArmorMaterialStudded"),           Item = GetFormKey("LeatherStrips"),    Perk = [ GetFormKey("skyre_SMTLeathercraft") ]                              },
-            new DataMap{Id = "mat_thievesgl",   Kwda = GetFormKey("ArmorMaterialThievesGuild"),      Item = GetFormKey("LeatherStrips"),    Perk = [ GetFormKey("skyre_SMTLeathercraft") ]                              },
-            new DataMap{Id = "mat_vampire",     Kwda = GetFormKey("DLC1ArmorMaterialVampire"),       Item = GetFormKey("LeatherStrips"),    Perk = [ GetFormKey("skyre_SMTLeathercraft") ]                              }
+            new DataMap{Id = "mat_amber",       Kwda = GetFormKey("cc_ArmorMaterialAmber"),          Items = [ GetFormKey("cc_IngotAmber") ],    Perks = [ GetFormKey("GlassSmithing"), GetFormKey("EbonySmithing") ]         },
+            new DataMap{Id = "mat_bonemold",    Kwda = GetFormKey("DLC2ArmorMaterialBonemoldLight"), Items = [ GetFormKey("DLC2NetchLeather") ], Perks = [ GetFormKey("AdvancedArmors") ]                                     },
+            new DataMap{Id = "mat_chitin",      Kwda = GetFormKey("DLC2ArmorMaterialChitinLight"),   Items = [ GetFormKey("DLC2ChitinPlate") ],  Perks = [ GetFormKey("ElvenSmithing") ]                                      },
+            new DataMap{Id = "mat_dark",        Kwda = GetFormKey("cc_ArmorMaterialDark"),           Items = [ GetFormKey("IngotQuicksilver") ], Perks = [ GetFormKey("DaedricSmithing") ]                                    },
+            new DataMap{Id = "mat_dragonscale", Kwda = GetFormKey("ArmorMaterialDragonscale"),       Items = [ GetFormKey("DragonScales") ],     Perks = [ GetFormKey("DragonArmor") ]                                        },
+            new DataMap{Id = "mat_elven",       Kwda = GetFormKey("ArmorMaterialElven"),             Items = [ GetFormKey("IngotMoonstone") ],   Perks = [ GetFormKey("ElvenSmithing") ]                                      },
+            new DataMap{Id = "mat_elveng",      Kwda = GetFormKey("ArmorMaterialElvenGilded"),       Items = [ GetFormKey("IngotMoonstone") ],   Perks = [ GetFormKey("ElvenSmithing") ]                                      },
+            new DataMap{Id = "mat_forsworn",    Kwda = GetFormKey("ArmorMaterialForsworn"),          Items = [ GetFormKey("LeatherStrips") ]                                                                                 },
+            new DataMap{Id = "mat_glass",       Kwda = GetFormKey("ArmorMaterialGlass"),             Items = [ GetFormKey("IngotMalachite") ],   Perks = [ GetFormKey("GlassSmithing") ]                                      },
+            new DataMap{Id = "mat_guard",       Kwda = GetFormKey("WAF_ArmorMaterialGuard"),         Items = [ GetFormKey("IngotIron") ],        Perks = [ GetFormKey("skyre_SMTLeathercraft"), GetFormKey("SteelSmithing") ] },
+            new DataMap{Id = "mat_hide",        Kwda = GetFormKey("ArmorMaterialHide"),              Items = [ GetFormKey("LeatherStrips") ]                                                                                 },
+            new DataMap{Id = "mat_imperial",    Kwda = GetFormKey("ArmorMaterialImperialLight"),     Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("skyre_SMTLeathercraft"), GetFormKey("SteelSmithing") ] },
+            new DataMap{Id = "mat_imperials",   Kwda = GetFormKey("ArmorMaterialImperialStudded"),   Items = [ GetFormKey("LeatherStrips") ],    Perks = [ GetFormKey("skyre_SMTLeathercraft") ]                              },
+            new DataMap{Id = "mat_leather",     Kwda = GetFormKey("ArmorMaterialLeather"),           Items = [ GetFormKey("LeatherStrips") ],    Perks = [ GetFormKey("skyre_SMTLeathercraft") ]                              },
+            new DataMap{Id = "mat_nightingale", Kwda = GetFormKey("ArmorNightingale"),               Items = [ GetFormKey("LeatherStrips") ],    Perks = [ GetFormKey("skyre_SMTLeathercraft") ]                              },
+            new DataMap{Id = "mat_scaled",      Kwda = GetFormKey("ArmorMaterialScaled"),            Items = [ GetFormKey("IngotCorundum") ],    Perks = [ GetFormKey("AdvancedArmors") ]                                     },
+            new DataMap{Id = "mat_shrouded",    Kwda = GetFormKey("ArmorDarkBrotherhood"),           Items = [ GetFormKey("LeatherStrips") ],    Perks = [ GetFormKey("skyre_SMTLeathercraft") ]                              },
+            new DataMap{Id = "mat_stalhrim",    Kwda = GetFormKey("DLC2ArmorMaterialStalhrimLight"), Items = [ GetFormKey("DLC2OreStalhrim") ],  Perks = [ GetFormKey("GlassSmithing"), GetFormKey("EbonySmithing") ]         },
+            new DataMap{Id = "mat_stormcloak",  Kwda = GetFormKey("ArmorMaterialStormcloak"),        Items = [ GetFormKey("IngotIron") ],        Perks = [ GetFormKey("skyre_SMTLeathercraft"), GetFormKey("SteelSmithing") ] },
+            new DataMap{Id = "mat_stormcloakh", Kwda = GetFormKey("ArmorMaterialBearStormcloak"),    Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("skyre_SMTLeathercraft"), GetFormKey("SteelSmithing") ] },
+            new DataMap{Id = "mat_studded",     Kwda = GetFormKey("ArmorMaterialStudded"),           Items = [ GetFormKey("LeatherStrips") ],    Perks = [ GetFormKey("skyre_SMTLeathercraft") ]                              },
+            new DataMap{Id = "mat_thievesgl",   Kwda = GetFormKey("ArmorMaterialThievesGuild"),      Items = [ GetFormKey("LeatherStrips") ],    Perks = [ GetFormKey("skyre_SMTLeathercraft") ]                              },
+            new DataMap{Id = "mat_vampire",     Kwda = GetFormKey("DLC1ArmorMaterialVampire"),       Items = [ GetFormKey("LeatherStrips") ],    Perks = [ GetFormKey("skyre_SMTLeathercraft") ]                              }
         ];
 
         allMaterials.AddRange(lightMaterials);
