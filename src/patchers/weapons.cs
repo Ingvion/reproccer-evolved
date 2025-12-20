@@ -76,7 +76,7 @@ public static class WeaponsPatcher
             if (!RecordData.NonPlayable && !RecordData.BoundWeapon)
             {
                 ProcessCrossbows(weapon, blacklists[1]);
-                //CreateRefinedSilver(weapon);
+                ProcessSilverWeapons(weapon, blacklists[2]);
                 //ProcessRecipes(weapon);
             }
 
@@ -563,7 +563,89 @@ public static class WeaponsPatcher
         AddCraftingRecipe(newCrossbow, weapon, subtype.Perk, material, ingredients);
     }
 
+    private static void ProcessSilverWeapons(IWeaponGetter weapon, List<string> excludedNames)
+    {
+        if (weapon.Name!.ToString()!.IsExcluded(excludedNames))
+        {
+            if (Settings.Debug.ShowExcluded) Logger.Info($"Found in the \"No Refined Silver variants\" list");
+            return;
+        }
 
+        if (!weapon.Keywords!.Contains(GetFormKey("WeapMaterialSilver")) ||
+            weapon.Keywords!.Contains(GetFormKey("skyre__WeapMaterialSilverRefined")) || 
+            weapon.Keywords!.Contains(GetFormKey("WeapTypeBow")))
+        { 
+            return;
+        }
+
+        if (RecordData.Unique)
+        {
+            Logger.Info($"No Refined Silver variants were generated due to the \"No breakdown\" keyword", true);
+            return;
+        }
+
+        Weapon newWeapon = Executor.State!.PatchMod.Weapons.DuplicateInAsNewRecord(weapon);
+        DataMap material = Statics.AllMaterials.First(type => type.Kwda == GetFormKey("skyre__WeapMaterialSilverRefined"));
+
+        string prefix = "name_refined".GetT9n(Settings.General.GameLanguage.ToString(), newWeapon.Name!.ToString());
+        newWeapon.Name = Settings.Weapons.SuffixedNames ?
+            weapon.Name! + ", " + prefix.ToLower() :
+            prefix + " " + weapon.Name!;
+
+        string newEditorID = "RP_WEAP_" + prefix + "_" + weapon.EditorID;
+        newWeapon.EditorID = EditorIDs.Unique(newEditorID);
+        newWeapon.Description = "desc_refined".GetT9n();
+
+        // setting script
+        newWeapon.VirtualMachineAdapter = new VirtualMachineAdapter();
+        var newScript = new ScriptEntry
+        {
+            Name = "SilverSwordScript",
+            Flags = ScriptEntry.Flag.Local
+        };
+        var newProperty = new ScriptObjectProperty
+        {
+            Name = "SilverPerk",
+            Flags = ScriptProperty.Flag.Edited,
+            Object = new FormLink<IPerkGetter>(GetFormKey("SilverPerk"))
+        };
+
+        newScript.Properties.Add(newProperty);
+        newWeapon.VirtualMachineAdapter.Scripts.Insert(newWeapon.VirtualMachineAdapter.Scripts.Count, newScript);
+
+        // adding keywords
+        newWeapon.Keywords!.Add(GetFormKey("skyre__WeapMaterialSilverRefined"));
+
+        // modifying stats
+        newWeapon.Data!.Speed *= 1.1f;
+        newWeapon.BasicStats!.Weight *= 0.8f;
+        newWeapon.BasicStats.Value = (uint)(newWeapon.BasicStats.Value * (Settings.Weapons.RefinedSilverPrice / 100f));
+
+        // shortspears anim type bypass
+        if (newWeapon.Keywords!.Contains(GetFormKey("skyre__WeapTypeShortspear")) && Settings.Weapons.AltShortspears)
+        {
+            if (RecordData.AnimType == WeaponAnimationType.OneHandSword)
+            {
+                newWeapon.Data!.AnimationType = WeaponAnimationType.OneHandAxe;
+            }
+        };
+
+        // recipe ingredients
+        List<DataMap> ingredients = [
+            new DataMap{Ingr = GetFormKey("IngotGold"), Qty = 1, Id = "MISC"}
+        ];
+
+        AddCraftingRecipe(newWeapon, weapon, [], material, ingredients);
+    }
+
+    /// <summary>
+    /// Generates the crafting recipe for weapon variants (enhanced crossbows and Refined Silver weapons).<br/>
+    /// </summary>
+    /// <param name="newWeapon">The variant of the oldWeapon as Weapon.</param>
+    /// <param name="oldWeapon">The weapon record as Weapon.</param>
+    /// <param name="perks">List of variant perk FormKeys.</param>
+    /// <param name="material">The weapon material data as DataMap struct.</param>
+    /// <param name="ingredients">List of ingredients and their quantity.</param>
     private static void AddCraftingRecipe(IWeaponGetter newWeapon, IWeaponGetter oldWeapon, List<FormKey> perks, DataMap material, List<DataMap> ingredients)
     {
         string newEditorID = newWeapon.EditorID!.Replace("RP_WEAP_", "RP_WEAP_CRAFT_");
