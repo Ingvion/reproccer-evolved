@@ -229,11 +229,11 @@ public class WeaponsSettings
     [SettingName("No vanilla Enhanced Crossbows recipes")]
     [Tooltip("Removes the ability to craft vanilla Enhanced Crossbows (crafting recipes will not be available).\n"
         + "If unchecked, vanilla Enhanced Crossbows recipes additionally require the Increased Tension perk.")]
-    public bool NoVanillEnhanced { get; set; } = true;
+    public bool NoVanillaEnhanced { get; set; } = true;
 
     [SettingName("Preserve crossbows crafting conditions")]
-    [Tooltip("Preserves recipe conditions not related to the material (like quest stage) in all crossbow recipes.\n"
-        + "With this box unchecked crossbow crafting recipes will be available without completing quests.")]
+    [Tooltip("Preserves original conditions in all crossbow crafting recipes.\n"
+        + "Unchecked this to make crossbow crafting recipes available based on smithing mastery only.")]
     public bool KeepConditions { get; set; } = true;
 
     [SettingName("Shortspears on right hip")]
@@ -242,8 +242,8 @@ public class WeaponsSettings
     public bool AltShortspears { get; set; } = false;
 
     [SettingName("Show all special recipes")]
-    [Tooltip("Refined Silver weapons and SkyRe crossbows recipes will always be visible in the crafting menu once the relevant perk is acquired.\n"
-        + "By default, to declutter the crafting menu, special recipes are hidden unless you have a required base weapon in the inventory.")]
+    [Tooltip("Refined Silver weapons and SkyRe crossbows crafting recipes will always be visible in the crafting menu once the relevant perk is acquired.\n"
+        + "By default, to declutter the crafting menu, each special recipe is hidden unless you have a required base weapon in the inventory.")]
     public bool AllWeaponRecipes { get; set; } = false;
 
     [SettingName("Alternative naming")]

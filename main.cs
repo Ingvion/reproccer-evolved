@@ -198,7 +198,6 @@ static class Executor
             new DataMap{Id = "WAF_ArmorMaterialThalmor",               FormKey = Helpers.ParseFormKey("Update.esm|0xaf0222|KWDA")                  },
             new DataMap{Id = "DLC1CrossbowIsEnhanced",                 FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x00399c|KWDA")               },
             new DataMap{Id = "DLC1ArmorMaterialHunter",                FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x0050c4|KWDA")               },
-            new DataMap{Id = "DLC1CraftingDawnguard",                  FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x00f806|KWDA")               },
             new DataMap{Id = "DLC1ArmorMaterialDawnguard",             FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012ccd|KWDA")               },
             new DataMap{Id = "DLC1ArmorMaterialFalmerHardened",        FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012cce|KWDA")               },
             new DataMap{Id = "DLC1ArmorMaterialFalmerHeavy",           FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012ccf|KWDA")               },
