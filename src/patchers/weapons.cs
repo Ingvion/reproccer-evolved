@@ -77,7 +77,7 @@ public static class WeaponsPatcher
             {
                 ProcessCrossbows(weapon, blacklists[1]);
                 ProcessSilverWeapons(weapon, blacklists[2]);
-                //ProcessRecipes(weapon);
+                ProcessRecipes(weapon, blacklists[3]);
             }
 
             ShowReport(weapon);
@@ -771,6 +771,38 @@ public static class WeaponsPatcher
     }
 
     /// <summary>
+    /// Recipes processor.
+    /// </summary>
+    /// <param name="weapon">The weapon record as IWeaponGetter.</param>
+    /// <param name="excludedNames">The list of excluded strings.</param>
+    private static void ProcessRecipes(IWeaponGetter weapon, List<string> excludedNames)
+    {
+        if (RecordData.Modified) weapon = weapon.AsOverride();
+
+        if (weapon.Name!.ToString()!.IsExcluded(excludedNames))
+        {
+            if (Settings.Debug.ShowExcluded)
+                Logger.Info($"Found in the \"No recipe modifications\" list");
+
+            return;
+        }
+/*
+        foreach (var recipe in Executor.AllRecipes!)
+        {
+            if (recipe.CreatedObject.FormKey == weapon.FormKey)
+            {
+                if (RecordData.AnimType == WeaponAnimationType.Crossbow && 
+                    (recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingForge") || 
+                    recipe.WorkbenchKeyword.FormKey == GetFormKey("DLC1CraftingDawnguard")))
+                    ModCraftingRecipe(recipe, weapon);
+
+                if (recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingSharpeningWheel"))
+                    ModTemperingRecipe(recipe, weapon);
+            }
+        }
+*/
+        AddBreakdownRecipe(weapon);
+    }
     /// Generates a breakdown recipe for the weapon.
     /// </summary>
     /// <param name="weapon">The weapon record as IWeaponGetter.</param>
