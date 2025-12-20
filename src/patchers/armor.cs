@@ -922,7 +922,6 @@ public static class ArmorPatcher
             new DataMap{Id = "DLC1ArmorMaterialFalmerHeavy",           FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012ccf|KWDA")               },
             new DataMap{Id = "DLC1ArmorMaterialFalmerHeavyOriginal",   FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012cd0|KWDA")               },
             new DataMap{Id = "DLC1ArmorMaterialVampire",               FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x01463e|KWDA")               },
-            new DataMap{Id = "DLC2ArmorMaterialBonemoldLight",         FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024100|KWDA")              },
             new DataMap{Id = "DLC2ArmorMaterialBonemoldHeavy",         FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024101|KWDA")              },
             new DataMap{Id = "DLC2ArmorMaterialChitinLight",           FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024102|KWDA")              },
             new DataMap{Id = "DLC2ArmorMaterialChitinHeavy",           FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024103|KWDA")              },
