@@ -795,9 +795,9 @@ public static class WeaponsPatcher
                     (recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingForge") || 
                     recipe.WorkbenchKeyword.FormKey == GetFormKey("DLC1CraftingDawnguard")))
                     ModCraftingRecipe(recipe, weapon);
-/*
+
                 if (recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingSharpeningWheel"))
-                    ModTemperingRecipe(recipe, weapon);*/
+                    ModTemperingRecipe(recipe, weapon);
             }
         }
 
@@ -842,6 +842,72 @@ public static class WeaponsPatcher
             Settings.Weapons.KeepConditions ? GetFormKey("DLC1CraftingDawnguard") : GetFormKey("CraftingSmithingForge"))
             .ToNullableLink();
     }
+
+    /// <summary>
+    /// Modifies tempering recipes for the weapon.<br/><br/>
+    /// The method removes existing HasPerk-type conditions, where perk is a smithing perk, and adds<br/>
+    /// new ones corresponding to the weapon's keywords. If more than 1 perk is associated with a keyword,<br/>
+    /// all but the last HasPerk-type conditions will have the OR flag.
+    /// </summary>
+    /// <param name="recipe">The tempering recipe record as IConstructibleObjectGetter.</param>
+    /// <param name="weapon">The weapon record as IWeaponGetter.</param>
+    private static void ModTemperingRecipe(IConstructibleObjectGetter recipe, IWeaponGetter weapon)
+    {
+        if (recipe.Conditions.Count != 0 && recipe.Conditions.Any(condition => condition.Data is EPTemperingItemIsEnchantedConditionData))
+        {
+            List<FormKey> allPerks = [.. Statics.AllMaterials
+                .Where(entry => entry.Perk != null)
+                .SelectMany(entry => entry.Perk!)
+                .Distinct()];
+            List<FormKey> materialPerks = [.. Statics.AllMaterials
+                .Where(entry => weapon.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
+                .Where(entry => entry.Perk != null)
+                .SelectMany(entry => entry.Perk!)
+                .Distinct()];
+            List<FormKey> materialItems = [.. Statics.AllMaterials
+                .Where(entry => weapon.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
+                .Select(entry => entry.Item!)
+                .Distinct()];
+
+            ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.GetOrAddAsOverride(recipe);
+            for (int i = newRecipe.Conditions.Count - 1; i >= 0; i--)
+            {
+                if (newRecipe.Conditions[i].Data is HasPerkConditionData hasPerk && allPerks.Any(perk => perk == hasPerk.Perk.Link.FormKey))
+                {
+                    newRecipe.Conditions.Remove(newRecipe.Conditions[i]);
+                }
+            }
+
+            if (RecordData.Overridden)
+            {
+                newRecipe.Items?.Clear();
+                foreach (var item in materialItems)
+                {
+                    ContainerItem newItem = new();
+                    newItem.Item = Executor.State!.LinkCache.Resolve<IMiscItemGetter>(item).ToNullableLink();
+                    ContainerEntry newEntry = new();
+                    newEntry.Item = newItem;
+                    newEntry.Item.Count = 1;
+                    newRecipe.Items!.Add(newEntry);
+                }
+            }
+
+            foreach (var perk in materialPerks)
+            {
+                Condition.Flag flag = materialPerks.IndexOf(perk) == materialPerks.Count - 1 ? 0 : Condition.Flag.OR;
+                newRecipe.AddHasPerkCondition(perk, flag);
+            }
+
+            // removing ITPOs
+            if (recipe.Conditions.Count == newRecipe.Conditions.Count
+                && !recipe.Conditions.Except(newRecipe.Conditions).Any())
+            {
+                Executor.State!.PatchMod.ConstructibleObjects.Remove(newRecipe);
+            }
+        }
+    }
+
+    /// <summary>
     /// Generates a breakdown recipe for the weapon.
     /// </summary>
     /// <param name="weapon">The weapon record as IWeaponGetter.</param>
