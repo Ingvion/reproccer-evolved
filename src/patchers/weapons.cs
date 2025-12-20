@@ -786,7 +786,7 @@ public static class WeaponsPatcher
 
             return;
         }
-/*
+
         foreach (var recipe in Executor.AllRecipes!)
         {
             if (recipe.CreatedObject.FormKey == weapon.FormKey)
@@ -795,13 +795,52 @@ public static class WeaponsPatcher
                     (recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingForge") || 
                     recipe.WorkbenchKeyword.FormKey == GetFormKey("DLC1CraftingDawnguard")))
                     ModCraftingRecipe(recipe, weapon);
-
+/*
                 if (recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingSharpeningWheel"))
-                    ModTemperingRecipe(recipe, weapon);
+                    ModTemperingRecipe(recipe, weapon);*/
             }
         }
-*/
+
         AddBreakdownRecipe(weapon);
+    }
+
+    private static void ModCraftingRecipe(IConstructibleObjectGetter recipe, IWeaponGetter weapon)
+    {
+        bool isEnhanced = "name_enhanced".GetT9n().RegexMatch(weapon.Name!.ToString()!, true);
+        //Console.WriteLine($"Name is {weapon.Name!.ToString()}, Pattern is {"name_enhanced".GetT9n()}, res is {isEnhanced}");
+        ConstructibleObject craftingRecipe = Executor.State!.PatchMod.ConstructibleObjects.GetOrAddAsOverride(recipe);
+
+        if (Settings.Weapons.NoVanillaEnhanced && isEnhanced)
+        {
+            craftingRecipe.WorkbenchKeyword = new FormLinkNullable<IKeywordGetter>();
+            return;
+        }
+        else if (!Settings.Weapons.KeepConditions)
+        {
+            craftingRecipe.Conditions?.Clear();
+            List<FormKey> weaponPerks = [.. Statics.AllMaterials
+                .Where(entry => weapon.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
+                .Where(entry => entry.Perk != null)
+                .SelectMany(entry => entry.Perk!)
+                .Distinct()];
+
+            if (weaponPerks.Count > 0)
+            {
+                Condition.Flag flag = Condition.Flag.OR;
+                foreach (var perk in weaponPerks)
+                {
+                    if (weaponPerks.IndexOf(perk) == weaponPerks.Count - 1) flag = 0;
+                    craftingRecipe.AddHasPerkCondition(perk, flag);
+                }
+            }
+        }
+
+        craftingRecipe.AddHasPerkCondition(GetFormKey(
+            isEnhanced ? "skyre_MARCrossbowRecurve" : "skyre_MARBallistics"));
+
+        craftingRecipe.WorkbenchKeyword = Executor.State!.LinkCache.Resolve<IKeywordGetter>(
+            Settings.Weapons.KeepConditions ? GetFormKey("DLC1CraftingDawnguard") : GetFormKey("CraftingSmithingForge"))
+            .ToNullableLink();
     }
     /// Generates a breakdown recipe for the weapon.
     /// </summary>
