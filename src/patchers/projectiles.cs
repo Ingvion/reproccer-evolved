@@ -76,7 +76,7 @@ public static class ProjectilesPatcher
             if (Settings.Debug.ShowExcluded)
             {
                 Logger.Info($"Found in the \"No patching\" list by EditorID (as {ammo.EditorID})");
-                //ShowReport(ammo);
+                ShowReport(ammo);
             }
             return false;
         }
@@ -90,7 +90,7 @@ public static class ProjectilesPatcher
             if (Settings.Debug.ShowExcluded)
             {
                 Logger.Info($"Found in the \"No patching\" list by name");
-                //ShowReport(ammo);
+                ShowReport(ammo);
             }
             return false;
         }
@@ -106,6 +106,13 @@ public static class ProjectilesPatcher
     /// <param name="id">The id in the elements with the FormKey to return.</param>
     /// <returns>A FormKey from the statics list.</returns>
     private static FormKey GetFormKey(string stringId) => Executor.Statics!.First(elem => elem.Id == stringId).FormKey;
+
+    /// <summary>
+    /// Displays info and errors.<br/>
+    /// </summary>
+    /// <param name="ammo">The ammo record as IAmmunitionGetter.</param>
+    private static void ShowReport(this IAmmunitionGetter ammo) =>
+        Logger.ShowReport($"{ammo.Name}", $"{ammo.FormKey}", $"{ammo.EditorID}", RecordData.NonPlayable, false);
 
     // patcher specific statics
     private static (List<DataMap>, List<DataMap>, List<DataMap>) BuildStaticsMap()
