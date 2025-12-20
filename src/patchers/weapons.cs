@@ -1,9 +1,9 @@
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
-using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using ReProccer.Utils;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 namespace ReProccer.Patchers;
 
@@ -45,8 +45,8 @@ public static class WeaponsPatcher
         List<List<string>> blacklists = [
             [.. Rules["excludedFromRenaming"]!.AsArray().Select(value => value!.GetValue<string>())],
             [.. Rules["excludedCrossbows"]!.AsArray().Select(value => value!.GetValue<string>())],
-            [.. Rules["excludedFromRecipes"]!.AsArray().Select(value => value!.GetValue<string>())],
-            [.. Rules["excludedSilver"]!.AsArray().Select(value => value!.GetValue<string>())]
+            [.. Rules["excludedSilver"]!.AsArray().Select(value => value!.GetValue<string>())],
+            [.. Rules["excludedFromRecipes"]!.AsArray().Select(value => value!.GetValue<string>())]
         ];
 
         foreach (var weapon in records)
@@ -55,7 +55,9 @@ public static class WeaponsPatcher
             {
                 AnimType = weapon.Data!.AnimationType,
                 BoundWeapon = weapon.Data!.Flags.HasFlag(WeaponData.Flag.BoundWeapon),
-                NonPlayable = weapon.MajorFlags.HasFlag(Weapon.MajorFlag.NonPlayable),
+                NonPlayable = weapon.MajorFlags.HasFlag(Weapon.MajorFlag.NonPlayable) || 
+                    weapon.Data!.Flags.HasFlag(WeaponData.Flag.NonPlayable) || 
+                    weapon.Data!.Flags.HasFlag(WeaponData.Flag.CantDrop),
                 Unique = weapon.Keywords!.Contains(GetFormKey("skyre__NoMeltdownRecipes"))
             };
             Logger = new Logger();
@@ -93,8 +95,7 @@ public static class WeaponsPatcher
             .Where(plugin => plugin.Enabled)
             .WinningOverrides<IWeaponGetter>();
 
-        Console.WriteLine($"~~~ {weapWinners.Count()} weapon records found, filtering... ~~~\n\n"
-            + "====================");
+        Console.WriteLine($"\n~~~ {weapWinners.Count()} weapon records found, filtering... ~~~\n");
 
         List<IWeaponGetter> weapRecords = [];
 
@@ -104,7 +105,7 @@ public static class WeaponsPatcher
             if (IsValid(record, excludedNames)) weapRecords.Add(record);
         }
 
-        Console.WriteLine($"\n~~~ {weapRecords.Count} weapon records are eligible for patching ~~~\n\n"
+        Console.WriteLine($"~~~ {weapRecords.Count} weapon records are eligible for patching ~~~\n\n"
             + "====================");
         return weapRecords;
     }
@@ -246,7 +247,7 @@ public static class WeaponsPatcher
             }
 
             Logger.Info($"The subtype is forced to {typeOverrideString} in accordance with patching rules", true);
-            string typeTag = (Settings.Weapons.NoTypeTags ? "TYPE " : "") + newType!.Id.GetT9n();
+            string typeTag = (Settings.Weapons.NoTypeTags ? "TYPETAG " : "") + newType!.Id.GetT9n();
             weapon.AsOverride(true).Name = weapon.AsOverride().Name + " [" + typeTag + "]";
             RecordData.Overridden = true;
         }
@@ -448,7 +449,13 @@ public static class WeaponsPatcher
 
         if (weapon.Name!.ToString()!.IsExcluded(excludedNames))
         {
-            if (Settings.Debug.ShowExcluded) Logger.Info($"Found in the \"No crossbow variants\" list");
+            if (Settings.Debug.ShowExcluded) Logger.Info($"Found in the \"No Enhanced variants\" list");
+            return;
+        }
+
+        if (RecordData.Unique)
+        {
+            Logger.Info($"No Enhanced variants were generated due to the \"No breakdown\" keyword", true);
             return;
         }
 
@@ -485,6 +492,8 @@ public static class WeaponsPatcher
 
             i++;
         }
+
+        Logger.Info($"Crossbow variants generated.", true);
     }
 
     private static void CreateCrossbowVariant(Weapon weapon, DataMap material, CrossbowSubtype subtype, int pIndex, int sIndex)
@@ -544,7 +553,7 @@ public static class WeaponsPatcher
             RecordData.ThisRecord = newCrossbow;
         }
 
-        // source ingredients
+        // recipe ingredients
         List<DataMap> ingredients = [
             new DataMap{Ingr = GetFormKey("LeatherStrips"), Qty = 2, Id = "MISC"},
             new DataMap{Ingr = GetFormKey("SprigganSap"),   Qty = 1, Id = "INGR"},
@@ -607,7 +616,7 @@ public static class WeaponsPatcher
             }
         }
 
-        // subtype perks
+        // subtype perks (for crossbows)
         foreach (var perk in perks)
         {
             newRecipe.AddHasPerkCondition(perk);
@@ -780,13 +789,13 @@ public static class WeaponsPatcher
     /// </summary>
     /// <param name="id">The id in the elements with the FormKey to return.</param>
     /// <returns>A FormKey from the statics list.</returns>
-    private static FormKey GetFormKey(string id) => Executor.Statics!.First(elem => elem.Id == id).FormKey;
+    private static FormKey GetFormKey(string stringId) => Executor.Statics!.First(elem => elem.Id == stringId).FormKey;
 
     /// <summary>
     /// Returns the winning override for this-parameter, and copies it to the patch file.<br/>
     /// </summary>
     /// <param name="weapon">The weapon record as IWeaponGetter.</param>
-    /// <param name="markModified">True to mark as modified in the local record data.</param>
+    /// <param name="markModified">True to mark as modified in the patching data.</param>
     /// <returns>The winning override as <see cref="Weapon"/>.</returns>
     private static Weapon AsOverride(this IWeaponGetter weapon, bool markModified = false)
     {
@@ -798,7 +807,6 @@ public static class WeaponsPatcher
     /// Displays info and errors.<br/>
     /// </summary>
     /// <param name="weapon">The weapon record as IWeaponGetter.</param>
-    /// <param name="msgList">The list of list of strings with messages.</param>
     private static void ShowReport(this IWeaponGetter weapon) => 
         Logger.ShowReport($"{weapon.Name}", $"{weapon.FormKey}", $"{weapon.EditorID}", RecordData.NonPlayable, !weapon.Template.IsNull);
 
@@ -815,6 +823,8 @@ public static class WeaponsPatcher
             new DataMap{Id = "WeapTypeWarhammer",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06d930|KWDA")                  },
             new DataMap{Id = "WeapTypeGreatsword",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06d931|KWDA")                  },
             new DataMap{Id = "WeapTypeBattleaxe",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06d932|KWDA")                  },
+            new DataMap{Id = "CraftingSmithingSharpeningWheel",        FormKey = Helpers.ParseFormKey("Skyrim.esm|0x088108|KWDA")                  },
+            new DataMap{Id = "DLC1EnchancedCrossbowArmorPiercingPerk", FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x00399b|PERK")               },
             new DataMap{Id = "skyre__WeapTypeBastardSword",            FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000813|KWDA") },
             new DataMap{Id = "skyre__WeapTypeQuarterstaff",            FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000814|KWDA") },
             new DataMap{Id = "skyre__WeapMaterialBound",               FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000815|KWDA") },
@@ -840,6 +850,7 @@ public static class WeaponsPatcher
             new DataMap{Id = "skyre__WeapMaterialSilverRefined",       FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000829|KWDA") },
             new DataMap{Id = "skyre_MAREnhancedCrossbowMuffled",       FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d97|KWDA") },
             new DataMap{Id = "skyre_MAREnhancedCrossbowSiege",         FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d98|KWDA") },
+            new DataMap{Id = "DLC1CraftingDawnguard",                  FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x00f806|KWDA")               },
             new DataMap{Id = "SilverPerk",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x10d685|PERK")                  },
             new DataMap{Id = "skyre_MARCrossbowLight",                 FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d93|PERK") },
             new DataMap{Id = "skyre_MARCrossbowRecurve",               FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d94|PERK") },
@@ -909,7 +920,7 @@ public static class WeaponsPatcher
             new DataMap{Id = "mat_madness",    Kwda = GetFormKey("cc_WeapMaterialMadness"),           Item = GetFormKey("cc_IngotMadness"),  Perk = [ GetFormKey("EbonySmithing") ]                                    },
             new DataMap{Id = "mat_nordic",     Kwda = GetFormKey("DLC2WeaponMaterialNordic"),         Item = GetFormKey("IngotQuicksilver"), Perk = [ GetFormKey("AdvancedArmors") ]                                   },
             new DataMap{Id = "mat_orcish",     Kwda = GetFormKey("WeapMaterialOrcish"),               Item = GetFormKey("IngotOrichalcum"),  Perk = [ GetFormKey("OrcishSmithing") ]                                   },
-            new DataMap{Id = "mat_silverr",    Kwda = GetFormKey("skyre__WeapMaterialSilverRefined"), Item = GetFormKey("IngotQuicksilver"), Perk = [ GetFormKey("skyre_SMTDeepSilver"), GetFormKey("SteelSmithing") ] },
+            new DataMap{Id = "mat_silverr",    Kwda = GetFormKey("skyre__WeapMaterialSilverRefined"), Item = GetFormKey("IngotSilver"),      Perk = [ GetFormKey("skyre_SMTDeepSilver"), GetFormKey("SteelSmithing") ] },
             new DataMap{Id = "mat_silver",     Kwda = GetFormKey("WeapMaterialSilver"),               Item = GetFormKey("IngotSilver"),      Perk = [ GetFormKey("skyre_SMTTradecraft"), GetFormKey("SteelSmithing") ] },
             new DataMap{Id = "mat_stalhrim",   Kwda = GetFormKey("DLC2WeaponMaterialStalhrim"),       Item = GetFormKey("DLC2OreStalhrim"),  Perk = [ GetFormKey("GlassSmithing"), GetFormKey("EbonySmithing") ]       },
             new DataMap{Id = "mat_steel",      Kwda = GetFormKey("WeapMaterialSteel"),                Item = GetFormKey("IngotSteel"),       Perk = [ GetFormKey("SteelSmithing") ]                                    },
