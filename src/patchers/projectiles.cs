@@ -23,14 +23,20 @@ public static class ProjectilesPatcher
         EditorIDs = new EditorIDs();
 
         List<IAmmunitionGetter> records = GetRecords();
-        List<List<string>> blacklists = [
-            [.. Rules["excludedAmmunitionVariants"]!.AsArray().Select(value => value!.GetValue<string>())],
-            [.. Rules["excludedAmmunition"]!.AsArray().Select(value => value!.GetValue<string>())]
-        ];
+        List<string> blacklist = [.. Rules["excludedAmmunitionVariants"]!.AsArray().Select(value => value!.GetValue<string>())];
 
         foreach (var ammo in records)
         {
+            RecordData = new PatchingData
+            {
+                IsArrow = ammo.Flags.HasFlag(Ammunition.Flag.NonBolt),
+                NonPlayable = ammo.MajorFlags.HasFlag(Ammunition.MajorFlag.NonPlayable) || ammo.Flags.HasFlag(Ammunition.Flag.NonPlayable)
+            };
 
+            if (!RecordData.NonPlayable)
+                ProcessRecipes(ammo);
+
+            //PatchAmmunition(ammo);
         }
     }
 
@@ -98,14 +104,77 @@ public static class ProjectilesPatcher
         return true;
     }
 
+    /// <summary>
+    /// Recipes processor.
+    /// </summary>
+    /// <param name="ammo">The ammo record as IWeaponGetter.</param>
+    /// <param name="excludedNames">The list of excluded strings.</param>
+    private static void ProcessRecipes(IAmmunitionGetter ammo)
+    {
+        foreach (var recipe in Executor.AllRecipes!)
+        {
+            if (recipe.CreatedObject.FormKey == ammo.FormKey && !recipe.WorkbenchKeyword.IsNull)
+                ModCraftingRecipe(recipe, ammo);
+        }
+
+        //AddBreakdownRecipe(weapon);
+    }
+
+    private static void ModCraftingRecipe(IConstructibleObjectGetter recipe, IAmmunitionGetter ammo)
+    {
+        DataMap material = Statics.AllMaterials.FirstOrDefault(material => ammo.AsOverride().Keywords!.Contains(material.Kwda!));
+        if (material.Id is null)
+            material = Statics.AllMaterials.FirstOrDefault(material => material.Id.GetT9n().RegexMatch(ammo.AsOverride().Name!.ToString()!, true));
+
+        if (material.Id is null)
+        {
+            Logger.Caution("Unable to determine the ammo material");
+            return;
+        }
+
+        ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.GetOrAddAsOverride(recipe);
+        if (Settings.Projectiles.KeepConditions && recipe.Conditions.Count != 0)
+        {
+            for (int i = 0; i < newRecipe.Conditions.Count; i++)
+            {
+                if (newRecipe.Conditions[i].Data is HasPerkConditionData hasPerk &&
+                    Statics.AllMaterials.Any(entry => entry.Perks.Any(perk => perk == hasPerk.Perk.Link.FormKey)))
+                {
+                    newRecipe.Conditions.Remove(newRecipe.Conditions[i]);
+                }
+            }
+        }
+
+        foreach (var perk in material.Perks)
+        {
+            Condition.Flag flag = material.Perks.IndexOf(perk) == material.Perks.Count - 1 ? 0 : Condition.Flag.OR;
+            newRecipe.AddHasPerkCondition(perk, flag);
+        }
+
+        if (RecordData.IsArrow) 
+            newRecipe.AddHasPerkCondition(GetFormKey("skyre_MARBallistics"), 0, 0);
+    }
+
     // patcher specific helpers
 
-    /// <summary>
-    /// Returns the FormKey with id from the statics record.<br/>
-    /// </summary>
-    /// <param name="id">The id in the elements with the FormKey to return.</param>
-    /// <returns>A FormKey from the statics list.</returns>
+        /// <summary>
+        /// Returns the FormKey with id from the statics record.<br/>
+        /// </summary>
+        /// <param name="stringId">The id in the elements with the FormKey to return.</param>
+        /// <returns>A FormKey from the statics list.</returns>
     private static FormKey GetFormKey(string stringId) => Executor.Statics!.First(elem => elem.Id == stringId).FormKey;
+
+    /// <summary>
+    /// Returns the winning override for this-parameter, and copies it to the patch file.<br/>
+    /// </summary>
+    /// <param name="ammo">The ammo record as IAmmunitionGetter.</param>
+    /// <param name="markModified">True to mark as modified in the patching data.</param>
+    /// <returns>The winning override as <see cref="Ammunition"/>.</returns>
+    private static Ammunition AsOverride(this IAmmunitionGetter ammo, bool markModified = false)
+    {
+        if (markModified) RecordData.Modified = true;
+        return Executor.State!.PatchMod.Ammunitions.GetOrAddAsOverride(ammo);
+    }
 
     /// <summary>
     /// Displays info and errors.<br/>
