@@ -1146,7 +1146,6 @@ public static class WeaponsPatcher
             new DataMap{Id = "skyre_MARCrossbowMuffled",               FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d95|PERK") },
             new DataMap{Id = "skyre_MARCrossbowSiege",                 FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d96|PERK") },
             new DataMap{Id = "skyre_MARArtificer",                     FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000dbf|PERK") },
-            new DataMap{Id = "skyre_SMTTradecraft",                    FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee0|PERK") },
             new DataMap{Id = "skyre_SMTDeepSilver",                    FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee4|PERK") }
         ]);
 
