@@ -173,6 +173,7 @@ static class Executor
             new DataMap{Id = "DaedricSmithing",                        FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0cb413|PERK")                  },
             new DataMap{Id = "AdvancedArmors",                         FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0cb414|PERK")                  },
             new DataMap{Id = "skyre_MARBallistics",                    FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d80|PERK") },
-            new DataMap{Id = "skyre_SMTBreakdown",                     FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000edf|PERK") }
+            new DataMap{Id = "skyre_SMTBreakdown",                     FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000edf|PERK") },
+            new DataMap{Id = "skyre_SMTTradecraft",                    FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee0|PERK") },
         ];
 }
