@@ -326,7 +326,8 @@ public static class ArmorPatcher
         if ((float)newArmorRating != armor.ArmorRating)
         {
             armor.AsOverride(true).ArmorRating = (float)newArmorRating;
-            Logger.Info($"Armor rating: {armor.ArmorRating} -> {armor.AsOverride().ArmorRating}", true);
+            Logger.Info($"Armor rating: {armor.ArmorRating} -> {armor.AsOverride().ArmorRating} " +
+                $"(material: {materialFactor}, slot: x{slotFactor}, mult: x{extraMod})", true);
         }
     }
 
