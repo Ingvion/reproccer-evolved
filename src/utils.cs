@@ -46,6 +46,12 @@ public struct PatchingData
     public ArmorType ArmorType { get; set; }
     public WeaponAnimationType AnimType { get; set; }
     public IMajorRecordGetter? ThisRecord { get; set; }
+
+    public bool IsArrow
+    {
+        get => BoundWeapon;
+        set => BoundWeapon = value;
+    }
 }
 
 public struct EditorIDs()
