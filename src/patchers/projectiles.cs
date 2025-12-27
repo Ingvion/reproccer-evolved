@@ -32,11 +32,15 @@ public static class ProjectilesPatcher
                 IsArrow = ammo.Flags.HasFlag(Ammunition.Flag.NonBolt),
                 NonPlayable = ammo.MajorFlags.HasFlag(Ammunition.MajorFlag.NonPlayable) || ammo.Flags.HasFlag(Ammunition.Flag.NonPlayable)
             };
+            Logger = new Logger();
+
+            DataMap material = TryGetMaterial(ammo);
 
             if (!RecordData.NonPlayable)
-                ProcessRecipes(ammo);
+                ProcessRecipes(ammo, material);
 
-            //PatchAmmunition(ammo);
+            PatchAmmunition(ammo, material);
+            ShowReport(ammo);
         }
     }
 
@@ -51,8 +55,6 @@ public static class ProjectilesPatcher
             .Where(plugin => plugin.Enabled)
             .WinningOverrides<IAmmunitionGetter>();
 
-        Console.WriteLine($"\n~~~ {ammoWinners.Count()} ammunition records found, filtering... ~~~\n");
-
         List<IAmmunitionGetter> ammoRecords = [];
 
         List<string> excludedNames = [.. Rules["excludedAmmunition"]!.AsArray().Select(value => value!.GetValue<string>())];
@@ -61,7 +63,7 @@ public static class ProjectilesPatcher
             if (IsValid(record, excludedNames)) ammoRecords.Add(record);
         }
 
-        Console.WriteLine($"~~~ {ammoRecords.Count} ammunition records are eligible for patching ~~~\n\n"
+        Console.WriteLine($"\n~~~ {ammoRecords.Count} of {ammoWinners.Count()} ammunition records are eligible for patching ~~~\n\n"
             + "====================");
         return ammoRecords;
     }
@@ -104,55 +106,105 @@ public static class ProjectilesPatcher
         return true;
     }
 
+    private static DataMap TryGetMaterial(IAmmunitionGetter ammo)
+    {
+        DataMap material = Statics.AllMaterials.FirstOrDefault(material => ammo.Keywords!.Contains(material.Kwda!));
+        if (material.Id is null)
+            material = Statics.AllMaterials.FirstOrDefault(material => material.Id.GetT9n().RegexMatch(ammo.Name!.ToString()!, true));
+        if (material.Id is null)
+        {
+            Executor.State!.LinkCache.TryResolve<IProjectileGetter>(ammo.Projectile.FormKey, out var proj);
+            if (proj is not null && proj.Name is not null)
+                material = Statics.AllMaterials.FirstOrDefault(material => material.Id.GetT9n().RegexMatch(proj.Name!.ToString()!, true));
+        }
+
+        return material;
+    }
+
     /// <summary>
     /// Recipes processor.
     /// </summary>
     /// <param name="ammo">The ammo record as IWeaponGetter.</param>
     /// <param name="excludedNames">The list of excluded strings.</param>
-    private static void ProcessRecipes(IAmmunitionGetter ammo)
+    private static void ProcessRecipes(IAmmunitionGetter ammo, DataMap material)
     {
         foreach (var recipe in Executor.AllRecipes!)
         {
             if (recipe.CreatedObject.FormKey == ammo.FormKey && !recipe.WorkbenchKeyword.IsNull)
-                ModCraftingRecipe(recipe, ammo);
+                ModCraftingRecipe(recipe, material);
         }
 
         //AddBreakdownRecipe(weapon);
     }
 
-    private static void ModCraftingRecipe(IConstructibleObjectGetter recipe, IAmmunitionGetter ammo)
+    private static void ModCraftingRecipe(IConstructibleObjectGetter recipe, DataMap material)
     {
-        DataMap material = Statics.AllMaterials.FirstOrDefault(material => ammo.AsOverride().Keywords!.Contains(material.Kwda!));
-        if (material.Id is null)
-            material = Statics.AllMaterials.FirstOrDefault(material => material.Id.GetT9n().RegexMatch(ammo.AsOverride().Name!.ToString()!, true));
-
-        if (material.Id is null)
-        {
-            Logger.Caution("Unable to determine the ammo material");
-            return;
-        }
-
+        bool isModified = false;
         ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.GetOrAddAsOverride(recipe);
-        if (Settings.Projectiles.KeepConditions && recipe.Conditions.Count != 0)
+
+        if (newRecipe.Conditions.Count > 0)
         {
-            for (int i = 0; i < newRecipe.Conditions.Count; i++)
+            if (!Settings.Projectiles.KeepConditions)
             {
-                if (newRecipe.Conditions[i].Data is HasPerkConditionData hasPerk &&
-                    Statics.AllMaterials.Any(entry => entry.Perks.Any(perk => perk == hasPerk.Perk.Link.FormKey)))
+                for (int i = newRecipe.Conditions.Count - 1; i >= 0; i--)
                 {
-                    newRecipe.Conditions.Remove(newRecipe.Conditions[i]);
+                    // the condition is not of HasPerk type or if specified perk is not in the list of all material perks
+                    if (newRecipe.Conditions[i].Data is not HasPerkConditionData hasPerk || 
+                        Statics.AllMaterials.All(entry => entry.Perks is not null &&
+                        entry.Perks.All(perk => perk != hasPerk.Perk.Link.FormKey)))
+                    {
+                        newRecipe.Conditions.Remove(newRecipe.Conditions[i]);
+                    }
+                    else if (material.Perks is not null)
+                    {
+                        // the condition already have a valid material perk specified
+                        if (material.Perks.Contains(hasPerk.Perk.Link.FormKey))
+                        {
+                            material.Perks.Remove(hasPerk.Perk.Link.FormKey);
+                        }
+                        // the condition have the material perk specified,
+                        // but it's not related to the ammo material in SkyRe system
+                        else if (material.Perks.Count > 0)
+                        {
+                            newRecipe.Conditions.Remove(newRecipe.Conditions[i]);
+                        }
+                    }
+                }
+
+            }
+            else
+            {
+                // a condition of HasPerk type with any material perk specified already exists
+                if (newRecipe.Conditions.Any(cond => cond.Data is HasPerkConditionData hasPerk &&
+                    Statics.AllMaterials.Any(entry => entry.Perks is not null && 
+                    entry.Perks.Any(perk => perk == hasPerk.Perk.Link.FormKey))))
+                {
+                    material.Perks = [];
                 }
             }
         }
 
-        foreach (var perk in material.Perks)
+        if (material.Perks is not null && material.Perks.Count > 0)
         {
-            Condition.Flag flag = material.Perks.IndexOf(perk) == material.Perks.Count - 1 ? 0 : Condition.Flag.OR;
-            newRecipe.AddHasPerkCondition(perk, flag);
+            foreach (var perk in material.Perks)
+            {
+                Condition.Flag flag = material.Perks.IndexOf(perk) == material.Perks.Count - 1 ? 0 : Condition.Flag.OR;
+                newRecipe.AddHasPerkCondition(perk, flag);
+                isModified = true;
+            }
         }
 
-        if (RecordData.IsArrow) 
+        // the ammo is a bolt and there's no condition of HasPerk type with the Ballistics perk
+        if (!RecordData.IsArrow && 
+            newRecipe.Conditions.All(cond => cond.Data is not HasPerkConditionData hasPerk || 
+            hasPerk.Perk.Link.FormKey != GetFormKey("skyre_MARBallistics")))
+        {
             newRecipe.AddHasPerkCondition(GetFormKey("skyre_MARBallistics"), 0, 0);
+            isModified = true;
+        }
+
+        if (!isModified)
+            Executor.State!.PatchMod.ConstructibleObjects.Remove(newRecipe);
     }
 
     // patcher specific helpers
@@ -212,27 +264,27 @@ public static class ProjectilesPatcher
         ]);
 
         List<DataMap> allMaterials = [
-            new DataMap{Id = "mat_amber",      Kwda = GetFormKey("cc_WeapMaterialAmber"),           Items = [ GetFormKey("cc_IngotAmber") ],    Perks = [ GetFormKey("GlassSmithing"), GetFormKey("EbonySmithing") ]       },
-            new DataMap{Id = "mat_bonemold",   Kwda = GetFormKey("DLC2ArmorMaterialBonemoldLight"), Items = [ GetFormKey("Firewood01") ],       Perks = [ GetFormKey("AdvancedArmors")]                                    },
-            new DataMap{Id = "mat_daedric",    Kwda = GetFormKey("WeapMaterialDaedric"),            Items = [ GetFormKey("IngotEbony") ],       Perks = [ GetFormKey("DaedricSmithing")]                                   },
-            new DataMap{Id = "mat_dark",       Kwda = GetFormKey("cc_WeapMaterialDark"),            Items = [ GetFormKey("IngotQuicksilver") ], Perks = [ GetFormKey("DaedricSmithing")]                                   },
-            new DataMap{Id = "mat_dragonbone", Kwda = GetFormKey("DLC1WeapMaterialDragonbone"),     Items = [ GetFormKey("DragonBone") ],       Perks = [ GetFormKey("DragonArmor")]                                       },
-            new DataMap{Id = "mat_draugr",     Kwda = GetFormKey("WeapMaterialDraugr"),             Items = [ GetFormKey("IngotQuicksilver") ], Perks = [ GetFormKey("AdvancedArmors")]                                    },
-            new DataMap{Id = "mat_draugrh",    Kwda = GetFormKey("WeapMaterialDraugrHoned"),        Items = [ GetFormKey("IngotQuicksilver") ], Perks = [ GetFormKey("AdvancedArmors") ]                                   },
-            new DataMap{Id = "mat_dwarven",    Kwda = GetFormKey("WeapMaterialDwarven"),            Items = [ GetFormKey("IngotDwarven") ],     Perks = [ GetFormKey("DwarvenSmithing") ]                                  },
-            new DataMap{Id = "mat_ebony",      Kwda = GetFormKey("WeapMaterialEbony"),              Items = [ GetFormKey("IngotEbony") ],       Perks = [ GetFormKey("EbonySmithing") ]                                    },
-            new DataMap{Id = "mat_elven",      Kwda = GetFormKey("WeapMaterialElven"),              Items = [ GetFormKey("IngotMoonstone") ],   Perks = [ GetFormKey("ElvenSmithing") ]                                    },
-            new DataMap{Id = "mat_falmer",     Kwda = GetFormKey("WeapMaterialFalmer"),             Items = [ GetFormKey("ChaurusChitin") ],    Perks = [ GetFormKey("ElvenSmithing") ]                                    },
-            new DataMap{Id = "mat_forsworn",   Kwda = GetFormKey("WAF_WeapMaterialForsworn"),       Items = [ GetFormKey("IngotIron") ]                                                                                    },
-            new DataMap{Id = "mat_glass",      Kwda = GetFormKey("WeapMaterialGlass"),              Items = [ GetFormKey("IngotMalachite") ],   Perks = [ GetFormKey("GlassSmithing") ]                                    },
-            new DataMap{Id = "mat_golden",     Kwda = GetFormKey("cc_WeapMaterialGolden"),          Items = [ GetFormKey("IngotMoonstone") ],   Perks = [ GetFormKey("DaedricSmithing") ]                                  },
-            new DataMap{Id = "mat_iron",       Kwda = GetFormKey("WeapMaterialIron"),               Items = [ GetFormKey("IngotIron") ]                                                                                    },
-            new DataMap{Id = "mat_madness",    Kwda = GetFormKey("cc_WeapMaterialMadness"),         Items = [ GetFormKey("cc_IngotMadness") ],  Perks = [ GetFormKey("EbonySmithing") ]                                    },
-            new DataMap{Id = "mat_nordic",     Kwda = GetFormKey("DLC2WeaponMaterialNordic"),       Items = [ GetFormKey("IngotQuicksilver") ], Perks = [ GetFormKey("AdvancedArmors") ]                                   },
-            new DataMap{Id = "mat_orcish",     Kwda = GetFormKey("WeapMaterialOrcish"),             Items = [ GetFormKey("IngotOrichalcum") ],  Perks = [ GetFormKey("OrcishSmithing") ]                                   },
-            new DataMap{Id = "mat_silver",     Kwda = GetFormKey("WeapMaterialSilver"),             Items = [ GetFormKey("IngotSilver") ],      Perks = [ GetFormKey("skyre_SMTTradecraft"), GetFormKey("SteelSmithing") ] },
-            new DataMap{Id = "mat_stalhrim",   Kwda = GetFormKey("DLC2WeaponMaterialStalhrim"),     Items = [ GetFormKey("DLC2OreStalhrim") ],  Perks = [ GetFormKey("GlassSmithing"), GetFormKey("EbonySmithing") ]       },
-            new DataMap{Id = "mat_steel",      Kwda = GetFormKey("WeapMaterialSteel"),              Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("SteelSmithing") ]                                    }
+            new DataMap{Id = "mat_amber",      Kwda = GetFormKey("cc_WeapMaterialAmber"),           Items = [ GetFormKey("cc_IngotAmber") ],    Perks = [ GetFormKey("GlassSmithing") ]       },
+            new DataMap{Id = "mat_bonemold",   Kwda = GetFormKey("DLC2ArmorMaterialBonemoldLight"), Items = [ GetFormKey("Firewood01") ],       Perks = [ GetFormKey("AdvancedArmors") ]      },
+            new DataMap{Id = "mat_daedric",    Kwda = GetFormKey("WeapMaterialDaedric"),            Items = [ GetFormKey("IngotEbony") ],       Perks = [ GetFormKey("DaedricSmithing") ]     },
+            new DataMap{Id = "mat_dark",       Kwda = GetFormKey("cc_WeapMaterialDark"),            Items = [ GetFormKey("IngotQuicksilver") ], Perks = [ GetFormKey("DaedricSmithing") ]     },
+            new DataMap{Id = "mat_dragonbone", Kwda = GetFormKey("DLC1WeapMaterialDragonbone"),     Items = [ GetFormKey("DragonBone") ],       Perks = [ GetFormKey("DragonArmor") ]         },
+            new DataMap{Id = "mat_draugr",     Kwda = GetFormKey("WeapMaterialDraugr"),             Items = [ GetFormKey("IngotQuicksilver") ], Perks = [ GetFormKey("AdvancedArmors") ]      },
+            new DataMap{Id = "mat_draugrh",    Kwda = GetFormKey("WeapMaterialDraugrHoned"),        Items = [ GetFormKey("IngotQuicksilver") ], Perks = [ GetFormKey("AdvancedArmors") ]      },
+            new DataMap{Id = "mat_dwarven",    Kwda = GetFormKey("WeapMaterialDwarven"),            Items = [ GetFormKey("IngotDwarven") ],     Perks = [ GetFormKey("DwarvenSmithing") ]     },
+            new DataMap{Id = "mat_ebony",      Kwda = GetFormKey("WeapMaterialEbony"),              Items = [ GetFormKey("IngotEbony") ],       Perks = [ GetFormKey("EbonySmithing") ]       },
+            new DataMap{Id = "mat_elven",      Kwda = GetFormKey("WeapMaterialElven"),              Items = [ GetFormKey("IngotMoonstone") ],   Perks = [ GetFormKey("ElvenSmithing") ]       },
+            new DataMap{Id = "mat_falmer",     Kwda = GetFormKey("WeapMaterialFalmer"),             Items = [ GetFormKey("ChaurusChitin") ],    Perks = [ GetFormKey("ElvenSmithing") ]       },
+            new DataMap{Id = "mat_forsworn",   Kwda = GetFormKey("WAF_WeapMaterialForsworn"),       Items = [ GetFormKey("IngotIron") ]                                                       },
+            new DataMap{Id = "mat_glass",      Kwda = GetFormKey("WeapMaterialGlass"),              Items = [ GetFormKey("IngotMalachite") ],   Perks = [ GetFormKey("GlassSmithing") ]       },
+            new DataMap{Id = "mat_golden",     Kwda = GetFormKey("cc_WeapMaterialGolden"),          Items = [ GetFormKey("IngotMoonstone") ],   Perks = [ GetFormKey("DaedricSmithing") ]     },
+            new DataMap{Id = "mat_iron",       Kwda = GetFormKey("WeapMaterialIron"),               Items = [ GetFormKey("IngotIron") ]                                                       },
+            new DataMap{Id = "mat_madness",    Kwda = GetFormKey("cc_WeapMaterialMadness"),         Items = [ GetFormKey("cc_IngotMadness") ],  Perks = [ GetFormKey("EbonySmithing") ]       },
+            new DataMap{Id = "mat_nordic",     Kwda = GetFormKey("DLC2WeaponMaterialNordic"),       Items = [ GetFormKey("IngotQuicksilver") ], Perks = [ GetFormKey("AdvancedArmors") ]      },
+            new DataMap{Id = "mat_orcish",     Kwda = GetFormKey("WeapMaterialOrcish"),             Items = [ GetFormKey("IngotOrichalcum") ],  Perks = [ GetFormKey("OrcishSmithing") ]      },
+            new DataMap{Id = "mat_silver",     Kwda = GetFormKey("WeapMaterialSilver"),             Items = [ GetFormKey("IngotSilver") ],      Perks = [ GetFormKey("skyre_SMTTradecraft") ] },
+            new DataMap{Id = "mat_stalhrim",   Kwda = GetFormKey("DLC2WeaponMaterialStalhrim"),     Items = [ GetFormKey("DLC2OreStalhrim") ],  Perks = [ GetFormKey("EbonySmithing") ]       },
+            new DataMap{Id = "mat_steel",      Kwda = GetFormKey("WeapMaterialSteel"),              Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("SteelSmithing") ]       }
         ];
 
         List<DataMap> arrowVariants = [
