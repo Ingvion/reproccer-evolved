@@ -40,6 +40,7 @@ public static class ProjectilesPatcher
                 ProcessRecipes(ammo, material);
 
             PatchAmmunition(ammo, material);
+
             ShowReport(ammo);
         }
     }
@@ -207,13 +208,156 @@ public static class ProjectilesPatcher
             Executor.State!.PatchMod.ConstructibleObjects.Remove(newRecipe);
     }
 
+    private static void PatchAmmunition(IAmmunitionGetter ammo, DataMap material, Projectile? proj = null, IExplosionGetter? expl = null)
+    {
+        Executor.State!.LinkCache.TryResolve<IProjectileGetter>(ammo.Projectile.FormKey, out var baseProj);
+        if (proj is null)
+        {
+            if (baseProj is null)
+            {
+                Logger.Error("No projectile attached to this record");
+                return;
+            }
+
+            proj = Executor.State!.PatchMod.Projectiles.GetOrAddAsOverride(
+                Executor.State!.LinkCache.Resolve(ammo.Projectile));
+
+            if (proj.Type != Projectile.TypeEnum.Arrow && proj.Type != Projectile.TypeEnum.Missile)
+            {
+                Logger.Error($"The projectile has incorrect type (expected Arrow or Missile, returned {proj.Type} instead)");
+                Executor.State!.PatchMod.Projectiles.Remove(proj);
+                return;
+            }
+        }
+
+        // projectile data
+        float range = 120000f;
+
+        float baseGravity = GetBaseData("gravity", proj, ammo, RecordData.IsArrow ? 0.25f : 0.2f);
+        float materialGravity = GetMaterialData("gravity", proj, ammo, 0, material);
+        float modifierGravity = GetModifierData("gravity", proj, ammo, 0);
+        float gravity = baseGravity + materialGravity + modifierGravity;
+
+        float baseSpeed = GetBaseData("speed", proj, ammo, RecordData.IsArrow ? 5200f : 6500f);
+        float materialSpeed = GetMaterialData("speed", proj, ammo, 0, material);
+        float modifierSpeed = GetModifierData("speed", proj, ammo, 0);
+        float speed = baseSpeed + materialSpeed + modifierSpeed;
+
+        if ((range == proj.Range) && (gravity == proj.Gravity) && (speed == proj.Speed))
+        {
+            // identical to the original
+            Executor.State!.PatchMod.Projectiles.Remove(proj);
+        }
+        else
+        {
+            proj.Range = range;
+            (gravity, proj.Gravity) = gravity.Validate(proj.Gravity, nameof(proj.Gravity), RecordData.IsArrow ? 0.25f : 0.2f, true);
+            (speed, proj.Speed) = speed.Validate(proj.Speed, nameof(proj.Speed), RecordData.IsArrow ? 5200f : 6500f, true);
+        }
+
+        // ammo data
+        float baseDamage = GetBaseData("damage", proj, ammo, RecordData.IsArrow ? 7f : 13f);
+        float materialDamage = GetMaterialData("damage", proj, ammo, 0, material);
+        float modifierDamage = GetModifierData("damage", proj, ammo, 0);
+        float damage = baseDamage + materialDamage + modifierDamage;
+
+        float modWeight = GetModifierData("weightMult", proj, ammo, 1f);
+        float modValue = GetModifierData("priceMult", proj, ammo, 1f);
+
+        if ((damage != ammo.Damage) || (modWeight != 1f) || (modValue != 1f))
+        {
+            modWeight = modWeight < 0 ? 1f : modWeight;
+            modValue = modValue < 0 ? 1f : modValue;
+
+            (damage, ammo.AsOverride(true).Damage) = damage.Validate(ammo.Damage, nameof(ammo.Damage), RecordData.IsArrow ? 7f : 13f);
+            ammo.AsOverride().Weight *= modWeight;
+            ammo.AsOverride().Value = (uint)(ammo.Value * modValue);
+        }
+
+        if (Settings.Debug.ShowVerboseData)
+        {
+            Logger.Info($"Damage: {ammo.Damage} -> {damage} " +
+                $"(base: {baseDamage}, material: {materialDamage}, modifier: {modifierDamage})");
+            Logger.Info($"Gravity: {baseProj!.Gravity} -> {(decimal)gravity} " +
+                $"(base: {baseGravity}, material: {materialGravity}, modifier: {modifierGravity})");
+            Logger.Info($"Speed: {baseProj!.Speed} -> {speed} " +
+                $"(base: {baseSpeed}, material: {materialSpeed}, modifier: {modifierSpeed})");
+            if (modWeight != 1f) Logger.Info($"Weight: {ammo.Weight} -> {ammo.AsOverride().Weight} " +
+                $"(modifier: x{modWeight}");
+            if (modValue != 1f) Logger.Info($"Value: {ammo.Value} -> {ammo.AsOverride().Value} " +
+                $"(modifier: x{modValue})");
+        }
+    }
+
+    private static (float, float) Validate(this float newValue, float oldValue, string name, float fallback, bool allowCustom = false)
+    {
+        if (newValue <= 0 && !allowCustom)
+        {
+            Logger.Error($"{name} cannot be 0 or negative! The fallback value of {fallback} will be used instead");
+            return (fallback, fallback);
+        }
+        else if (allowCustom)
+        {
+            if (oldValue == 0 && name == "Gravity")
+            {
+                Logger.Caution("Original gravity is 0, but most likely on purpose, and will not be changed");
+                return (oldValue, oldValue);
+            }
+
+            if (newValue * 2 < oldValue && name == "Speed")
+            {
+                Logger.Caution("Original speed is very high, but most likely on purpose, and will not be changed");
+                return (oldValue, oldValue);
+            }
+        }
+
+        return (newValue, newValue);
+    }
+
+    private static float GetBaseData(string data, IProjectileGetter proj, IAmmunitionGetter ammo, float fallback)
+    {
+        // base stats
+        JsonNode? baseNode = Helpers.RuleByName(ammo.Name!.ToString()!, Rules["baseStats"]!.AsArray(), data1: "names", data2: data, true);
+        if (baseNode is null && proj.Name is not null)
+            baseNode = Helpers.RuleByName(proj.Name!.ToString()!, Rules["baseStats"]!.AsArray(), data1: "names", data2: data, true);
+        float? baseData = baseNode?.AsType<float>();
+
+        if (baseData is null) Logger.Error($"Unable to determine ammo type {data}; the fallback value of {fallback} will be used");
+
+        return baseData ?? fallback;
+    }
+
+    private static float GetMaterialData(string data, IProjectileGetter proj, IAmmunitionGetter ammo, float fallback, DataMap material = new DataMap())
+    {
+        // material stats
+        JsonNode? materialNode = Helpers.RuleByName(ammo.Name!.ToString()!, Rules["materialStats"]!.AsArray(), data1: "names", data2: data, true);
+        if (materialNode is null && material.Id is not null)
+            materialNode = Helpers.RuleByName(material.Id, Rules["materialStats"]!.AsArray(), data1: "id", data2: data, true);
+        if (materialNode is null && proj.Name is not null)
+            materialNode = Helpers.RuleByName(proj.Name!.ToString()!, Rules["materialStats"]!.AsArray(), data1: "names", data2: data, true);
+        float? materialData = materialNode?.AsType<float>();
+
+        return materialData ?? fallback;
+    }
+
+    private static float GetModifierData(string data, IProjectileGetter proj, IAmmunitionGetter ammo, float fallback)
+    {
+        // modifier stats
+        JsonNode? modifierNode = Helpers.RuleByName(ammo.Name!.ToString()!, Rules["modifierStats"]!.AsArray(), data1: "names", data2: data, true);
+        if (modifierNode is null && proj.Name is not null)
+            modifierNode = Helpers.RuleByName(proj.Name!.ToString()!, Rules["modifierStats"]!.AsArray(), data1: "names", data2: data, true);
+        float? modifierData = modifierNode?.AsType<float>();
+
+        return modifierData ?? fallback;
+    }
+
     // patcher specific helpers
 
-        /// <summary>
-        /// Returns the FormKey with id from the statics record.<br/>
-        /// </summary>
-        /// <param name="stringId">The id in the elements with the FormKey to return.</param>
-        /// <returns>A FormKey from the statics list.</returns>
+    /// <summary>
+    /// Returns the FormKey with id from the statics record.<br/>
+    /// </summary>
+    /// <param name="stringId">The id in the elements with the FormKey to return.</param>
+    /// <returns>A FormKey from the statics list.</returns>
     private static FormKey GetFormKey(string stringId) => Executor.Statics!.First(elem => elem.Id == stringId).FormKey;
 
     /// <summary>
