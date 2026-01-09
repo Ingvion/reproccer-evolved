@@ -42,13 +42,13 @@ public static class ProjectilesPatcher
                 IsArrow = ammo.Flags.HasFlag(Ammunition.Flag.NonBolt),
                 NonPlayable = ammo.MajorFlags.HasFlag(Ammunition.MajorFlag.NonPlayable) || ammo.Flags.HasFlag(Ammunition.Flag.NonPlayable)
             };
+
             Logger = new Logger();
+            AllReports.Clear();
 
-            DataMap material = TryGetMaterial(ammo);
+            AmmoMaterial = TryGetMaterial(ammo);
 
-            if (!RecordData.NonPlayable)
-                ProcessRecipes(ammo, material);
-
+            if (!RecordData.NonPlayable) ProcessRecipes(ammo);
             PatchAmmunition(ammo, material);
 
             ShowReport(ammo);
@@ -133,25 +133,30 @@ public static class ProjectilesPatcher
     }
 
     /// <summary>
-    /// Recipes processor.
+    /// Initiates recipes processing.
     /// </summary>
-    /// <param name="ammo">The ammo record as IWeaponGetter.</param>
-    /// <param name="excludedNames">The list of excluded strings.</param>
-    private static void ProcessRecipes(IAmmunitionGetter ammo, DataMap material)
+    /// <param name="ammo">Processed ammo record.</param>
+    private static void ProcessRecipes(IAmmunitionGetter ammo)
     {
         foreach (var recipe in Executor.AllRecipes!)
         {
             if (recipe.CreatedObject.FormKey == ammo.FormKey && !recipe.WorkbenchKeyword.IsNull)
-                ModCraftingRecipe(recipe, material);
+                ModCraftingRecipe(recipe);
         }
-
-        //AddBreakdownRecipe(weapon);
     }
 
-    private static void ModCraftingRecipe(IConstructibleObjectGetter recipe, DataMap material)
+    /// <summary>
+    /// Modifies crafting recipes.<br/>
+    /// </summary>
+    /// <param name="recipe">Processed recipe record.</param>
+    private static void ModCraftingRecipe(IConstructibleObjectGetter recipe)
     {
         bool isModified = false;
         ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.GetOrAddAsOverride(recipe);
+
+        // AmmoMaterial.Perks is used later, so we're making a copy to keep original perks list intact
+        List<FormKey> perks = [];
+        AmmoMaterial.Perks.ForEach(perks.Add);
 
         if (newRecipe.Conditions.Count > 0)
         {
@@ -159,23 +164,22 @@ public static class ProjectilesPatcher
             {
                 for (int i = newRecipe.Conditions.Count - 1; i >= 0; i--)
                 {
-                    // the condition is not of HasPerk type or if specified perk is not in the list of all material perks
+                    // the condition is not of HasPerk type or specified perk is not in the list of all material perks
                     if (newRecipe.Conditions[i].Data is not HasPerkConditionData hasPerk || 
-                        Statics.AllMaterials.All(entry => entry.Perks is not null &&
-                        entry.Perks.All(perk => perk != hasPerk.Perk.Link.FormKey)))
+                        Statics.AllMaterials.All(entry => entry.Perks.All(perk => perk != hasPerk.Perk.Link.FormKey)))
                     {
                         newRecipe.Conditions.Remove(newRecipe.Conditions[i]);
                     }
-                    else if (material.Perks is not null)
+                    else
                     {
                         // the condition already have a valid material perk specified
-                        if (material.Perks.Contains(hasPerk.Perk.Link.FormKey))
+                        if (perks.Contains(hasPerk.Perk.Link.FormKey))
                         {
-                            material.Perks.Remove(hasPerk.Perk.Link.FormKey);
+                            perks.Remove(hasPerk.Perk.Link.FormKey);
                         }
                         // the condition have the material perk specified,
                         // but it's not related to the ammo material in SkyRe system
-                        else if (material.Perks.Count > 0)
+                        else if (perks.Count > 0)
                         {
                             newRecipe.Conditions.Remove(newRecipe.Conditions[i]);
                         }
@@ -187,19 +191,18 @@ public static class ProjectilesPatcher
             {
                 // a condition of HasPerk type with any material perk specified already exists
                 if (newRecipe.Conditions.Any(cond => cond.Data is HasPerkConditionData hasPerk &&
-                    Statics.AllMaterials.Any(entry => entry.Perks is not null && 
-                    entry.Perks.Any(perk => perk == hasPerk.Perk.Link.FormKey))))
+                    Statics.AllMaterials.Any(entry => entry.Perks.Any(perk => perk == hasPerk.Perk.Link.FormKey))))
                 {
-                    material.Perks = [];
+                    perks = [];
                 }
             }
         }
 
-        if (material.Perks is not null && material.Perks.Count > 0)
+        if (perks.Count > 0)
         {
-            foreach (var perk in material.Perks)
+            foreach (var perk in perks)
             {
-                Condition.Flag flag = material.Perks.IndexOf(perk) == material.Perks.Count - 1 ? 0 : Condition.Flag.OR;
+                Condition.Flag flag = perks.IndexOf(perk) == perks.Count - 1 ? 0 : Condition.Flag.OR;
                 newRecipe.AddHasPerkCondition(perk, flag);
                 isModified = true;
             }
