@@ -630,12 +630,22 @@ public static class ProjectilesPatcher
         return Executor.State!.PatchMod.Ammunitions.GetOrAddAsOverride(ammo);
     }
 
-    /// <summary>
-    /// Displays info and errors.<br/>
-    /// </summary>
-    /// <param name="ammo">The ammo record as IAmmunitionGetter.</param>
-    private static void ShowReport(this IAmmunitionGetter ammo) =>
-        Logger.ShowReport($"{ammo.Name}", $"{ammo.FormKey}", $"{ammo.EditorID}", RecordData.NonPlayable, false);
+    private static void ShowReport(this IAmmunitionGetter ammo)
+    {
+        if (AllReports.Count == 0)
+        {
+            Logger.ShowReport($"{ammo.Name}", $"{ammo.FormKey}", $"{ammo.EditorID}", RecordData.NonPlayable, false);
+        }
+        else
+        {
+            foreach (var report in AllReports)
+            {
+                IAmmunitionGetter newAmmo = (IAmmunitionGetter)report.Record!;
+                Logger newLog = (Logger)report.Log!;
+                newLog.ShowReport($"{newAmmo.Name}", $"{newAmmo.FormKey}", $"{newAmmo.EditorID}", RecordData.NonPlayable, false);
+            }
+        }
+    }
 
     // patcher specific statics
     private static (List<DataMap>, List<DataMap>, List<DataMap>) BuildStaticsMap()
