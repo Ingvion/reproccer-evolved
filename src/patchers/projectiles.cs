@@ -49,7 +49,7 @@ public static class ProjectilesPatcher
             AmmoMaterial = TryGetMaterial(ammo);
 
             if (!RecordData.NonPlayable) ProcessRecipes(ammo);
-            PatchAmmunition(ammo, material);
+            PatchAmmunition(ammo);
 
             ShowReport(ammo);
         }
@@ -226,85 +226,111 @@ public static class ProjectilesPatcher
             Executor.State!.PatchMod.ConstructibleObjects.Remove(newRecipe);
     }
 
-    private static void PatchAmmunition(IAmmunitionGetter ammo, DataMap material, Projectile? proj = null, IExplosionGetter? expl = null)
+    /// <summary>
+    /// Patches ammo and projectiles data.<br/>
+    /// </summary>
+    /// <param name="ammo">Processed ammo record.</param>
+    /// <param name="expl">Ammo projectile explosion, if any.</param>
+    /// <param name="type">Ammo group as enumerator.</param>
+    private static void PatchAmmunition(IAmmunitionGetter ammo, IExplosionGetter? expl = null, AmmoGroup type = AmmoGroup.Vanilla)
     {
-        Executor.State!.LinkCache.TryResolve<IProjectileGetter>(ammo.Projectile.FormKey, out var baseProj);
+        Executor.State!.LinkCache.TryResolve<IProjectileGetter>(ammo.Projectile.FormKey, out var proj);
         if (proj is null)
         {
-            if (baseProj is null)
-            {
-                Logger.Error("No projectile attached to this record");
-                return;
-            }
+            Logger.Error("No projectile attached to this ammo");
+            return;
+        }
 
-            proj = Executor.State!.PatchMod.Projectiles.GetOrAddAsOverride(
-                Executor.State!.LinkCache.Resolve(ammo.Projectile));
-
-            if (proj.Type != Projectile.TypeEnum.Arrow && proj.Type != Projectile.TypeEnum.Missile)
-            {
-                Logger.Error($"The projectile has incorrect type (expected Arrow or Missile, returned {proj.Type} instead)");
-                Executor.State!.PatchMod.Projectiles.Remove(proj);
-                return;
-            }
+        if (proj.Type != Projectile.TypeEnum.Arrow && proj.Type != Projectile.TypeEnum.Missile)
+        {
+            Logger.Error($"The projectile has unexpected type ({proj.Type})");
+            return;
         }
 
         // projectile data
-        float range = 120000f;
+        Projectile? newProj = null;
+
+        float newRange = 120000f;
 
         float baseGravity = GetBaseData("gravity", proj, ammo, RecordData.IsArrow ? 0.25f : 0.2f);
-        float materialGravity = GetMaterialData("gravity", proj, ammo, 0, material);
+        float materialGravity = GetMaterialData("gravity", proj, ammo, 0, AmmoMaterial);
         float modifierGravity = GetModifierData("gravity", proj, ammo, 0);
-        float gravity = baseGravity + materialGravity + modifierGravity;
+        float newGravity = baseGravity + materialGravity + modifierGravity;
 
         float baseSpeed = GetBaseData("speed", proj, ammo, RecordData.IsArrow ? 5200f : 6500f);
-        float materialSpeed = GetMaterialData("speed", proj, ammo, 0, material);
+        float materialSpeed = GetMaterialData("speed", proj, ammo, 0, AmmoMaterial);
         float modifierSpeed = GetModifierData("speed", proj, ammo, 0);
-        float speed = baseSpeed + materialSpeed + modifierSpeed;
+        float newSpeed = baseSpeed + materialSpeed + modifierSpeed;
 
-        if ((range == proj.Range) && (gravity == proj.Gravity) && (speed == proj.Speed))
+        if ((newRange != proj.Range) || (newGravity != proj.Gravity) || (newSpeed != proj.Speed) || type != AmmoGroup.Vanilla)
         {
-            // identical to the original
-            Executor.State!.PatchMod.Projectiles.Remove(proj);
-        }
-        else
-        {
-            proj.Range = range;
-            (gravity, proj.Gravity) = gravity.Validate(proj.Gravity, nameof(proj.Gravity), RecordData.IsArrow ? 0.25f : 0.2f, true);
-            (speed, proj.Speed) = speed.Validate(proj.Speed, nameof(proj.Speed), RecordData.IsArrow ? 5200f : 6500f, true);
+            newProj = Executor.State!.PatchMod.Projectiles.GetOrAddAsOverride(proj);
+
+            newProj.Range = newRange;
+            newProj.Gravity = newGravity.Validate(proj.Gravity, nameof(proj.Gravity), RecordData.IsArrow ? 0.25f : 0.2f);
+            newProj.Speed = newSpeed.Validate(proj.Speed, nameof(proj.Speed), RecordData.IsArrow ? 5200f : 6500f);
+
+            if (expl is not null)
+            {
+                newProj.Flags |= Projectile.Flag.Explosion;
+                newProj.Flags &= ~Projectile.Flag.CanBePickedUp;
+                newProj.Explosion = expl.ToLink();
+            }
         }
 
         // ammo data
-        float baseDamage = GetBaseData("damage", proj, ammo, RecordData.IsArrow ? 7f : 13f);
-        float materialDamage = GetMaterialData("damage", proj, ammo, 0, material);
+        Ammunition? newAmmo = null;
+
+        // for double-reforged ammo base damage value is the reforged parent's damage value
+        float baseDamage = 
+            (type == AmmoGroup.DoubleReforged) ? ammo.Damage : GetBaseData("damage", proj, ammo, RecordData.IsArrow ? 7f : 13f);
+        // for double-reforged ammo material influence should be 0
+        float materialDamage = 
+            (type == AmmoGroup.DoubleReforged) ? 0 : GetMaterialData("damage", proj, ammo, 0, AmmoMaterial);
         float modifierDamage = GetModifierData("damage", proj, ammo, 0);
-        float damage = baseDamage + materialDamage + modifierDamage;
+        float newDamage = baseDamage + materialDamage + modifierDamage;
 
         float modWeight = GetModifierData("weightMult", proj, ammo, 1f);
         float modValue = GetModifierData("priceMult", proj, ammo, 1f);
 
-        if ((damage != ammo.Damage) || (modWeight != 1f) || (modValue != 1f))
+        if ((newDamage != ammo.Damage) || (modWeight != 1f) || (modValue != 1f) || type != AmmoGroup.Vanilla)
         {
+            newAmmo = Executor.State!.PatchMod.Ammunitions.GetOrAddAsOverride(ammo);
+
             modWeight = modWeight < 0 ? 1f : modWeight;
             modValue = modValue < 0 ? 1f : modValue;
 
-            (damage, ammo.AsOverride(true).Damage) = damage.Validate(ammo.Damage, nameof(ammo.Damage), RecordData.IsArrow ? 7f : 13f);
-            ammo.AsOverride().Weight *= modWeight;
-            ammo.AsOverride().Value = (uint)(ammo.Value * modValue);
+            newAmmo.Damage = newDamage.Validate(ammo.Damage, "Damage", RecordData.IsArrow ? 7f : 13f);
+            newAmmo.Weight *= modWeight;
+            newAmmo.Value = (uint)(ammo.Value * modValue);
         }
 
         if (Settings.Debug.ShowVerboseData)
         {
-            Logger.Info($"Damage: {ammo.Damage} -> {damage} " +
-                $"(base: {baseDamage}, material: {materialDamage}, modifier: {modifierDamage})");
-            Logger.Info($"Gravity: {baseProj!.Gravity} -> {(decimal)gravity} " +
-                $"(base: {baseGravity}, material: {materialGravity}, modifier: {modifierGravity})");
-            Logger.Info($"Speed: {baseProj!.Speed} -> {speed} " +
-                $"(base: {baseSpeed}, material: {materialSpeed}, modifier: {modifierSpeed})");
-            if (modWeight != 1f) Logger.Info($"Weight: {ammo.Weight} -> {ammo.AsOverride().Weight} " +
-                $"(modifier: x{modWeight}");
-            if (modValue != 1f) Logger.Info($"Value: {ammo.Value} -> {ammo.AsOverride().Value} " +
-                $"(modifier: x{modValue})");
+            if (type == 0)
+            {
+                if (newAmmo is not null) Logger.Info($"Damage: {ammo.Damage} -> {newAmmo.Damage} " +
+                    $"(base: {baseDamage}, material: {materialDamage}, modifier: {modifierDamage})");
+                if (newProj is not null) Logger.Info($"Gravity: {(decimal)proj!.Gravity} -> {(decimal)newProj.Gravity} " +
+                    $"(base: {baseGravity}, material: {materialGravity}, modifier: {modifierGravity})");
+                if (newProj is not null) Logger.Info($"Speed: {proj!.Speed} -> {newProj.Speed} " +
+                    $"(base: {baseSpeed}, material: {materialSpeed}, modifier: {modifierSpeed})");
+                if (newAmmo is not null && modWeight != 1f) Logger.Info($"Weight: {Math.Round(ammo.Weight, 2)} -> {(decimal)newAmmo.Weight} " +
+                    $"(original weight x {modWeight})");
+                if (newAmmo is not null && modValue != 1f) Logger.Info($"Value: {ammo.Value} -> {newAmmo.Value} " +
+                    $"(original price x {modValue})");
+            }
+            else
+            {
+                if (newAmmo is not null) Logger.Info($"Damage: {newAmmo.Damage} " + $"(original: {baseDamage + materialDamage}, modifier: {modifierDamage})");
+                if (newProj is not null) Logger.Info($"Gravity: {(decimal)newProj!.Gravity} " + $"(original: {(decimal)(baseGravity + materialGravity)}, modifier: {modifierGravity})");
+                if (newProj is not null) Logger.Info($"Speed: {newProj!.Speed} " + $"(original: {baseSpeed + materialSpeed}, modifier: {modifierSpeed})");
+                if (newAmmo is not null && modWeight != 1f) Logger.Info($"Weight: {Math.Round(newAmmo.Weight, 2)} " + $"(original x {modWeight})");
+                if (newAmmo is not null && modValue != 1f) Logger.Info($"Value: {newAmmo.Value} " + $"(original x {modValue})");
+            }
         }
+
+        AllReports.Add(new Report { Record = ammo, Log = Logger });
     }
 
     private static (float, float) Validate(this float newValue, float oldValue, string name, float fallback, bool allowCustom = false)
