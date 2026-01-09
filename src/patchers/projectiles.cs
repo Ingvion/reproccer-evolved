@@ -333,31 +333,42 @@ public static class ProjectilesPatcher
         AllReports.Add(new Report { Record = ammo, Log = Logger });
     }
 
-    private static (float, float) Validate(this float newValue, float oldValue, string name, float fallback, bool allowCustom = false)
+    /// <summary>
+    /// Validates data returned by data getters.<br/>
+    /// </summary>
+    /// <param name="newValue">New data value.</param>
+    /// <param name="oldValue">Current data value.</param>
+    /// <param name="name">Data name.</param>
+    /// <param name="fallback">Fallback value if no rule is found or received value is incorrect.</param>
+    /// <returns>The newValue if it met the validation criteria, or oldValue/fallback value, as floats.</returns>
+    private static float Validate(this float newValue, float oldValue, string name, float fallback)
     {
-        if (newValue <= 0 && !allowCustom)
+        if (newValue <= 0)
         {
-            Logger.Error($"{name} cannot be 0 or negative! The fallback value of {fallback} will be used instead");
-            return (fallback, fallback);
-        }
-        else if (allowCustom)
-        {
-            if (oldValue == 0 && name == "Gravity")
-            {
-                Logger.Caution("Original gravity is 0, but most likely on purpose, and will not be changed");
-                return (oldValue, oldValue);
-            }
-
-            if (newValue * 2 < oldValue && name == "Speed")
-            {
-                Logger.Caution("Original speed is very high, but most likely on purpose, and will not be changed");
-                return (oldValue, oldValue);
-            }
+            Logger.Error($"{name} cannot be 0 and less! The fallback value of {fallback} will be used instead");
+            return fallback;
         }
 
-        return (newValue, newValue);
+        if (name == "Gravity" && oldValue == 0)
+        {
+            Logger.Caution("Original gravity is 0, but most likely on purpose, and will not be changed");
+            return oldValue;
+        }
+
+        if (name == "Speed" && newValue * 2 < oldValue)
+        {
+            Logger.Caution("Original speed is very high, but most likely on purpose, and will not be changed");
+            return oldValue;
+        }
+
+        if (name == "Damage" && (oldValue == 0 || oldValue == 1))
+        {
+            Logger.Caution("Original damage is 0 or 1, but most likely on purpose, and will not be changed");
+            return oldValue;
+        }
+
+        return newValue;
     }
-
     private static float GetBaseData(string data, IProjectileGetter proj, IAmmunitionGetter ammo, float fallback)
     {
         // base stats
