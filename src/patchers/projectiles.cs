@@ -369,9 +369,17 @@ public static class ProjectilesPatcher
 
         return newValue;
     }
+
+    /// <summary>
+    /// Returns patching data from the baseStats ruleset.<br/>
+    /// </summary>
+    /// <param name="data">Name of the data to obtain.</param>
+    /// <param name="ammo">Processed ammo.</param>
+    /// <param name="proj">Processed ammo projectile.</param>
+    /// <param name="fallback">Fallback value if no rule is found.</param>
+    /// <returns>The data value or fallback value, as float.</returns>
     private static float GetBaseData(string data, IProjectileGetter proj, IAmmunitionGetter ammo, float fallback)
     {
-        // base stats
         JsonNode? baseNode = Helpers.RuleByName(ammo.Name!.ToString()!, Rules["baseStats"]!.AsArray(), data1: "names", data2: data, true);
         if (baseNode is null && proj.Name is not null)
             baseNode = Helpers.RuleByName(proj.Name!.ToString()!, Rules["baseStats"]!.AsArray(), data1: "names", data2: data, true);
@@ -382,9 +390,17 @@ public static class ProjectilesPatcher
         return baseData ?? fallback;
     }
 
+    /// <summary>
+    /// Returns patching data from the materialStats ruleset.<br/>
+    /// </summary>
+    /// <param name="data">Name of the data to obtain.</param>
+    /// <param name="ammo">Processed ammo.</param>
+    /// <param name="proj">Processed ammo projectile.</param>
+    /// <param name="fallback">Fallback value if no rule is found.</param>
+    /// <param name="material">Material DataMap with ammo material data.</param>
+    /// <returns>The data value or fallback value, as float.</returns>
     private static float GetMaterialData(string data, IProjectileGetter proj, IAmmunitionGetter ammo, float fallback, DataMap material = new DataMap())
     {
-        // material stats
         JsonNode? materialNode = Helpers.RuleByName(ammo.Name!.ToString()!, Rules["materialStats"]!.AsArray(), data1: "names", data2: data, true);
         if (materialNode is null && material.Id is not null)
             materialNode = Helpers.RuleByName(material.Id, Rules["materialStats"]!.AsArray(), data1: "id", data2: data, true);
@@ -395,9 +411,16 @@ public static class ProjectilesPatcher
         return materialData ?? fallback;
     }
 
+    /// <summary>
+    /// Returns patching data from the modifierStats ruleset.<br/>
+    /// </summary>
+    /// <param name="data">Name of the data to obtain.</param>
+    /// <param name="ammo">Processed ammo.</param>
+    /// <param name="proj">Processed ammo projectile.</param>
+    /// <param name="fallback">Fallback value if no rule is found.</param>
+    /// <returns>The data value or fallback value, as float.</returns>
     private static float GetModifierData(string data, IProjectileGetter proj, IAmmunitionGetter ammo, float fallback)
     {
-        // modifier stats
         JsonNode? modifierNode = Helpers.RuleByName(ammo.Name!.ToString()!, Rules["modifierStats"]!.AsArray(), data1: "names", data2: data, true);
         if (modifierNode is null && proj.Name is not null)
             modifierNode = Helpers.RuleByName(proj.Name!.ToString()!, Rules["modifierStats"]!.AsArray(), data1: "names", data2: data, true);
