@@ -70,6 +70,12 @@ public struct EditorIDs()
     }
 }
 
+public struct Report()
+{
+    public IMajorRecordGetter? Record;
+    public Logger? Log;
+}
+
 public readonly struct Logger()
 {
     private readonly List<string> InfoMsg = [];
@@ -77,9 +83,10 @@ public readonly struct Logger()
     private readonly List<string> ErrorMsg = [];
     private static readonly string[] Filter = Executor.Settings!.Debug.ReportFilter.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-    public readonly void Info(string msg, bool verboseInfo = false)
+    public readonly void Info(string msg, bool verboseInfo = false, bool onTop = false)
     {
-        if (Executor.Settings!.Debug.ShowVerboseData || !verboseInfo) InfoMsg.Add(msg);
+        if (Executor.Settings!.Debug.ShowVerboseData || !verboseInfo) 
+            InfoMsg.Insert(onTop ? 0 : InfoMsg.Count, msg);
     } 
     public readonly void Caution(string msg) => CautionMsg.Add(msg);
     public readonly void Error(string msg) => ErrorMsg.Add(msg);
