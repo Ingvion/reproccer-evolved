@@ -82,9 +82,9 @@ public static class ProjectilesPatcher
     /// <summary>
     /// Checks if the ammo matches necessary conditions to be patched.
     /// </summary>
-    /// <param name="ammo">The ammo record as IAmmunitionGetter.</param>
+    /// <param name="ammo">Processed ammo record.</param>
     /// <param name="excludedNames">The list of excluded strings.</param>
-    /// <returns>Check result from a filter the record triggered as <see cref="bool"/>.</returns>
+    /// <returns>Check result from a filter the record triggered as bool.</returns>
     private static bool IsValid(IAmmunitionGetter ammo, List<string> excludedNames)
     {
         Logger = new Logger();
@@ -94,7 +94,7 @@ public static class ProjectilesPatcher
         {
             if (Settings.Debug.ShowExcluded)
             {
-                Logger.Info($"Found in the \"No patching\" list by EditorID (as {ammo.EditorID})");
+                Logger.Info($"Found in the \"No patching\" list by EditorID");
                 ShowReport(ammo);
             }
             return false;
@@ -117,6 +117,11 @@ public static class ProjectilesPatcher
         return true;
     }
 
+    /// <summary>
+    /// Returns a material DataMap for the processed ammo.<br/>
+    /// </summary>
+    /// <param name="ammo">Processed ammo record.</param>
+    /// <returns>Material DataMap with ammo material data, or empty DataMap if no material was detected.</returns>
     private static DataMap TryGetMaterial(IAmmunitionGetter ammo)
     {
         DataMap material = Statics.AllMaterials.FirstOrDefault(material => ammo.Keywords!.Contains(material.Kwda!));
@@ -129,7 +134,7 @@ public static class ProjectilesPatcher
                 material = Statics.AllMaterials.FirstOrDefault(material => material.Id.GetT9n().RegexMatch(proj.Name!.ToString()!, true));
         }
 
-        return material;
+        return material.Id is not null ? material : new DataMap { Perks = [] };
     }
 
     /// <summary>
