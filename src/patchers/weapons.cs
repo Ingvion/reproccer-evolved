@@ -717,7 +717,7 @@ public static class WeaponsPatcher
                     continue;
 
                 Condition.Flag flag = material.Perks.IndexOf(perk) == material.Perks.Count - 1 || 
-                RecordData.AnimType != WeaponAnimationType.Crossbow ? 0 : Condition.Flag.OR;
+                    RecordData.AnimType != WeaponAnimationType.Crossbow ? 0 : Condition.Flag.OR;
                 newRecipe.AddHasPerkCondition(perk, flag);
             }
         }
