@@ -17,6 +17,16 @@ public static class ProjectilesPatcher
     private static EditorIDs EditorIDs;
     private static PatchingData RecordData;
     private static Logger Logger;
+    private static readonly List<Report> AllReports = [];
+
+    // material data used a lot here, so we're storing it globally to avoid passing as a parameter
+    private static DataMap AmmoMaterial = new();
+    private enum AmmoGroup
+    {
+        Vanilla,
+        Reforged,
+        DoubleReforged,
+    }
 
     public static void Run()
     {
