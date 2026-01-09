@@ -68,8 +68,8 @@ public static class ProjectilesPatcher
             .WinningOverrides<IAmmunitionGetter>();
 
         List<IAmmunitionGetter> ammoRecords = [];
-
         List<string> excludedNames = [.. Rules["excludedAmmunition"]!.AsArray().Select(value => value!.GetValue<string>())];
+
         foreach (var record in ammoWinners)
         {
             if (IsValid(record, excludedNames)) ammoRecords.Add(record);
