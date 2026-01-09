@@ -611,25 +611,20 @@ public static class ProjectilesPatcher
     }
 
     // patcher specific helpers
+
     /// <summary>
-    /// Returns the FormKey with id from the statics record.<br/>
+    /// Returns a FormKey for specified stringId.<br/>
+    /// Search for an entry with stringId match, and returns its FormKey; results in exception if no FormKey is found.
     /// </summary>
-    /// <param name="stringId">The id in the elements with the FormKey to return.</param>
-    /// <returns>A FormKey from the statics list.</returns>
+    /// <param name="stringId">The id for which the FormKey should be returned.</param>
+    /// <returns>A FormKey from the statics collection.</returns>
     private static FormKey GetFormKey(string stringId) => Executor.Statics!.First(elem => elem.Id == stringId).FormKey;
 
     /// <summary>
-    /// Returns the winning override for this-parameter, and copies it to the patch file.<br/>
+    /// Show patching info.<br/>
+    /// Displays all messages collected with Logger() for the current ammo record.
     /// </summary>
     /// <param name="ammo">The ammo record as IAmmunitionGetter.</param>
-    /// <param name="markModified">True to mark as modified in the patching data.</param>
-    /// <returns>The winning override as <see cref="Ammunition"/>.</returns>
-    private static Ammunition AsOverride(this IAmmunitionGetter ammo, bool markModified = false)
-    {
-        if (markModified) RecordData.Modified = true;
-        return Executor.State!.PatchMod.Ammunitions.GetOrAddAsOverride(ammo);
-    }
-
     private static void ShowReport(this IAmmunitionGetter ammo)
     {
         if (AllReports.Count == 0)
