@@ -50,6 +50,7 @@ public static class ProjectilesPatcher
 
             if (!RecordData.NonPlayable) ProcessRecipes(ammo);
             PatchAmmunition(ammo);
+            if (!RecordData.NonPlayable) GenerateAmmunition(ammo, blacklist);
 
             ShowReport(ammo);
         }
@@ -429,8 +430,187 @@ public static class ProjectilesPatcher
         return modifierData ?? fallback;
     }
 
-    // patcher specific helpers
+    /// <summary>
+    /// Initiates special types creation for ammo.<br/>
+    /// </summary>
+    /// <param name="ammo">An ammo to create special types for.</param>
+    /// <param name="excludedNames">The list of excluded strings.</param>
+    private static void GenerateAmmunition(IAmmunitionGetter ammo, List<string> excludedNames)
+    {
+        if (Settings.General.ExclByEdID && ammo.EditorID!.IsExcluded(excludedNames, true))
+        {
+            if (Settings.Debug.ShowExcluded)
+            {
+                Logger.Info($"Found in the \"No special variants\" list by EditorID", false, true);
+                return;
+            }
+        }
 
+        if (ammo.Name!.ToString()!.IsExcluded(excludedNames))
+        {
+            if (Settings.Debug.ShowExcluded) Logger.Info($"Found in the \"No special variants\" list by name", false, true);
+            return;
+        }
+
+        if (!RecordData.IsArrow) CreateHardenedBolts(ammo);
+        CreateSpecialAmmo(ammo, AmmoGroup.Reforged);
+    }
+
+    /// <summary>
+    /// Creates ammo and projectile records of hardened and tempered types (bolts only).<br/>
+    /// </summary>
+    /// <param name="ammo">An ammo to create special types for.</param>
+    private static void CreateHardenedBolts(IAmmunitionGetter ammo)
+    {
+        List<DataMap> ingredients = [
+            new DataMap{Items = [ GetFormKey("DwarvenOil") ], Qty = Settings.Projectiles.IngredsQty, Id = "INGR"},
+            new DataMap{Items = [ AmmoMaterial.Items is null ? GetFormKey("IngotCorundum") : AmmoMaterial.Items[0] ], 
+                Qty = Settings.Projectiles.IngredsQty, Id = "MISC"}
+        ];
+
+        List<FormKey> perks = [ GetFormKey("skyre_MARAdvancedFletching0") ];
+        AmmoMaterial.Perks.ForEach(perks.Add);
+
+        IAmmunitionGetter? hardBolt = FletchAmmo(ammo, "ammo_hardened", null, null, null, AmmoGroup.Reforged);
+        if (hardBolt is not null)
+        {
+            AddCraftingRecipe(hardBolt, ammo, perks, ingredients);
+            CreateSpecialAmmo(hardBolt, AmmoGroup.DoubleReforged);
+        }
+
+        IAmmunitionGetter? tempBolt = FletchAmmo(ammo, "ammo_tempered", null, null, null, AmmoGroup.Reforged);
+        if (tempBolt is not null)
+        {
+            AddCraftingRecipe(tempBolt, hardBolt!, perks, ingredients);
+            CreateSpecialAmmo(tempBolt, AmmoGroup.DoubleReforged);
+        }
+    }
+
+    /// <summary>
+    /// Creates ammo and projectile records of other special types for bolts and arrows.<br/>
+    /// </summary>
+    /// <param name="ammo">An ammo to create special types for.</param>
+    /// <param name="type">Ammo group as enumerator (to pass onward).</param>
+    private static void CreateSpecialAmmo(IAmmunitionGetter ammo, AmmoGroup group)
+    {
+        List<DataMap> variantsMap = RecordData.IsArrow ? Statics.ArrowVariants : Statics.BoltVariants;
+
+        foreach (var variant in variantsMap)
+        {
+            List<FormKey> perks = [];
+            variant.Perks.ForEach(perks.Add);
+
+            if ((variant.Id == "ammo_barbed" || variant.Id == "ammo_hweight") && AmmoMaterial.Perks.Count > 0)
+                AmmoMaterial.Perks.ForEach(perks.Add);
+
+            List<DataMap> ingredients = [
+                new DataMap{ Items = [ variant.Items[0] ], Qty = Settings.Projectiles.IngredsQty, Id = "INGR" },
+                new DataMap{ Items = [ variant.Items[1] ], Qty = Settings.Projectiles.IngredsQty, Id = "MISC" }
+            ];
+
+            Executor.State!.LinkCache.TryResolve<IKeywordGetter>(variant.Kwda, out var kwda);
+            Executor.State!.LinkCache.TryResolve<IExplosionGetter>(variant.Expl, out var expl);
+
+            IAmmunitionGetter? newAmmo = FletchAmmo(ammo, variant.Id, variant.Desc, kwda, expl, group);
+            if (newAmmo is not null)
+                AddCraftingRecipe(newAmmo, ammo, perks, ingredients);
+        }
+    }
+
+    /// <summary>
+    /// Creates an ammo record, and a projectile record for it.<br/>
+    /// </summary>
+    /// <param name="ammo">Parent ammo (we're copying to skip filling values).</param>
+    /// <param name="typeId">New ammo type ID.</param>
+    /// <param name="desc">Ingame decription for the new ammo, if any.</param>
+    /// <param name="kwda">New ammo type keyword, if any.</param>
+    /// <param name="expl">New ammo type explosion, if any.</param>
+    /// <param name="group">Ammo group as enumerator (passed onward).</param>
+    /// <returns>A new ammo as Ammunition.</returns>
+    private static Ammunition? FletchAmmo(IAmmunitionGetter ammo, string typeId, string? desc, 
+        IKeywordGetter? kwda, IExplosionGetter? expl, AmmoGroup group)
+    {
+        Executor.State!.LinkCache.TryResolve<IProjectileGetter>(ammo.Projectile.FormKey, out var baseProj);
+        if (baseProj is null) return null;
+
+        Logger = new Logger();
+
+        Ammunition newAmmo = Executor.State!.PatchMod.Ammunitions.DuplicateInAsNewRecord(ammo);
+
+        newAmmo.Name = ammo.Name! + $" - {typeId.GetT9n()}";
+        string newEditorID = (ammo.EditorID!.Contains("RP_AMMO_") ? "" : "RP_AMMO_") + ammo.EditorID! + $"_{typeId.GetT9n("english")}";
+        newAmmo.EditorID = EditorIDs.Unique(newEditorID);
+
+        if (desc is not null) newAmmo.Description = desc.GetT9n();
+        if (kwda is not null) newAmmo.Keywords!.Add(kwda);
+
+        Projectile newProj = Executor.State!.PatchMod.Projectiles.DuplicateInAsNewRecord(baseProj);
+        newAmmo.Projectile = newProj.ToLink();
+
+        newProj.Name = newAmmo.Name;
+        newEditorID = newEditorID.Replace("AMMO", "PROJ");
+        newProj.EditorID = EditorIDs.Unique(newEditorID);
+
+        PatchAmmunition(newAmmo, expl, group);
+        return newAmmo;
+    }
+
+    /// <summary>
+    /// Creates a crafting recipe record for the ammo type.<br/>
+    /// </summary>
+    /// <param name="newAmmo">The ammo to create.</param>
+    /// <param name="oldAmmo">Parent ammo, the recipe ingredient.</param>
+    /// <param name="perks">List of type and material perks FormKeys.</param>
+    /// <param name="ingredients">List of other recipe ingredients, and their quantity.</param>
+    private static void AddCraftingRecipe(IAmmunitionGetter newAmmo, IAmmunitionGetter oldAmmo, List<FormKey> perks, List<DataMap> ingredients)
+    {
+        ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
+        string newEditorID = "RP_AMMO_CRAFT_" + newAmmo.EditorID!.Replace("RP_AMMO_", "");
+        newRecipe.EditorID = EditorIDs.Unique(newEditorID);
+        newRecipe.Items = [];
+
+        ContainerItem baseItem = new();
+        baseItem.Item = oldAmmo.ToNullableLink();
+        ContainerEntry baseEntry = new();
+        baseEntry.Item = baseItem;
+        baseEntry.Item.Count = Settings.Projectiles.AmmoQty;
+        newRecipe.Items.Add(baseEntry);
+
+        foreach (var entry in ingredients)
+        {
+            ContainerItem newItem = new();
+
+            if (Executor.State!.LinkCache.TryResolve<IMiscItemGetter>(entry.Items[0], out var miscItem))
+            {
+                newItem.Item = miscItem.ToNullableLink();
+            }
+            else if (Executor.State!.LinkCache.TryResolve<IIngredientGetter>(entry.Items[0], out var ingrItem))
+            {
+                newItem.Item = ingrItem.ToNullableLink();
+            }
+            else if (Executor.State!.LinkCache.TryResolve<ISoulGemGetter>(entry.Items[0], out var slgmItem))
+            {
+                newItem.Item = slgmItem.ToNullableLink();
+            }
+
+            ContainerEntry newEntry = new();
+            newEntry.Item = newItem;
+            newEntry.Item.Count = Settings.Projectiles.IngredsQty;
+            newRecipe.Items.Add(newEntry);
+        }
+
+        perks.ForEach(perk => newRecipe.AddHasPerkCondition(perk));
+
+        if (!Settings.Projectiles.AllAmmoRecipes)
+            newRecipe.AddGetItemCountCondition(oldAmmo.FormKey, CompareOperator.GreaterThanOrEqualTo, 0, -1, Settings.Projectiles.AmmoQty);
+
+        newRecipe.CreatedObject = newAmmo.ToNullableLink();
+        if (newRecipe.WorkbenchKeyword.IsNull) newRecipe.WorkbenchKeyword =
+            Executor.State!.LinkCache.Resolve<IKeywordGetter>(GetFormKey("CraftingSmithingForge")).ToNullableLink();
+        newRecipe.CreatedObjectCount = (ushort)Settings.Projectiles.AmmoQty;
+    }
+
+    // patcher specific helpers
     /// <summary>
     /// Returns the FormKey with id from the statics record.<br/>
     /// </summary>
