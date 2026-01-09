@@ -269,4 +269,9 @@ public class ProjectilesSettings
     [Tooltip("Preserves original conditions in all ammo crafting recipes.\n"
     + "Unchecked this to make ammo crafting recipes available based on smithing mastery only.")]
     public bool KeepConditions { get; set; } = true;
+
+    [SettingName("Show all special recipes")]
+    [Tooltip("Special ammo crafting recipes will always be visible in the crafting menu once the relevant perk is acquired.\n"
+    + "By default, to declutter the crafting menu, each special recipe is hidden unless you have required number of base ammo in the inventory.")]
+    public bool AllAmmoRecipes { get; set; } = false;
 }
