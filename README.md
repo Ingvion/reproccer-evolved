@@ -6,7 +6,7 @@ Reproccer Reborn, rewritten on C# with Mutagen, to be used with Synthesis patchi
 * In Synthesis, on the top left row of icons press "Git Repository", find ReProccer Evolved in the list, and click "Add patcher".
 
 # Migrating from ReProccer Reborn
-Please keep in mind, that zEdit/UPF and Synthesis each have their own records cache - which means formIDs of ReProccer generated records with a high degree of probability will not match between patches.
+Keep in mind, that zEdit/UPF and Synthesis each have their own records cache - which means formIDs of ReProccer generated records with a high degree of probability will not match between patches.
 1. Make a backup of your savegame
 2. Make a backup of the ReProccer Reborn patch
 3. Dispose of all ReProccer generated items:
