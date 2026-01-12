@@ -322,14 +322,14 @@ public static class Helpers
     }
 
     /// <summary>
-    /// Returns the data2 value from the rules entry if the data1 value from the same entry is present in the passed string.<br/>
+    /// Returns the "data2" value from the "rules" array element if "data1" value in the same element contains the "name".<br/>
     /// </summary>
     /// <param name="name">A string to search value A in (record name in most cases)</param>
     /// <param name="rules">JsonArray of rule entries</param>
     /// <param name="data1">The passed string should contain a value (which is either a string or array of strings) of this key.</param>
     /// <param name="data2">The value of this key will be returned.</param>
     /// <param name="strict">True to check if all strings from of the data1 value (if array) present in the passed string.</param>
-    /// <returns>The <see cref="JsonNode"/> with data2 value, or null no entry matches the conditions.</returns>
+    /// <returns>A <see cref="JsonNode"/> with data2 value, or null if no entry matches the conditions.</returns>
     public static JsonNode? RuleByName(string name, JsonArray rules, string data1, string data2, bool strict = false)
     {
         // iterating rules from the end for LIFO entries priority
