@@ -1,8 +1,18 @@
 # Reproccer Evolved
 Reproccer Reborn, rewritten on C# with Mutagen, to be used with Synthesis patching framework.
 
-WIP, ***currently armor, weapons and ammunition patchers are available***; ingredients patcher is in process.
-
 # Installation
 * Download and install [Synthesis](https://github.com/Mutagen-Modding/Synthesis/releases)
 * In Synthesis, on the top left row of icons press "Git Repository", find ReProccer Evolved in the list, and click "Add patcher".
+
+# Migrating from ReProccer Reborn
+Please keep in mind, that zEdit/UPF and Synthesis each have their own records cache - which means formIDs of ReProccer generated records with a high degree of probability will not match between patches.
+1. Make a backup of your savegame
+2. Make a backup of the ReProccer Reborn patch
+3. Dispose of all ReProccer generated items:
+  * Refined Silver weapons
+  * Custom crossbows (Light, Siege, Recurve, Muffled)
+  * Dreamcloth gear
+  * Custom ammmo (Tempered, Hardened, Barbed and Heavyweight bolts, Fire, Frost, Shock and Siphoning bolts, Ashen and Explosive arrows)
+    
+Drop everything in a container, open the console, click the container and print <b>resetinv</b>).
