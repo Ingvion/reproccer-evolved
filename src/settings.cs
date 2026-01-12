@@ -29,6 +29,9 @@ public class AllSettings
     [SettingName("Projectiles patcher settings")]
     public ProjectilesSettings Projectiles { get; set; } = new();
 
+    [SettingName("Ingredients patcher settings")]
+    public IngredientsSettings Ingredients { get; set; } = new();
+
     [SettingName("Debug")]
     public DebugSettings Debug { get; set; } = new();
 }
@@ -57,13 +60,13 @@ public class GeneralSettings
     [Tooltip("Toggles the weapons patcher.")]
     public bool WeaponsPatcher { get; set; } = true;
 
-    [SettingName("Alchemy patcher")]
-    [Tooltip("Toggles the ingredients patcher.")]
-    public bool AlchemyPatcher { get; set; } = true;
-
     [SettingName("Projectiles patcher")]
     [Tooltip("Toggles the ammo and projectiles patcher.")]
     public bool ProjectilesPatcher { get; set; } = true;
+
+    [SettingName("Ingredients patcher")]
+    [Tooltip("Toggles the alchemy ingredients patcher.")]
+    public bool IngredientsPatcher { get; set; } = true;
 
     [SettingName("Skip existing breakdown recipes")]
     [Tooltip("If a breakdown recipe for the record already exists in some other mod, ReProccer will not generate its own.\n"
@@ -274,4 +277,24 @@ public class ProjectilesSettings
     [Tooltip("Special ammo crafting recipes will always be visible in the crafting menu once the relevant perk is acquired.\n"
     + "By default, to declutter the crafting menu, each special recipe is hidden unless you have required number of base ammo in the inventory.")]
     public bool AllAmmoRecipes { get; set; } = false;
+}
+
+public class IngredientsSettings
+{
+    [SettingName("Restrict effect archetypes")]
+    [Tooltip("Forces the patcher to process effects with \"Value Modifier\" and \"Peak Value Modifier\" archetypes only, to avoid potentially unwanted changes.\n"
+    + "All effects specified in the rules by default have abovementioned archetypes.")]
+    public bool RestrictArchetypes { get; set; } = true;
+
+    [SettingName("Limit prices")]
+    [Tooltip("Toggle price caps for alchemy ingredients.")]
+    public bool PriceLimits { get; set; } = true;
+
+    [SettingName("Minimum price of an ingredient")]
+    [Tooltip("Minimum possible price of an ingredient; gold value lower than specified will be changed to this value.")]
+    public int MinValue { get; set; } = 5;
+
+    [SettingName("Maximum price of an ingredient")]
+    [Tooltip("Maximum possible price of an ingredient; gold value higher than specified will be changed to this value.")]
+    public int MaxValue { get; set; } = 150;
 }
