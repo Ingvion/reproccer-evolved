@@ -218,8 +218,8 @@
 
 /*  A weapon with at least one of the listed words in its name will not be processed by the patcher.
  *
- *  If exclusion by editor ID is allowed (in patcher settings), the patcher additionally checks if the editor ID fully
- *  match any of the listed values, and excludes the weapon even if its name has no belowlisted words.
+ *  If exclusion by editor ID is allowed (in patcher settings), the patcher will firstly check if editor ID match any
+ *  of the listed values, and exclude the record if so.
  */
     "excludedWeapons": [
       "Aetherium Crest",
@@ -411,8 +411,8 @@
 
 /*  An armor with at least one of the listed words in its name will not be processed by the patcher.
  *
- *  If exclusion by editor ID is allowed (in patcher settings), the patcher additionally checks if the editor ID fully
- *  match any of the listed values, and excludes the armor even if its name has no belowlisted words.
+ *  If exclusion by editor ID is allowed (in patcher settings), the patcher will firstly check if editor ID match any
+ *  of the listed values, and exclude the record if so.
  */
     "excludedArmor": [
       "TAKEMETempTulliusCoat",
@@ -451,8 +451,8 @@
 
 /*  An ingredient with at least one of the listed values in its name will not be processed by the patcher. 
  *
- *  If exclusion by editor ID is allowed (in patcher settings), the patcher additionally checks if the editor ID fully
- *  match any of the listed values, and excludes the ingredient even if its name has no belowlisted words.
+ *  If exclusion by editor ID is allowed (in patcher settings), the patcher will firstly check if editor ID match any
+ *  of the listed values, and exclude the record if so.
  */
     "excludedIngredients": []
   },
@@ -530,6 +530,9 @@
 
 
 /*  An ammo with at least one of the listed words in its name will not have additional variations generated for it.
+ *
+ *  If exclusion by editor ID is allowed (in patcher settings), the patcher will firstly check if editor ID match any
+ *  of the listed values, and exclude the record if so.
  */
     "excludedAmmunitionVariants": [
       "Ballista",
@@ -547,8 +550,8 @@
 
 /*  An ammo with at least one of the listed words in its name, will not be processed by the patcher.
  *
- *  If exclusion by editor ID is allowed (in patcher settings), the patcher additionally checks if the editor ID fully
- *  match any of the listed values, and excludes the ammo even if its name has no belowlisted words.
+ *  If exclusion by editor ID is allowed (in patcher settings), the patcher will firstly check if editor ID match any
+ *  of the listed values, and exclude the record if so.
  */
     "excludedAmmunition": [
       "Elder Scroll",
