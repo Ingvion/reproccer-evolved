@@ -13,6 +13,6 @@ Please keep in mind, that zEdit/UPF and Synthesis each have their own records ca
   * Refined Silver weapons
   * Custom crossbows (Light, Siege, Recurve, Muffled)
   * Dreamcloth gear
-  * Custom ammmo (Tempered, Hardened, Barbed and Heavyweight bolts, Fire, Frost, Shock and Siphoning bolts, Ashen and Explosive arrows)
+  * Custom ammo (Tempered, Hardened, Barbed and Heavyweight bolts, Fire, Frost, Shock and Siphoning bolts, Ashen and Explosive arrows)
     
 Drop everything in a container, open the console, click the container and print <b>resetinv</b>).
