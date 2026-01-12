@@ -98,6 +98,7 @@ static class Executor
         if (Settings.General.ArmorPatcher) Patchers.ArmorPatcher.Run();
         if (Settings.General.WeaponsPatcher) Patchers.WeaponsPatcher.Run();
         if (Settings.General.ProjectilesPatcher) Patchers.ProjectilesPatcher.Run();
+        if (Settings.General.IngredientsPatcher) Patchers.IngredientsPatcher.Run();
         Console.WriteLine("");
     }
 
