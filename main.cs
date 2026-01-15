@@ -10,7 +10,7 @@ static class Executor
 {
     internal static JsonObject? Strings;
     internal static JsonObject? Rules;
-    internal static List<DataMap>? Statics;
+    internal static List<StaticsData>? Statics;
     internal static IPatcherState<ISkyrimMod, ISkyrimModGetter>? State;
 
     internal static Lazy<Settings.AllSettings> AllSettings = new();
@@ -28,16 +28,16 @@ static class Executor
         .Run(args);
     }
 
-    // init process
+    /// <summary>
+    /// Patching process initializer.
+    /// </summary>
+    /// <param name="patcherState">Patcher execution context.</param>
     public static void Initialize(IPatcherState<ISkyrimMod, ISkyrimModGetter> patcherState)
     {
-        // initiating settings
         Settings = AllSettings.Value;
-
-        // getting state
         State = patcherState;
 
-        // loading strings	
+        // constructing strings	
         JsonNode stringsJson = Helpers.LoadJson($"{AppContext.BaseDirectory}locales", "english.jsonc", true);
 
         string[] jsonFiles = [.. Directory.GetFiles($"{AppContext.BaseDirectory}locales", "*.json*")
@@ -55,18 +55,14 @@ static class Executor
 
         Strings = stringsJson!.AsObject();
 
-        // building rules
+        // constructing rules
         var loadOrder = State.LoadOrder;
 
         if (!loadOrder.Any(file => file.Key.FileName.Equals("Skyrim AE Redone - Core.esm")))
-        {
             throw new Exception("\n--> Skyrim AE Redone - Core.esm should be active in the load order!\n");
-        }
 
         if (!loadOrder.Any(file => file.Key.FileName.Equals("Skyrim AE Redone - Main.esp")))
-        {
             throw new Exception("\n--> The patching is only required if the Main Module is installed\n");
-        }
 
         JsonNode rulesJson = Helpers.LoadJson($"{AppContext.BaseDirectory}rules", "_rules-basic.jsonc");
 
@@ -85,10 +81,10 @@ static class Executor
         rulesJson = Helpers.DeepMerge(rulesJson, userRules);
         Rules = rulesJson!.AsObject();
 
-        // parsing statics
-        Statics = BuildStatics();
+        // records required for patching
+        Statics = ListStatics();
 
-        // getting constructible objects
+        // list of constructible objects
         AllRecipes = [.. State.LoadOrder.PriorityOrder
             .Where(plugin => !Settings.General.IgnoredFiles.Any(name => name == plugin.ModKey.FileName))
             .Where(plugin => plugin.Enabled)
@@ -102,79 +98,82 @@ static class Executor
         Console.WriteLine("");
     }
 
-    // shared statics
-    private static List<DataMap> BuildStatics() => [
-            new DataMap{Id = "Charcoal",                               FormKey = Helpers.ParseFormKey("Skyrim.esm|0x033760|MISC")                  },
-            new DataMap{Id = "RuinsLinenPile01",                       FormKey = Helpers.ParseFormKey("Skyrim.esm|0x034cd6|MISC")                  },
-            new DataMap{Id = "ChaurusChitin",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x03ad57|MISC")                  },
-            new DataMap{Id = "DragonScales",                           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x03ada3|MISC")                  },
-            new DataMap{Id = "DragonBone",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x03ada4|MISC")                  },
-            new DataMap{Id = "IngotCorundum",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ad93|MISC")                  },
-            new DataMap{Id = "IngotOrichalcum",                        FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ad99|MISC")                  },
-            new DataMap{Id = "IngotEbony",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ad9d|MISC")                  },
-            new DataMap{Id = "IngotGold",                              FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ad9e|MISC")                  },
-            new DataMap{Id = "IngotMoonstone",                         FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ad9f|MISC")                  },
-            new DataMap{Id = "IngotQuicksilver",                       FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ada0|MISC")                  },
-            new DataMap{Id = "IngotMalachite",                         FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ada1|MISC")                  },
-            new DataMap{Id = "IngotSilver",                            FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ace3|MISC")                  },
-            new DataMap{Id = "IngotIron",                              FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ace4|MISC")                  },
-            new DataMap{Id = "IngotSteel",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ace5|MISC")                  },
-            new DataMap{Id = "Firewood01",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06f993|MISC")                  },
-            new DataMap{Id = "LeatherStrips",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0800e4|MISC")                  },
-            new DataMap{Id = "Leather01",                              FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0db5d2|MISC")                  },
-            new DataMap{Id = "IngotDwarven",                           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0db8a2|MISC")                  },
-            new DataMap{Id = "DLC2NetchLeather",                       FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x01cd7c|MISC")              },
-            new DataMap{Id = "DLC2ChitinPlate",                        FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x02b04e|MISC")              },
-            new DataMap{Id = "DLC2OreStalhrim",                        FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x02b06b|MISC")              },
-            new DataMap{Id = "cc_IngotAmber",                          FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x000bc7|MISC")     },
-            new DataMap{Id = "cc_IngotMadness",                        FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x000bc8|MISC")     },
-            new DataMap{Id = "SoulGemPettyFilled",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x02e4e3|SLGM")                  },
-            new DataMap{Id = "SoulGemLesserFilled",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x02e4e5|SLGM")                  },
-            new DataMap{Id = "SoulGemCommonFilled",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x02e4f3|SLGM")                  },
-            new DataMap{Id = "SprigganSap",                            FormKey = Helpers.ParseFormKey("Skyrim.esm|0x063b5f|INGR")                  },
-            new DataMap{Id = "WispWrappings",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bc0e|INGR")                  },
-            new DataMap{Id = "DwarvenOil",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0f11c0|INGR")                  },
-            new DataMap{Id = "WeapMaterialWood",                       FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e717|KWDA")                  },
-            new DataMap{Id = "WeapMaterialIron",                       FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e718|KWDA")                  },
-            new DataMap{Id = "WeapMaterialSteel",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e719|KWDA")                  },
-            new DataMap{Id = "WeapMaterialDwarven",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e71a|KWDA")                  },
-            new DataMap{Id = "WeapMaterialElven",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e71b|KWDA")                  },
-            new DataMap{Id = "WeapMaterialOrcish",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e71c|KWDA")                  },
-            new DataMap{Id = "WeapMaterialGlass",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e71d|KWDA")                  },
-            new DataMap{Id = "WeapMaterialEbony",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e71e|KWDA")                  },
-            new DataMap{Id = "WeapMaterialDaedric",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e71f|KWDA")                  },
-            new DataMap{Id = "CraftingSmithingForge",                  FormKey = Helpers.ParseFormKey("Skyrim.esm|0x088105|KWDA")                  },
-            new DataMap{Id = "CraftingSmelter",                        FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0a5cce|KWDA")                  },
-            new DataMap{Id = "WeapMaterialImperial",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0c5c00|KWDA")                  },
-            new DataMap{Id = "WeapMaterialDraugr",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0c5c01|KWDA")                  },
-            new DataMap{Id = "WeapMaterialDraugrHoned",                FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0c5c02|KWDA")                  },
-            new DataMap{Id = "WeapMaterialFalmer",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0c5c03|KWDA")                  },
-            new DataMap{Id = "WeapMaterialFalmerHoned",                FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0c5c04|KWDA")                  },
-            new DataMap{Id = "WeapMaterialSilver",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x10aa1a|KWDA")                  },
-            new DataMap{Id = "WAF_WeapMaterialBlades",                 FormKey = Helpers.ParseFormKey("Update.esm|0xaf0103|KWDA")                  },
-            new DataMap{Id = "WAF_WeapMaterialForsworn",               FormKey = Helpers.ParseFormKey("Update.esm|0xaf0104|KWDA")                  },
-            new DataMap{Id = "WAF_DLC1WeapMaterialDawnguard",          FormKey = Helpers.ParseFormKey("Update.esm|0xaf0116|KWDA")                  },
-            new DataMap{Id = "DLC1WeapMaterialDragonbone",             FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x019822|KWDA")               },
-            new DataMap{Id = "DLC2ArmorMaterialBonemoldLight",         FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024100|KWDA")              },
-            new DataMap{Id = "DLC2WeaponMaterialStalhrim",             FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x02622f|KWDA")              },
-            new DataMap{Id = "DLC2WeaponMaterialNordic",               FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x026230|KWDA")              },
-            new DataMap{Id = "cc_WeapMaterialAmber",                   FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd67|KWDA")     },
-            new DataMap{Id = "cc_WeapMaterialMadness",                 FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd68|KWDA")     },
-            new DataMap{Id = "cc_WeapMaterialGolden",                  FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd69|KWDA")     },
-            new DataMap{Id = "cc_WeapMaterialDark",                    FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd6a|KWDA")     },
-            new DataMap{Id = "skyre__NoMeltdownRecipes",               FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00080e|KWDA") },
-            new DataMap{Id = "ArcaneBlacksmith",                       FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05218e|PERK")                  },
-            new DataMap{Id = "DragonArmor",                            FormKey = Helpers.ParseFormKey("Skyrim.esm|0x052190|PERK")                  },
-            new DataMap{Id = "SteelSmithing",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0cb40d|PERK")                  },
-            new DataMap{Id = "DwarvenSmithing",                        FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0cb40e|PERK")                  },
-            new DataMap{Id = "ElvenSmithing",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0cb40f|PERK")                  },
-            new DataMap{Id = "OrcishSmithing",                         FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0cb410|PERK")                  },
-            new DataMap{Id = "GlassSmithing",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0cb411|PERK")                  },
-            new DataMap{Id = "EbonySmithing",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0cb412|PERK")                  },
-            new DataMap{Id = "DaedricSmithing",                        FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0cb413|PERK")                  },
-            new DataMap{Id = "AdvancedArmors",                         FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0cb414|PERK")                  },
-            new DataMap{Id = "skyre_MARBallistics",                    FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d80|PERK") },
-            new DataMap{Id = "skyre_SMTBreakdown",                     FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000edf|PERK") },
-            new DataMap{Id = "skyre_SMTTradecraft",                    FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee0|PERK") },
+    /// <summary>
+    /// Generates the shared statics list.<br/>
+    /// </summary>
+    /// <returns>A list of statics that could be used by 2+ patchers.</returns>
+    private static List<StaticsData> ListStatics() => [
+            new StaticsData{Id = "Charcoal",                               FormKey = Helpers.ParseFormKey("Skyrim.esm|0x033760|MISC")                  },
+            new StaticsData{Id = "RuinsLinenPile01",                       FormKey = Helpers.ParseFormKey("Skyrim.esm|0x034cd6|MISC")                  },
+            new StaticsData{Id = "ChaurusChitin",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x03ad57|MISC")                  },
+            new StaticsData{Id = "DragonScales",                           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x03ada3|MISC")                  },
+            new StaticsData{Id = "DragonBone",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x03ada4|MISC")                  },
+            new StaticsData{Id = "IngotCorundum",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ad93|MISC")                  },
+            new StaticsData{Id = "IngotOrichalcum",                        FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ad99|MISC")                  },
+            new StaticsData{Id = "IngotEbony",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ad9d|MISC")                  },
+            new StaticsData{Id = "IngotGold",                              FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ad9e|MISC")                  },
+            new StaticsData{Id = "IngotMoonstone",                         FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ad9f|MISC")                  },
+            new StaticsData{Id = "IngotQuicksilver",                       FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ada0|MISC")                  },
+            new StaticsData{Id = "IngotMalachite",                         FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ada1|MISC")                  },
+            new StaticsData{Id = "IngotSilver",                            FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ace3|MISC")                  },
+            new StaticsData{Id = "IngotIron",                              FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ace4|MISC")                  },
+            new StaticsData{Id = "IngotSteel",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05ace5|MISC")                  },
+            new StaticsData{Id = "Firewood01",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06f993|MISC")                  },
+            new StaticsData{Id = "LeatherStrips",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0800e4|MISC")                  },
+            new StaticsData{Id = "Leather01",                              FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0db5d2|MISC")                  },
+            new StaticsData{Id = "IngotDwarven",                           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0db8a2|MISC")                  },
+            new StaticsData{Id = "DLC2NetchLeather",                       FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x01cd7c|MISC")              },
+            new StaticsData{Id = "DLC2ChitinPlate",                        FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x02b04e|MISC")              },
+            new StaticsData{Id = "DLC2OreStalhrim",                        FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x02b06b|MISC")              },
+            new StaticsData{Id = "cc_IngotAmber",                          FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x000bc7|MISC")     },
+            new StaticsData{Id = "cc_IngotMadness",                        FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x000bc8|MISC")     },
+            new StaticsData{Id = "SoulGemPettyFilled",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x02e4e3|SLGM")                  },
+            new StaticsData{Id = "SoulGemLesserFilled",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x02e4e5|SLGM")                  },
+            new StaticsData{Id = "SoulGemCommonFilled",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x02e4f3|SLGM")                  },
+            new StaticsData{Id = "SprigganSap",                            FormKey = Helpers.ParseFormKey("Skyrim.esm|0x063b5f|INGR")                  },
+            new StaticsData{Id = "WispWrappings",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bc0e|INGR")                  },
+            new StaticsData{Id = "DwarvenOil",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0f11c0|INGR")                  },
+            new StaticsData{Id = "WeapMaterialWood",                       FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e717|KWDA")                  },
+            new StaticsData{Id = "WeapMaterialIron",                       FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e718|KWDA")                  },
+            new StaticsData{Id = "WeapMaterialSteel",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e719|KWDA")                  },
+            new StaticsData{Id = "WeapMaterialDwarven",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e71a|KWDA")                  },
+            new StaticsData{Id = "WeapMaterialElven",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e71b|KWDA")                  },
+            new StaticsData{Id = "WeapMaterialOrcish",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e71c|KWDA")                  },
+            new StaticsData{Id = "WeapMaterialGlass",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e71d|KWDA")                  },
+            new StaticsData{Id = "WeapMaterialEbony",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e71e|KWDA")                  },
+            new StaticsData{Id = "WeapMaterialDaedric",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x01e71f|KWDA")                  },
+            new StaticsData{Id = "CraftingSmithingForge",                  FormKey = Helpers.ParseFormKey("Skyrim.esm|0x088105|KWDA")                  },
+            new StaticsData{Id = "CraftingSmelter",                        FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0a5cce|KWDA")                  },
+            new StaticsData{Id = "WeapMaterialImperial",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0c5c00|KWDA")                  },
+            new StaticsData{Id = "WeapMaterialDraugr",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0c5c01|KWDA")                  },
+            new StaticsData{Id = "WeapMaterialDraugrHoned",                FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0c5c02|KWDA")                  },
+            new StaticsData{Id = "WeapMaterialFalmer",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0c5c03|KWDA")                  },
+            new StaticsData{Id = "WeapMaterialFalmerHoned",                FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0c5c04|KWDA")                  },
+            new StaticsData{Id = "WeapMaterialSilver",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x10aa1a|KWDA")                  },
+            new StaticsData{Id = "WAF_WeapMaterialBlades",                 FormKey = Helpers.ParseFormKey("Update.esm|0xaf0103|KWDA")                  },
+            new StaticsData{Id = "WAF_WeapMaterialForsworn",               FormKey = Helpers.ParseFormKey("Update.esm|0xaf0104|KWDA")                  },
+            new StaticsData{Id = "WAF_DLC1WeapMaterialDawnguard",          FormKey = Helpers.ParseFormKey("Update.esm|0xaf0116|KWDA")                  },
+            new StaticsData{Id = "DLC1WeapMaterialDragonbone",             FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x019822|KWDA")               },
+            new StaticsData{Id = "DLC2ArmorMaterialBonemoldLight",         FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024100|KWDA")              },
+            new StaticsData{Id = "DLC2WeaponMaterialStalhrim",             FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x02622f|KWDA")              },
+            new StaticsData{Id = "DLC2WeaponMaterialNordic",               FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x026230|KWDA")              },
+            new StaticsData{Id = "cc_WeapMaterialAmber",                   FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd67|KWDA")     },
+            new StaticsData{Id = "cc_WeapMaterialMadness",                 FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd68|KWDA")     },
+            new StaticsData{Id = "cc_WeapMaterialGolden",                  FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd69|KWDA")     },
+            new StaticsData{Id = "cc_WeapMaterialDark",                    FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd6a|KWDA")     },
+            new StaticsData{Id = "skyre__NoMeltdownRecipes",               FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00080e|KWDA") },
+            new StaticsData{Id = "ArcaneBlacksmith",                       FormKey = Helpers.ParseFormKey("Skyrim.esm|0x05218e|PERK")                  },
+            new StaticsData{Id = "DragonArmor",                            FormKey = Helpers.ParseFormKey("Skyrim.esm|0x052190|PERK")                  },
+            new StaticsData{Id = "SteelSmithing",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0cb40d|PERK")                  },
+            new StaticsData{Id = "DwarvenSmithing",                        FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0cb40e|PERK")                  },
+            new StaticsData{Id = "ElvenSmithing",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0cb40f|PERK")                  },
+            new StaticsData{Id = "OrcishSmithing",                         FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0cb410|PERK")                  },
+            new StaticsData{Id = "GlassSmithing",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0cb411|PERK")                  },
+            new StaticsData{Id = "EbonySmithing",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0cb412|PERK")                  },
+            new StaticsData{Id = "DaedricSmithing",                        FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0cb413|PERK")                  },
+            new StaticsData{Id = "AdvancedArmors",                         FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0cb414|PERK")                  },
+            new StaticsData{Id = "skyre_MARBallistics",                    FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000d80|PERK") },
+            new StaticsData{Id = "skyre_SMTBreakdown",                     FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000edf|PERK") },
+            new StaticsData{Id = "skyre_SMTTradecraft",                    FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee0|PERK") },
         ];
 }
