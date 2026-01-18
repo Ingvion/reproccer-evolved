@@ -480,7 +480,7 @@ public static class ArmorPatcher
         {
             if (recipe.Conditions.Count != 0)
             {
-                if (material.Perks is not null
+                if (material.Perks.Count != 0
                     && recipe.Conditions.Any(condition => condition.Data is HasPerkConditionData hasPerk
                     && material.Perks.Any(perk => hasPerk.Perk.Link.FormKey == perk)))
                 {
@@ -491,7 +491,7 @@ public static class ArmorPatcher
 
         foreach (var material in Statics.LightMaterials)
         {
-            if (material.Perks is not null
+            if (material.Perks.Count != 0
                 && material.Perks[0] == "skyre_SMTLeathercraft".GetFormKey()
                 && armor.Keywords!.Contains(material.Kwda!))
             {
@@ -516,12 +516,12 @@ public static class ArmorPatcher
         if (recipe.Conditions.Count != 0 && recipe.Conditions.Any(condition => condition.Data is EPTemperingItemIsEnchantedConditionData))
         {
             List<FormKey> allPerks = [.. Statics.AllMaterials
-                .Where(entry => entry.Perks is not null)
+                .Where(entry => entry.Perks.Count != 0)
                 .SelectMany(entry => entry.Perks)
                 .Distinct()];
             List<FormKey> materialPerks = [.. Statics.AllMaterials
                 .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
-                .Where(entry => entry.Perks is not null)
+                .Where(entry => entry.Perks.Count != 0)
                 .SelectMany(entry => entry.Perks)
                 .Distinct()];
             List<FormKey> materialItems = [.. Statics.AllMaterials
@@ -620,7 +620,7 @@ public static class ArmorPatcher
 
         List<FormKey> armorPerks = !isClothing && !isDreamcloth ? [.. Statics.AllMaterials
             .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
-            .Where(entry => entry.Perks is not null)
+            .Where(entry => entry.Perks.Count != 0)
             .SelectMany(entry => entry.Perks)
             .Distinct()] : [];
         List<FormKey> armorItems = !isClothing && !isDreamcloth ? [.. Statics.AllMaterials
@@ -898,149 +898,149 @@ public static class ArmorPatcher
     {
         Executor.Statics!.AddRange(
         [
-            new StaticsData{Id = "MaterialShieldLight",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x016978|KWDA", true)            },
-            new StaticsData{Id = "MaterialShieldHeavy",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x016979|KWDA", true)            },
-            new StaticsData{Id = "WPNBashShieldLightImpactSet",            FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0183fb|KWDA", true)            },
-            new StaticsData{Id = "WPNBashShieldHeavyImpactSet",            FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0183fe|KWDA", true)            },
-            new StaticsData{Id = "ArmorHeavy",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd2|KWDA")                  },
-            new StaticsData{Id = "ArmorLight",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd3|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialDaedric",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd4|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialDragonplate",               FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd5|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialDragonscale",               FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd6|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialDwarven",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd7|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialEbony",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd8|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialElven",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd9|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialElvenGilded",               FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbda|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialLeather",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbdb|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialGlass",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbdc|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialHide",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbdd|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialScaled",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbde|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialStudded",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbdf|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialImperialLight",             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe0|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialImperialStudded",           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe1|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialImperialHeavy",             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe2|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialIron",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe3|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialIronBanded",                FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe4|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialOrcish",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe5|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialSteel",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe6|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialSteelPlate",                FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe7|KWDA")                  },
-            new StaticsData{Id = "ArmorClothing",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe8|KWDA")                  },
-            new StaticsData{Id = "ArmorJewelry",                           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe9|KWDA")                  },
-            new StaticsData{Id = "ArmorSlotCuirass",                       FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06c0ec|KWDA")                  },
-            new StaticsData{Id = "ArmorSlotBoots",                         FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06c0ed|KWDA")                  },
-            new StaticsData{Id = "ArmorSlotHelmet",                        FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06c0ee|KWDA")                  },
-            new StaticsData{Id = "ArmorSlotGauntlets",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06c0ef|KWDA")                  },
-            new StaticsData{Id = "CraftingTanningRack",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x07866a|KWDA")                  },
-            new StaticsData{Id = "VendorItemArmor",                        FormKey = Helpers.ParseFormKey("Skyrim.esm|0x08f959|KWDA")                  },
-            new StaticsData{Id = "VendorItemJewelry",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x08f95a|KWDA")                  },
-            new StaticsData{Id = "VendorItemClothing",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x08f95b|KWDA")                  },
-            new StaticsData{Id = "ArmorShield",                            FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0965b2|KWDA")                  },
-            new StaticsData{Id = "ClothingBody",                           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0a8657|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialStormcloak",                FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0ac13a|KWDA")                  },
-            new StaticsData{Id = "CraftingSmithingArmorTable",             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0adb78|KWDA")                  },
-            new StaticsData{Id = "ClothingHead",                           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x10cd11|KWDA")                  },
-            new StaticsData{Id = "ArmorNightingale",                       FormKey = Helpers.ParseFormKey("Skyrim.esm|0x10fd61|KWDA")                  },
-            new StaticsData{Id = "ArmorDarkBrotherhood",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x10fd62|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialBlades",                    FormKey = Helpers.ParseFormKey("Update.esm|0x0009c0|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialForsworn",                  FormKey = Helpers.ParseFormKey("Update.esm|0x0009b9|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialThievesGuild",              FormKey = Helpers.ParseFormKey("Update.esm|0x0009bc|KWDA")                  },
-            new StaticsData{Id = "ArmorMaterialBearStormcloak",            FormKey = Helpers.ParseFormKey("Update.esm|0x0009be|KWDA")                  },
-            new StaticsData{Id = "WAF_ArmorWolf",                          FormKey = Helpers.ParseFormKey("Update.esm|0xaf0107|KWDA")                  },
-            new StaticsData{Id = "WAF_ArmorMaterialGuard",                 FormKey = Helpers.ParseFormKey("Update.esm|0xaf0112|KWDA")                  },
-            new StaticsData{Id = "WAF_DLC1ArmorDawnguardHeavy",            FormKey = Helpers.ParseFormKey("Update.esm|0xaf0117|KWDA")                  },
-            new StaticsData{Id = "WAF_DLC1ArmorDawnguardLight",            FormKey = Helpers.ParseFormKey("Update.esm|0xaf0118|KWDA")                  },
-            new StaticsData{Id = "WAF_ArmorMaterialDraugr",                FormKey = Helpers.ParseFormKey("Update.esm|0xaf0135|KWDA")                  },
-            new StaticsData{Id = "WAF_ArmorMaterialThalmor",               FormKey = Helpers.ParseFormKey("Update.esm|0xaf0222|KWDA")                  },
-            new StaticsData{Id = "DLC1ArmorMaterialHunter",                FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x0050c4|KWDA")               },
-            new StaticsData{Id = "DLC1ArmorMaterialDawnguard",             FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012ccd|KWDA")               },
-            new StaticsData{Id = "DLC1ArmorMaterialFalmerHardened",        FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012cce|KWDA")               },
-            new StaticsData{Id = "DLC1ArmorMaterialFalmerHeavy",           FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012ccf|KWDA")               },
-            new StaticsData{Id = "DLC1ArmorMaterialFalmerHeavyOriginal",   FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012cd0|KWDA")               },
-            new StaticsData{Id = "DLC1ArmorMaterialVampire",               FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x01463e|KWDA")               },
-            new StaticsData{Id = "DLC2ArmorMaterialBonemoldHeavy",         FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024101|KWDA")              },
-            new StaticsData{Id = "DLC2ArmorMaterialChitinLight",           FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024102|KWDA")              },
-            new StaticsData{Id = "DLC2ArmorMaterialChitinHeavy",           FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024103|KWDA")              },
-            new StaticsData{Id = "DLC2ArmorMaterialNordicLight",           FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024104|KWDA")              },
-            new StaticsData{Id = "DLC2ArmorMaterialNordicHeavy",           FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024105|KWDA")              },
-            new StaticsData{Id = "DLC2ArmorMaterialStalhrimHeavy",         FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024106|KWDA")              },
-            new StaticsData{Id = "DLC2ArmorMaterialStalhrimLight",         FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024107|KWDA")              },
-            new StaticsData{Id = "cc_ArmorMaterialGolden",                 FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd63|KWDA")     },
-            new StaticsData{Id = "cc_ArmorMaterialDark",                   FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd64|KWDA")     },
-            new StaticsData{Id = "cc_ArmorMaterialMadness",                FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd65|KWDA")     },
-            new StaticsData{Id = "cc_ArmorMaterialAmber",                  FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd66|KWDA")     },
-            new StaticsData{Id = "skyre__ArmorShieldHeavy",                FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00080f|KWDA") },
-            new StaticsData{Id = "skyre__ArmorShieldLight",                FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000810|KWDA") },
-            new StaticsData{Id = "skyre__ArmorDreamcloth",                 FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000811|KWDA") },
-            new StaticsData{Id = "skyre__DreamclothBody",                  FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00098d|KWDA") },
-            new StaticsData{Id = "skyre_SPCMasqueradeBandit",              FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f44|KWDA") },
-            new StaticsData{Id = "skyre_SPCMasqueradeForsworn",            FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f45|KWDA") },
-            new StaticsData{Id = "skyre_SPCMasqueradeImperial",            FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f46|KWDA") },
-            new StaticsData{Id = "skyre_SPCMasqueradeStormcloak",          FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f47|KWDA") },
-            new StaticsData{Id = "skyre_SPCMasqueradeThalmor",             FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f48|KWDA") },
-            new StaticsData{Id = "skyre_SMTLeathercraft",                  FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ec4|PERK") },
-            new StaticsData{Id = "skyre_SMTWeavingMill",                   FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee1|PERK") }
+            new StaticsData{ Id = "MaterialShieldLight",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x016978|KWDA", true)            },
+            new StaticsData{ Id = "MaterialShieldHeavy",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x016979|KWDA", true)            },
+            new StaticsData{ Id = "WPNBashShieldLightImpactSet",            FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0183fb|KWDA", true)            },
+            new StaticsData{ Id = "WPNBashShieldHeavyImpactSet",            FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0183fe|KWDA", true)            },
+            new StaticsData{ Id = "ArmorHeavy",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd2|KWDA")                  },
+            new StaticsData{ Id = "ArmorLight",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd3|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialDaedric",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd4|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialDragonplate",               FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd5|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialDragonscale",               FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd6|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialDwarven",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd7|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialEbony",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd8|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialElven",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd9|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialElvenGilded",               FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbda|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialLeather",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbdb|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialGlass",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbdc|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialHide",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbdd|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialScaled",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbde|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialStudded",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbdf|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialImperialLight",             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe0|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialImperialStudded",           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe1|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialImperialHeavy",             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe2|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialIron",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe3|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialIronBanded",                FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe4|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialOrcish",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe5|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialSteel",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe6|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialSteelPlate",                FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe7|KWDA")                  },
+            new StaticsData{ Id = "ArmorClothing",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe8|KWDA")                  },
+            new StaticsData{ Id = "ArmorJewelry",                           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe9|KWDA")                  },
+            new StaticsData{ Id = "ArmorSlotCuirass",                       FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06c0ec|KWDA")                  },
+            new StaticsData{ Id = "ArmorSlotBoots",                         FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06c0ed|KWDA")                  },
+            new StaticsData{ Id = "ArmorSlotHelmet",                        FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06c0ee|KWDA")                  },
+            new StaticsData{ Id = "ArmorSlotGauntlets",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06c0ef|KWDA")                  },
+            new StaticsData{ Id = "CraftingTanningRack",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x07866a|KWDA")                  },
+            new StaticsData{ Id = "VendorItemArmor",                        FormKey = Helpers.ParseFormKey("Skyrim.esm|0x08f959|KWDA")                  },
+            new StaticsData{ Id = "VendorItemJewelry",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x08f95a|KWDA")                  },
+            new StaticsData{ Id = "VendorItemClothing",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x08f95b|KWDA")                  },
+            new StaticsData{ Id = "ArmorShield",                            FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0965b2|KWDA")                  },
+            new StaticsData{ Id = "ClothingBody",                           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0a8657|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialStormcloak",                FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0ac13a|KWDA")                  },
+            new StaticsData{ Id = "CraftingSmithingArmorTable",             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0adb78|KWDA")                  },
+            new StaticsData{ Id = "ClothingHead",                           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x10cd11|KWDA")                  },
+            new StaticsData{ Id = "ArmorNightingale",                       FormKey = Helpers.ParseFormKey("Skyrim.esm|0x10fd61|KWDA")                  },
+            new StaticsData{ Id = "ArmorDarkBrotherhood",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x10fd62|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialBlades",                    FormKey = Helpers.ParseFormKey("Update.esm|0x0009c0|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialForsworn",                  FormKey = Helpers.ParseFormKey("Update.esm|0x0009b9|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialThievesGuild",              FormKey = Helpers.ParseFormKey("Update.esm|0x0009bc|KWDA")                  },
+            new StaticsData{ Id = "ArmorMaterialBearStormcloak",            FormKey = Helpers.ParseFormKey("Update.esm|0x0009be|KWDA")                  },
+            new StaticsData{ Id = "WAF_ArmorWolf",                          FormKey = Helpers.ParseFormKey("Update.esm|0xaf0107|KWDA")                  },
+            new StaticsData{ Id = "WAF_ArmorMaterialGuard",                 FormKey = Helpers.ParseFormKey("Update.esm|0xaf0112|KWDA")                  },
+            new StaticsData{ Id = "WAF_DLC1ArmorDawnguardHeavy",            FormKey = Helpers.ParseFormKey("Update.esm|0xaf0117|KWDA")                  },
+            new StaticsData{ Id = "WAF_DLC1ArmorDawnguardLight",            FormKey = Helpers.ParseFormKey("Update.esm|0xaf0118|KWDA")                  },
+            new StaticsData{ Id = "WAF_ArmorMaterialDraugr",                FormKey = Helpers.ParseFormKey("Update.esm|0xaf0135|KWDA")                  },
+            new StaticsData{ Id = "WAF_ArmorMaterialThalmor",               FormKey = Helpers.ParseFormKey("Update.esm|0xaf0222|KWDA")                  },
+            new StaticsData{ Id = "DLC1ArmorMaterialHunter",                FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x0050c4|KWDA")               },
+            new StaticsData{ Id = "DLC1ArmorMaterialDawnguard",             FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012ccd|KWDA")               },
+            new StaticsData{ Id = "DLC1ArmorMaterialFalmerHardened",        FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012cce|KWDA")               },
+            new StaticsData{ Id = "DLC1ArmorMaterialFalmerHeavy",           FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012ccf|KWDA")               },
+            new StaticsData{ Id = "DLC1ArmorMaterialFalmerHeavyOriginal",   FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012cd0|KWDA")               },
+            new StaticsData{ Id = "DLC1ArmorMaterialVampire",               FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x01463e|KWDA")               },
+            new StaticsData{ Id = "DLC2ArmorMaterialBonemoldHeavy",         FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024101|KWDA")              },
+            new StaticsData{ Id = "DLC2ArmorMaterialChitinLight",           FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024102|KWDA")              },
+            new StaticsData{ Id = "DLC2ArmorMaterialChitinHeavy",           FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024103|KWDA")              },
+            new StaticsData{ Id = "DLC2ArmorMaterialNordicLight",           FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024104|KWDA")              },
+            new StaticsData{ Id = "DLC2ArmorMaterialNordicHeavy",           FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024105|KWDA")              },
+            new StaticsData{ Id = "DLC2ArmorMaterialStalhrimHeavy",         FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024106|KWDA")              },
+            new StaticsData{ Id = "DLC2ArmorMaterialStalhrimLight",         FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024107|KWDA")              },
+            new StaticsData{ Id = "cc_ArmorMaterialGolden",                 FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd63|KWDA")     },
+            new StaticsData{ Id = "cc_ArmorMaterialDark",                   FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd64|KWDA")     },
+            new StaticsData{ Id = "cc_ArmorMaterialMadness",                FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd65|KWDA")     },
+            new StaticsData{ Id = "cc_ArmorMaterialAmber",                  FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd66|KWDA")     },
+            new StaticsData{ Id = "skyre__ArmorShieldHeavy",                FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00080f|KWDA") },
+            new StaticsData{ Id = "skyre__ArmorShieldLight",                FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000810|KWDA") },
+            new StaticsData{ Id = "skyre__ArmorDreamcloth",                 FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000811|KWDA") },
+            new StaticsData{ Id = "skyre__DreamclothBody",                  FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00098d|KWDA") },
+            new StaticsData{ Id = "skyre_SPCMasqueradeBandit",              FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f44|KWDA") },
+            new StaticsData{ Id = "skyre_SPCMasqueradeForsworn",            FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f45|KWDA") },
+            new StaticsData{ Id = "skyre_SPCMasqueradeImperial",            FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f46|KWDA") },
+            new StaticsData{ Id = "skyre_SPCMasqueradeStormcloak",          FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f47|KWDA") },
+            new StaticsData{ Id = "skyre_SPCMasqueradeThalmor",             FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f48|KWDA") },
+            new StaticsData{ Id = "skyre_SMTLeathercraft",                  FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ec4|PERK") },
+            new StaticsData{ Id = "skyre_SMTWeavingMill",                   FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee1|PERK") }
         ]);
 
         List<StaticsData> allMaterials = [
-            new StaticsData{Id = "mat_ancientnord", Kwda = "WAF_ArmorMaterialDraugr".GetFormKey(),              Items = [ "IngotCorundum".GetFormKey() ],    Perks = [ "AdvancedArmors".GetFormKey() ]                              },
-            new StaticsData{Id = "mat_blades",      Kwda = "ArmorMaterialBlades".GetFormKey(),                  Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                               },
-            new StaticsData{Id = "mat_bonemoldh",   Kwda = "DLC2ArmorMaterialBonemoldHeavy".GetFormKey(),       Items = [ "DLC2NetchLeather".GetFormKey() ], Perks = [ "AdvancedArmors".GetFormKey() ]                              },
-            new StaticsData{Id = "mat_chitinh",     Kwda = "DLC2ArmorMaterialChitinHeavy".GetFormKey(),         Items = [ "DLC2ChitinPlate".GetFormKey() ],  Perks = [ "ElvenSmithing".GetFormKey() ]                               },
-            new StaticsData{Id = "mat_daedric",     Kwda = "ArmorMaterialDaedric".GetFormKey(),                 Items = [ "IngotEbony".GetFormKey() ],       Perks = [ "DaedricSmithing".GetFormKey() ]                             },
-            new StaticsData{Id = "mat_dawnguard",   Kwda = "DLC1ArmorMaterialDawnguard".GetFormKey(),           Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                               },
-            new StaticsData{Id = "mat_dawnguardh",  Kwda = "DLC1ArmorMaterialHunter".GetFormKey(),              Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                               },
-            new StaticsData{Id = "mat_dragonplate", Kwda = "ArmorMaterialDragonplate".GetFormKey(),             Items = [ "DragonBone".GetFormKey() ],       Perks = [ "DragonArmor".GetFormKey() ]                                 },
-            new StaticsData{Id = "mat_dwarven",     Kwda = "ArmorMaterialDwarven".GetFormKey(),                 Items = [ "IngotDwarven".GetFormKey() ],     Perks = [ "DwarvenSmithing".GetFormKey() ]                             },
-            new StaticsData{Id = "mat_ebony",       Kwda = "ArmorMaterialEbony".GetFormKey(),                   Items = [ "IngotEbony".GetFormKey() ],       Perks = [ "EbonySmithing".GetFormKey() ]                               },
-            new StaticsData{Id = "mat_falmerhr",    Kwda = "DLC1ArmorMaterialFalmerHardened".GetFormKey(),      Items = [ "ChaurusChitin".GetFormKey() ],    Perks = [ "ElvenSmithing".GetFormKey() ]                               },
-            new StaticsData{Id = "mat_falmerhv",    Kwda = "DLC1ArmorMaterialFalmerHeavy".GetFormKey(),         Items = [ "ChaurusChitin".GetFormKey() ],    Perks = [ "ElvenSmithing".GetFormKey() ]                               },
-            new StaticsData{Id = "mat_falmer",      Kwda = "DLC1ArmorMaterialFalmerHeavyOriginal".GetFormKey(), Items = [ "ChaurusChitin".GetFormKey() ],    Perks = [ "ElvenSmithing".GetFormKey() ]                               },
-            new StaticsData{Id = "mat_golden",      Kwda = "cc_ArmorMaterialGolden".GetFormKey(),               Items = [ "IngotGold".GetFormKey() ],        Perks = [ "DaedricSmithing".GetFormKey() ]                             },
-            new StaticsData{Id = "mat_imperialh",   Kwda = "ArmorMaterialImperialHeavy".GetFormKey(),           Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                               },
-            new StaticsData{Id = "mat_iron",        Kwda = "ArmorMaterialIron".GetFormKey(),                    Items = [ "IngotIron".GetFormKey() ]                                                                                },
-            new StaticsData{Id = "mat_ironb",       Kwda = "ArmorMaterialIronBanded".GetFormKey(),              Items = [ "IngotIron".GetFormKey() ]                                                                                },
-            new StaticsData{Id = "mat_madness",     Kwda = "cc_ArmorMaterialMadness".GetFormKey(),              Items = [ "cc_IngotMadness".GetFormKey() ],  Perks = [ "EbonySmithing".GetFormKey() ]                               },
-            new StaticsData{Id = "mat_nordic",      Kwda = "DLC2ArmorMaterialNordicHeavy".GetFormKey(),         Items = [ "IngotQuicksilver".GetFormKey() ], Perks = [ "AdvancedArmors".GetFormKey() ]                              },
-            new StaticsData{Id = "mat_orcish",      Kwda = "ArmorMaterialOrcish".GetFormKey(),                  Items = [ "IngotOrichalcum".GetFormKey() ],  Perks = [ "OrcishSmithing".GetFormKey() ]                              },
-            new StaticsData{Id = "mat_stalhrimh",   Kwda = "DLC2ArmorMaterialStalhrimHeavy".GetFormKey(),       Items = [ "DLC2OreStalhrim".GetFormKey() ],  Perks = [ "GlassSmithing".GetFormKey(), "EbonySmithing".GetFormKey() ] },
-            new StaticsData{Id = "mat_steel",       Kwda = "ArmorMaterialSteel".GetFormKey(),                   Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                               },
-            new StaticsData{Id = "mat_steelp",      Kwda = "ArmorMaterialSteelPlate".GetFormKey(),              Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "AdvancedArmors".GetFormKey() ]                              },
-            new StaticsData{Id = "mat_wolf",        Kwda = "WAF_ArmorWolf".GetFormKey(),                        Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                               }
+            new StaticsData{ Id = "mat_ancientnord", Kwda = "WAF_ArmorMaterialDraugr".GetFormKey(),              Items = [ "IngotCorundum".GetFormKey() ],    Perks = [ "AdvancedArmors".GetFormKey() ]                              },
+            new StaticsData{ Id = "mat_blades",      Kwda = "ArmorMaterialBlades".GetFormKey(),                  Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                               },
+            new StaticsData{ Id = "mat_bonemoldh",   Kwda = "DLC2ArmorMaterialBonemoldHeavy".GetFormKey(),       Items = [ "DLC2NetchLeather".GetFormKey() ], Perks = [ "AdvancedArmors".GetFormKey() ]                              },
+            new StaticsData{ Id = "mat_chitinh",     Kwda = "DLC2ArmorMaterialChitinHeavy".GetFormKey(),         Items = [ "DLC2ChitinPlate".GetFormKey() ],  Perks = [ "ElvenSmithing".GetFormKey() ]                               },
+            new StaticsData{ Id = "mat_daedric",     Kwda = "ArmorMaterialDaedric".GetFormKey(),                 Items = [ "IngotEbony".GetFormKey() ],       Perks = [ "DaedricSmithing".GetFormKey() ]                             },
+            new StaticsData{ Id = "mat_dawnguard",   Kwda = "DLC1ArmorMaterialDawnguard".GetFormKey(),           Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                               },
+            new StaticsData{ Id = "mat_dawnguardh",  Kwda = "DLC1ArmorMaterialHunter".GetFormKey(),              Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                               },
+            new StaticsData{ Id = "mat_dragonplate", Kwda = "ArmorMaterialDragonplate".GetFormKey(),             Items = [ "DragonBone".GetFormKey() ],       Perks = [ "DragonArmor".GetFormKey() ]                                 },
+            new StaticsData{ Id = "mat_dwarven",     Kwda = "ArmorMaterialDwarven".GetFormKey(),                 Items = [ "IngotDwarven".GetFormKey() ],     Perks = [ "DwarvenSmithing".GetFormKey() ]                             },
+            new StaticsData{ Id = "mat_ebony",       Kwda = "ArmorMaterialEbony".GetFormKey(),                   Items = [ "IngotEbony".GetFormKey() ],       Perks = [ "EbonySmithing".GetFormKey() ]                               },
+            new StaticsData{ Id = "mat_falmerhr",    Kwda = "DLC1ArmorMaterialFalmerHardened".GetFormKey(),      Items = [ "ChaurusChitin".GetFormKey() ],    Perks = [ "ElvenSmithing".GetFormKey() ]                               },
+            new StaticsData{ Id = "mat_falmerhv",    Kwda = "DLC1ArmorMaterialFalmerHeavy".GetFormKey(),         Items = [ "ChaurusChitin".GetFormKey() ],    Perks = [ "ElvenSmithing".GetFormKey() ]                               },
+            new StaticsData{ Id = "mat_falmer",      Kwda = "DLC1ArmorMaterialFalmerHeavyOriginal".GetFormKey(), Items = [ "ChaurusChitin".GetFormKey() ],    Perks = [ "ElvenSmithing".GetFormKey() ]                               },
+            new StaticsData{ Id = "mat_golden",      Kwda = "cc_ArmorMaterialGolden".GetFormKey(),               Items = [ "IngotGold".GetFormKey() ],        Perks = [ "DaedricSmithing".GetFormKey() ]                             },
+            new StaticsData{ Id = "mat_imperialh",   Kwda = "ArmorMaterialImperialHeavy".GetFormKey(),           Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                               },
+            new StaticsData{ Id = "mat_iron",        Kwda = "ArmorMaterialIron".GetFormKey(),                    Items = [ "IngotIron".GetFormKey() ],        Perks = [ ]                                                            },
+            new StaticsData{ Id = "mat_ironb",       Kwda = "ArmorMaterialIronBanded".GetFormKey(),              Items = [ "IngotIron".GetFormKey() ],        Perks = [ ]                                                            },
+            new StaticsData{ Id = "mat_madness",     Kwda = "cc_ArmorMaterialMadness".GetFormKey(),              Items = [ "cc_IngotMadness".GetFormKey() ],  Perks = [ "EbonySmithing".GetFormKey() ]                               },
+            new StaticsData{ Id = "mat_nordic",      Kwda = "DLC2ArmorMaterialNordicHeavy".GetFormKey(),         Items = [ "IngotQuicksilver".GetFormKey() ], Perks = [ "AdvancedArmors".GetFormKey() ]                              },
+            new StaticsData{ Id = "mat_orcish",      Kwda = "ArmorMaterialOrcish".GetFormKey(),                  Items = [ "IngotOrichalcum".GetFormKey() ],  Perks = [ "OrcishSmithing".GetFormKey() ]                              },
+            new StaticsData{ Id = "mat_stalhrimh",   Kwda = "DLC2ArmorMaterialStalhrimHeavy".GetFormKey(),       Items = [ "DLC2OreStalhrim".GetFormKey() ],  Perks = [ "GlassSmithing".GetFormKey(), "EbonySmithing".GetFormKey() ] },
+            new StaticsData{ Id = "mat_steel",       Kwda = "ArmorMaterialSteel".GetFormKey(),                   Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                               },
+            new StaticsData{ Id = "mat_steelp",      Kwda = "ArmorMaterialSteelPlate".GetFormKey(),              Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "AdvancedArmors".GetFormKey() ]                              },
+            new StaticsData{ Id = "mat_wolf",        Kwda = "WAF_ArmorWolf".GetFormKey(),                        Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                               }
         ];
 
         List<StaticsData> lightMaterials = [
-            new StaticsData{Id = "mat_amber",       Kwda = "cc_ArmorMaterialAmber".GetFormKey(),          Items = [ "cc_IngotAmber".GetFormKey() ],    Perks = [ "GlassSmithing".GetFormKey(), "EbonySmithing".GetFormKey() ]         },
-            new StaticsData{Id = "mat_bonemold",    Kwda = "DLC2ArmorMaterialBonemoldLight".GetFormKey(), Items = [ "DLC2NetchLeather".GetFormKey() ], Perks = [ "AdvancedArmors".GetFormKey() ]                                      },
-            new StaticsData{Id = "mat_chitin",      Kwda = "DLC2ArmorMaterialChitinLight".GetFormKey(),   Items = [ "DLC2ChitinPlate".GetFormKey() ],  Perks = [ "ElvenSmithing".GetFormKey() ]                                       },
-            new StaticsData{Id = "mat_dark",        Kwda = "cc_ArmorMaterialDark".GetFormKey(),           Items = [ "IngotQuicksilver".GetFormKey() ], Perks = [ "DaedricSmithing".GetFormKey() ]                                     },
-            new StaticsData{Id = "mat_dragonscale", Kwda = "ArmorMaterialDragonscale".GetFormKey(),       Items = [ "DragonScales".GetFormKey() ],     Perks = [ "DragonArmor".GetFormKey() ]                                         },
-            new StaticsData{Id = "mat_elven",       Kwda = "ArmorMaterialElven".GetFormKey(),             Items = [ "IngotMoonstone".GetFormKey() ],   Perks = [ "ElvenSmithing".GetFormKey() ]                                       },
-            new StaticsData{Id = "mat_elveng",      Kwda = "ArmorMaterialElvenGilded".GetFormKey(),       Items = [ "IngotMoonstone".GetFormKey() ],   Perks = [ "ElvenSmithing".GetFormKey() ]                                       },
-            new StaticsData{Id = "mat_forsworn",    Kwda = "ArmorMaterialForsworn".GetFormKey(),          Items = [ "LeatherStrips".GetFormKey() ]                                                                                    },
-            new StaticsData{Id = "mat_glass",       Kwda = "ArmorMaterialGlass".GetFormKey(),             Items = [ "IngotMalachite".GetFormKey() ],   Perks = [ "GlassSmithing".GetFormKey() ]                                       },
-            new StaticsData{Id = "mat_guard",       Kwda = "WAF_ArmorMaterialGuard".GetFormKey(),         Items = [ "IngotIron".GetFormKey() ],        Perks = [ "skyre_SMTLeathercraft".GetFormKey(), "SteelSmithing".GetFormKey() ] },
-            new StaticsData{Id = "mat_hide",        Kwda = "ArmorMaterialHide".GetFormKey(),              Items = [ "LeatherStrips".GetFormKey() ]                                                                                    },
-            new StaticsData{Id = "mat_imperial",    Kwda = "ArmorMaterialImperialLight".GetFormKey(),     Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "skyre_SMTLeathercraft".GetFormKey(), "SteelSmithing".GetFormKey() ] },
-            new StaticsData{Id = "mat_imperials",   Kwda = "ArmorMaterialImperialStudded".GetFormKey(),   Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               },
-            new StaticsData{Id = "mat_leather",     Kwda = "ArmorMaterialLeather".GetFormKey(),           Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               },
-            new StaticsData{Id = "mat_nightingale", Kwda = "ArmorNightingale".GetFormKey(),               Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               },
-            new StaticsData{Id = "mat_scaled",      Kwda = "ArmorMaterialScaled".GetFormKey(),            Items = [ "IngotCorundum".GetFormKey() ],    Perks = [ "AdvancedArmors".GetFormKey() ]                                      },
-            new StaticsData{Id = "mat_shrouded",    Kwda = "ArmorDarkBrotherhood".GetFormKey(),           Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               },
-            new StaticsData{Id = "mat_stalhrim",    Kwda = "DLC2ArmorMaterialStalhrimLight".GetFormKey(), Items = [ "DLC2OreStalhrim".GetFormKey() ],  Perks = [ "GlassSmithing".GetFormKey(), "EbonySmithing".GetFormKey() ]         },
-            new StaticsData{Id = "mat_stormcloak",  Kwda = "ArmorMaterialStormcloak".GetFormKey(),        Items = [ "IngotIron".GetFormKey() ],        Perks = [ "skyre_SMTLeathercraft".GetFormKey(), "SteelSmithing".GetFormKey() ] },
-            new StaticsData{Id = "mat_stormcloakh", Kwda = "ArmorMaterialBearStormcloak".GetFormKey(),    Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "skyre_SMTLeathercraft".GetFormKey(), "SteelSmithing".GetFormKey() ] },
-            new StaticsData{Id = "mat_studded",     Kwda = "ArmorMaterialStudded".GetFormKey(),           Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               },
-            new StaticsData{Id = "mat_thievesgl",   Kwda = "ArmorMaterialThievesGuild".GetFormKey(),      Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               },
-            new StaticsData{Id = "mat_vampire",     Kwda = "DLC1ArmorMaterialVampire".GetFormKey(),       Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               }
+            new StaticsData{ Id = "mat_amber",       Kwda = "cc_ArmorMaterialAmber".GetFormKey(),          Items = [ "cc_IngotAmber".GetFormKey() ],    Perks = [ "GlassSmithing".GetFormKey(), "EbonySmithing".GetFormKey() ]         },
+            new StaticsData{ Id = "mat_bonemold",    Kwda = "DLC2ArmorMaterialBonemoldLight".GetFormKey(), Items = [ "DLC2NetchLeather".GetFormKey() ], Perks = [ "AdvancedArmors".GetFormKey() ]                                      },
+            new StaticsData{ Id = "mat_chitin",      Kwda = "DLC2ArmorMaterialChitinLight".GetFormKey(),   Items = [ "DLC2ChitinPlate".GetFormKey() ],  Perks = [ "ElvenSmithing".GetFormKey() ]                                       },
+            new StaticsData{ Id = "mat_dark",        Kwda = "cc_ArmorMaterialDark".GetFormKey(),           Items = [ "IngotQuicksilver".GetFormKey() ], Perks = [ "DaedricSmithing".GetFormKey() ]                                     },
+            new StaticsData{ Id = "mat_dragonscale", Kwda = "ArmorMaterialDragonscale".GetFormKey(),       Items = [ "DragonScales".GetFormKey() ],     Perks = [ "DragonArmor".GetFormKey() ]                                         },
+            new StaticsData{ Id = "mat_elven",       Kwda = "ArmorMaterialElven".GetFormKey(),             Items = [ "IngotMoonstone".GetFormKey() ],   Perks = [ "ElvenSmithing".GetFormKey() ]                                       },
+            new StaticsData{ Id = "mat_elveng",      Kwda = "ArmorMaterialElvenGilded".GetFormKey(),       Items = [ "IngotMoonstone".GetFormKey() ],   Perks = [ "ElvenSmithing".GetFormKey() ]                                       },
+            new StaticsData{ Id = "mat_forsworn",    Kwda = "ArmorMaterialForsworn".GetFormKey(),          Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ ]                                                                    },
+            new StaticsData{ Id = "mat_glass",       Kwda = "ArmorMaterialGlass".GetFormKey(),             Items = [ "IngotMalachite".GetFormKey() ],   Perks = [ "GlassSmithing".GetFormKey() ]                                       },
+            new StaticsData{ Id = "mat_guard",       Kwda = "WAF_ArmorMaterialGuard".GetFormKey(),         Items = [ "IngotIron".GetFormKey() ],        Perks = [ "skyre_SMTLeathercraft".GetFormKey(), "SteelSmithing".GetFormKey() ] },
+            new StaticsData{ Id = "mat_hide",        Kwda = "ArmorMaterialHide".GetFormKey(),              Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ ]                                                                    },
+            new StaticsData{ Id = "mat_imperial",    Kwda = "ArmorMaterialImperialLight".GetFormKey(),     Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "skyre_SMTLeathercraft".GetFormKey(), "SteelSmithing".GetFormKey() ] },
+            new StaticsData{ Id = "mat_imperials",   Kwda = "ArmorMaterialImperialStudded".GetFormKey(),   Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               },
+            new StaticsData{ Id = "mat_leather",     Kwda = "ArmorMaterialLeather".GetFormKey(),           Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               },
+            new StaticsData{ Id = "mat_nightingale", Kwda = "ArmorNightingale".GetFormKey(),               Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               },
+            new StaticsData{ Id = "mat_scaled",      Kwda = "ArmorMaterialScaled".GetFormKey(),            Items = [ "IngotCorundum".GetFormKey() ],    Perks = [ "AdvancedArmors".GetFormKey() ]                                      },
+            new StaticsData{ Id = "mat_shrouded",    Kwda = "ArmorDarkBrotherhood".GetFormKey(),           Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               },
+            new StaticsData{ Id = "mat_stalhrim",    Kwda = "DLC2ArmorMaterialStalhrimLight".GetFormKey(), Items = [ "DLC2OreStalhrim".GetFormKey() ],  Perks = [ "GlassSmithing".GetFormKey(), "EbonySmithing".GetFormKey() ]         },
+            new StaticsData{ Id = "mat_stormcloak",  Kwda = "ArmorMaterialStormcloak".GetFormKey(),        Items = [ "IngotIron".GetFormKey() ],        Perks = [ "skyre_SMTLeathercraft".GetFormKey(), "SteelSmithing".GetFormKey() ] },
+            new StaticsData{ Id = "mat_stormcloakh", Kwda = "ArmorMaterialBearStormcloak".GetFormKey(),    Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "skyre_SMTLeathercraft".GetFormKey(), "SteelSmithing".GetFormKey() ] },
+            new StaticsData{ Id = "mat_studded",     Kwda = "ArmorMaterialStudded".GetFormKey(),           Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               },
+            new StaticsData{ Id = "mat_thievesgl",   Kwda = "ArmorMaterialThievesGuild".GetFormKey(),      Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               },
+            new StaticsData{ Id = "mat_vampire",     Kwda = "DLC1ArmorMaterialVampire".GetFormKey(),       Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               }
         ];
 
         allMaterials.AddRange(lightMaterials);
         List<StaticsData> factionBinds = [
-            new StaticsData{Id = "fact_bandit",     Kwda = "skyre_SPCMasqueradeBandit".GetFormKey()     },
-            new StaticsData{Id = "fact_forsworn",   Kwda = "skyre_SPCMasqueradeForsworn".GetFormKey()   },
-            new StaticsData{Id = "fact_imperial",   Kwda = "skyre_SPCMasqueradeImperial".GetFormKey()   },
-            new StaticsData{Id = "fact_stormcloak", Kwda = "skyre_SPCMasqueradeStormcloak".GetFormKey() },
-            new StaticsData{Id = "fact_thalmor",    Kwda = "skyre_SPCMasqueradeThalmor".GetFormKey()    }
+            new StaticsData{ Id = "fact_bandit",     Kwda = "skyre_SPCMasqueradeBandit".GetFormKey()     },
+            new StaticsData{ Id = "fact_forsworn",   Kwda = "skyre_SPCMasqueradeForsworn".GetFormKey()   },
+            new StaticsData{ Id = "fact_imperial",   Kwda = "skyre_SPCMasqueradeImperial".GetFormKey()   },
+            new StaticsData{ Id = "fact_stormcloak", Kwda = "skyre_SPCMasqueradeStormcloak".GetFormKey() },
+            new StaticsData{ Id = "fact_thalmor",    Kwda = "skyre_SPCMasqueradeThalmor".GetFormKey()    }
         ];
 
         return (allMaterials, lightMaterials, factionBinds);
