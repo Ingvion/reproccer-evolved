@@ -478,9 +478,9 @@ public static class ArmorPatcher
     {
         foreach (var material in Statics.LightMaterials)
         {
-            if (recipe.Conditions.Count != 0)
+            if (recipe.Conditions.Count > 0)
             {
-                if (material.Perks.Count != 0
+                if (material.Perks.Count > 0
                     && recipe.Conditions.Any(condition => condition.Data is HasPerkConditionData hasPerk
                     && material.Perks.Any(perk => hasPerk.Perk.Link.FormKey == perk)))
                 {
@@ -491,7 +491,7 @@ public static class ArmorPatcher
 
         foreach (var material in Statics.LightMaterials)
         {
-            if (material.Perks.Count != 0
+            if (material.Perks.Count > 0
                 && material.Perks[0] == "skyre_SMTLeathercraft".GetFormKey()
                 && armor.Keywords!.Contains(material.Kwda!))
             {
@@ -513,15 +513,15 @@ public static class ArmorPatcher
     /// <param name="armor">Processed armor record.</param>
     private static void ModTemperingRecipe(IConstructibleObjectGetter recipe, IArmorGetter armor)
     {
-        if (recipe.Conditions.Count != 0 && recipe.Conditions.Any(condition => condition.Data is EPTemperingItemIsEnchantedConditionData))
+        if (recipe.Conditions.Count > 0 && recipe.Conditions.Any(condition => condition.Data is EPTemperingItemIsEnchantedConditionData))
         {
             List<FormKey> allPerks = [.. Statics.AllMaterials
-                .Where(entry => entry.Perks.Count != 0)
+                .Where(entry => entry.Perks.Count > 0)
                 .SelectMany(entry => entry.Perks)
                 .Distinct()];
             List<FormKey> materialPerks = [.. Statics.AllMaterials
                 .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
-                .Where(entry => entry.Perks.Count != 0)
+                .Where(entry => entry.Perks.Count > 0)
                 .SelectMany(entry => entry.Perks)
                 .Distinct()];
             List<FormKey> materialItems = [.. Statics.AllMaterials
@@ -620,7 +620,7 @@ public static class ArmorPatcher
 
         List<FormKey> armorPerks = !isClothing && !isDreamcloth ? [.. Statics.AllMaterials
             .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
-            .Where(entry => entry.Perks.Count != 0)
+            .Where(entry => entry.Perks.Count > 0)
             .SelectMany(entry => entry.Perks)
             .Distinct()] : [];
         List<FormKey> armorItems = !isClothing && !isDreamcloth ? [.. Statics.AllMaterials
