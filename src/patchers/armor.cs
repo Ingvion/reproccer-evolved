@@ -10,13 +10,14 @@ public static class ArmorPatcher
 {
     private static readonly Settings.AllSettings Settings = Executor.Settings!;
     private static readonly JsonObject Rules = Executor.Rules!["armor"]!.AsObject();
-    private static readonly (List<DataMap> AllMaterials,
-                             List<DataMap> LightMaterials,
-                             List<DataMap> FactionBinds) Statics = BuildStaticsMap();
+    private static readonly (List<StaticsData> AllMaterials,
+                             List<StaticsData> LightMaterials,
+                             List<StaticsData> FactionBinds) Statics = ListStatics();
 
     private static EditorIDs EditorIDs;
-    private static PatchingData RecordData;
+    private static RecordData PatchingData;
     private static Logger Logger;
+    private static readonly List<Report> AllReports = [];
 
     public static void Run()
     {
@@ -32,46 +33,48 @@ public static class ArmorPatcher
 
         foreach (var armor in records)
         {
-            RecordData = new PatchingData
+            PatchingData = new RecordData
             {
                 ArmorType = armor.BodyTemplate!.ArmorType,
                 NonPlayable = armor.MajorFlags.HasFlag(Armor.MajorFlag.NonPlayable),
-                Unique = armor.Keywords!.Contains(GetFormKey("skyre__NoMeltdownRecipes"))
+                Unique = armor.Keywords!.Contains("skyre__NoMeltdownRecipes".GetFormKey())
             };
 
+            AllReports.Clear();
             Logger = new Logger();
+            AllReports.Add(new Report { Record = armor, Log = Logger });
 
-            if (!armor.TemplateArmor.IsNull || (RecordData.ArmorType == ArmorType.Clothing
-                && armor.Keywords!.Contains(GetFormKey("ArmorJewelry"))))
+            if (!armor.TemplateArmor.IsNull || (PatchingData.ArmorType == ArmorType.Clothing
+                && armor.Keywords!.Contains("ArmorJewelry".GetFormKey())))
             {
                 PatchRecordNames(armor, blacklists[0]);
-                armor.ShowReport();
+                ShowReport(armor);
                 continue;
             }
 
             SetOverriddenData(armor);
 
-            if (RecordData.ArmorType != ArmorType.Clothing)
+            if (PatchingData.ArmorType != ArmorType.Clothing)
             {
-                PatchShieldWeight(armor, RecordData.ArmorType);
+                PatchShieldWeight(armor, PatchingData.ArmorType);
                 PatchArmorRating(armor);
             }
 
-            if (!RecordData.NonPlayable)
+            if (!PatchingData.NonPlayable)
             {
                 PatchRecordNames(armor, blacklists[0]);
                 PatchMasqueradeKeywords(armor);
-                if (RecordData.ArmorType == ArmorType.Clothing)
+                if (PatchingData.ArmorType == ArmorType.Clothing)
                 {
                     ProcessClothing(armor, blacklists[1]);
-                    armor.ShowReport();
+                    ShowReport(armor);
                     continue;
                 }
                 ProcessRecipes(armor, blacklists[2]);
             }
 
 
-            armor.ShowReport();
+            ShowReport(armor);
         }
     }
 
@@ -103,90 +106,86 @@ public static class ArmorPatcher
     /// <returns>The list of armor records eligible for patching.</returns>
     private static List<IArmorGetter> GetRecords()
     {
-        IEnumerable<IArmorGetter> armoWinners = Executor.State!.LoadOrder.PriorityOrder
+        IEnumerable<IArmorGetter> conflictWinners = Executor.State!.LoadOrder.PriorityOrder
             .Where(plugin => !Settings.General.IgnoredFiles.Any(name => name == plugin.ModKey.FileName))
             .Where(plugin => plugin.Enabled)
             .WinningOverrides<IArmorGetter>();
 
-        Console.WriteLine($"\n~~~ {armoWinners.Count()} armor records found, filtering... ~~~\n\n"
-            + "====================");
-
-        List<IArmorGetter> armoRecords = [];
-
+        List<IArmorGetter> validRecords = [];
         List<string> excludedNames = [.. Rules["excludedArmor"]!.AsArray().Select(value => value!.GetValue<string>())];
         List<FormKey> mustHave = [
-            GetFormKey("ArmorHeavy"),
-            GetFormKey("ArmorLight"),
-            GetFormKey("ArmorShield"),
-            GetFormKey("ArmorClothing"),
-            GetFormKey("ArmorJewelry")
+            "ArmorHeavy".GetFormKey(),
+            "ArmorLight".GetFormKey(),
+            "ArmorShield".GetFormKey(),
+            "ArmorClothing".GetFormKey(),
+            "ArmorJewelry".GetFormKey()
         ];
 
-        foreach (var record in armoWinners)
+        foreach (var record in conflictWinners)
         {
-            if (IsValid(record, excludedNames, mustHave)) armoRecords.Add(record);
+            if (IsValid(record, excludedNames, mustHave)) validRecords.Add(record);
         }
 
-        Console.WriteLine($"\n~~~ {armoRecords.Count} armor records are eligible for patching ~~~\n\n"
+        Console.WriteLine($"\n~~~ {validRecords.Count} of {conflictWinners.Count()} armor records are eligible for patching ~~~\n\n"
             + "====================");
-        return armoRecords;
+        return validRecords;
     }
 
     /// <summary>
-    /// Checks if the armor matches necessary conditions to be patched.
+    /// Checks if the record matches necessary conditions to be patched.
     /// </summary>
-    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <param name="record">Processed record.</param>
     /// <param name="excludedNames">The list of excluded strings.</param>
-    /// <param name="mustHave">The list of keywords formkeys of which at least one must be present on armor.</param>
-    /// <returns>Check result from a filter the record triggered as <see cref="bool"/>.</returns>
+    /// <param name="mustHave">The list of keywords (as FormKeys) of which at least one must be present in record's keywords.</param>
+    /// <returns>Check result as bool.</returns>
     private static bool IsValid(IArmorGetter armor, List<string> excludedNames, List<FormKey> mustHave)
     {
         Logger = new Logger();
 
-        // invalid if found in the excluded records list by edid
+        // found in the excluded records list by edID
         if (Settings.General.ExclByEdID && armor.EditorID!.IsExcluded(excludedNames, true))
         {
             if (Settings.Debug.ShowExcluded)
             {
-                Logger.Info($"Found in the \"No patching\" list by EditorID (as {armor.EditorID})");
-                armor.ShowReport();
+                Logger.Info($"Found in the \"No patching\" list by EditorID");
+                ShowReport(armor);
             }
             return false;
         }
 
-        // invalid if has no name
+        // has no name
         if (armor.Name is null) return false;
 
-        // invalid if found in the excluded records list by name
+        // found in the excluded records list by name
         if (armor.Name!.ToString()!.IsExcluded(excludedNames))
         {
             if (Settings.Debug.ShowExcluded)
             {
                 Logger.Info($"Found in the \"No patching\" list by name");
-                armor.ShowReport();
+                ShowReport(armor);
             }
             return false;
         }
 
-        // invalid if has no body template)
+        // has no body template
         if (armor.BodyTemplate is null) return false;
 
-        // valid if has a template (to skip keyword checks below)
+        // has a template (to skip keyword checks below)
         if (!armor.TemplateArmor.IsNull) return true;
 
-        // invalid if has no keywords or have empty kw array (rare)
+        // has no keywords or kws array is empty (rare)
         if (armor.Keywords is null || armor.Keywords.Count == 0) return false;
 
-        // invalid if it does not have any required keywords
+        // has none of the required keywords
         if (!mustHave.Any(keyword => armor.Keywords.Contains(keyword))) return false;
 
         return true;
     }
 
     /// <summary>
-    /// Renames any type of armor records according to the rules.
+    /// Renames the record according to the rules.
     /// </summary>
-    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <param name="armor">Processed armor record.</param>
     /// <param name="excludedNames">The list of excluded strings.</param>
     private static void PatchRecordNames(IArmorGetter armor, List<string> excludedNames)
     {
@@ -198,10 +197,10 @@ public static class ArmorPatcher
 
         string name = armor.Name!.ToString()!;
 
-        /* Options:
+        /* char[] flags options:
          * i - case-insensitive search
          * g - replace all matches
-         * p - string as part of a word
+         * p - allow as substring
          * c - retain capitalization
          * n - search for the next rule
          */
@@ -218,17 +217,17 @@ public static class ArmorPatcher
                 if (filter != "")
                 {
                     string[] filterArr = filter.Split(',');
-                    if (!filterArr.Any(type => RecordData.ArmorType.ToString() == type.Replace(" ", ""))) continue;
+                    if (!filterArr.Any(type => PatchingData.ArmorType.ToString() == type.Replace(" ", ""))) continue;
                 }
 
                 if (!flags.Contains('p'))
                 {
-                    // check if name contains all words from replace in any order
+                    // checking if name contains all words from replace in any order
                     string replace = renamer[i]!["replace"]?.ToString() ?? "";
                     string[] blacklist = replace.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (replace != "" && blacklist.All(name.Contains)) continue;
 
-                    // check if name contains any word from skipIf
+                    // checking if name contains any word from skipIf
                     string skipIf = renamer[i]!["skipIf"]?.ToString() ?? "";
                     blacklist = skipIf.Split(',', StringSplitOptions.TrimEntries);
                     if (skipIf != "" && blacklist.Any(word => name.Contains(word))) continue;
@@ -250,9 +249,9 @@ public static class ArmorPatcher
     }
 
     /// <summary>
-    /// Modifies armors materials according to the rules.
+    /// Modifies armor material according to the rules.
     /// </summary>
-    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <param name="armor">Processed armor record.</param>
     private static void SetOverriddenData(IArmorGetter armor)
     {
         JsonNode? overrideNode = 
@@ -266,7 +265,7 @@ public static class ArmorPatcher
             string id = entry1.Id.GetT9n();
             if (id == overrideString)
             {
-                if (entry1.Kwda == DataMap.NullRef)
+                if (entry1.Kwda == StaticsData.NullRef)
                 {
                     Logger.Caution("A \"materialOverrides\" patching rule references a material from Creation Club's \"Saints and Seducers\"");
                     break;
@@ -280,7 +279,7 @@ public static class ArmorPatcher
 
                 armor.AsOverride(true).Keywords!.Add(entry1.Kwda!);
                 Logger.Info($"The material was forced to {overrideString} in accordance with patching rules", true);
-                RecordData.Overridden = true;
+                PatchingData.Overridden = true;
                 break;
             }
         }
@@ -289,79 +288,85 @@ public static class ArmorPatcher
     /// <summary>
     /// Distributes shield weight keywords and modifies shields' impact data set and material type.
     /// </summary>
-    /// <param name="armor">The armor record as IArmorGetter.</param>
-    /// <param name="armorType">The armor type as enum.</param>
+    /// <param name="armor">Processed armor record.</param>
+    /// <param name="armorType">An armor type as enum.</param>
     private static void PatchShieldWeight(IArmorGetter armor, ArmorType armorType)
     {
-        if (!armor.Keywords!.Contains(GetFormKey("ArmorShield"))) return;
+        if (!armor.Keywords!.Contains("ArmorShield".GetFormKey())) return;
 
-        if (armorType == ArmorType.HeavyArmor && !armor.Keywords!.Contains(GetFormKey("skyre__ArmorShieldHeavy")))
+        if (armorType == ArmorType.HeavyArmor && !armor.Keywords!.Contains("skyre__ArmorShieldHeavy".GetFormKey()))
         {
-            armor.AsOverride(true).Keywords!.Add(GetFormKey("skyre__ArmorShieldHeavy"));
-            armor.AsOverride().BashImpactDataSet = new FormLinkNullable<IImpactDataSetGetter>(GetFormKey("WPNBashShieldHeavyImpactSet"));
-            armor.AsOverride().AlternateBlockMaterial = new FormLinkNullable<IMaterialTypeGetter>(GetFormKey("MaterialShieldHeavy"));
+            armor.AsOverride(true).Keywords!.Add("skyre__ArmorShieldHeavy".GetFormKey());
+            armor.AsOverride().BashImpactDataSet = new FormLinkNullable<IImpactDataSetGetter>("WPNBashShieldHeavyImpactSet".GetFormKey());
+            armor.AsOverride().AlternateBlockMaterial = new FormLinkNullable<IMaterialTypeGetter>("MaterialShieldHeavy".GetFormKey());
         }
-        else if (armorType == ArmorType.LightArmor && !armor.Keywords!.Contains(GetFormKey("skyre__ArmorShieldLight")))
+        else if (armorType == ArmorType.LightArmor && !armor.Keywords!.Contains("skyre__ArmorShieldLight".GetFormKey()))
         {
-            armor.AsOverride(true).Keywords!.Add(GetFormKey("skyre__ArmorShieldLight"));
-            armor.AsOverride().BashImpactDataSet = new FormLinkNullable<IImpactDataSetGetter>(GetFormKey("WPNBashShieldLightImpactSet"));
-            armor.AsOverride().AlternateBlockMaterial = new FormLinkNullable<IMaterialTypeGetter>(GetFormKey("MaterialShieldLight"));
+            armor.AsOverride(true).Keywords!.Add("skyre__ArmorShieldLight".GetFormKey());
+            armor.AsOverride().BashImpactDataSet = new FormLinkNullable<IImpactDataSetGetter>("WPNBashShieldLightImpactSet".GetFormKey());
+            armor.AsOverride().AlternateBlockMaterial = new FormLinkNullable<IMaterialTypeGetter>("MaterialShieldLight".GetFormKey());
         }
     }
 
     /// <summary>
-    /// Modifies the armor rating based on other methods' results.
+    /// Modifies armor rating based on other methods' results.
     /// </summary>
-    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <param name="armor">Processed armor record.</param>
     private static void PatchArmorRating(IArmorGetter armor)
     {
-        float? slotFactor = GetSlotFactor(armor);
-        int? materialFactor = GetMaterialFactor(armor);
+        float slotFactor = GetSlotFactor(armor);
+        if (slotFactor == 0) return;
 
-        if (slotFactor is null || materialFactor is null) return;
+        int materialFactor = GetMaterialFactor(armor);
+        if (materialFactor == 0) return;
 
         float extraMod = GetExtraArmorMod(armor);
-        double newArmorRating = Math.Floor((float)slotFactor * (int)materialFactor * extraMod);
+        float newArmorRating = (float)Math.Floor(slotFactor * materialFactor * extraMod);
 
-        if ((float)newArmorRating != armor.ArmorRating)
+        if (newArmorRating != armor.ArmorRating)
         {
-            armor.AsOverride(true).ArmorRating = (float)newArmorRating;
+            armor.AsOverride(true).ArmorRating = newArmorRating;
             Logger.Info($"Armor rating: {armor.ArmorRating} -> {armor.AsOverride().ArmorRating} " +
                 $"(material: {materialFactor}, slot: x{slotFactor}, mult: x{extraMod})", true);
         }
     }
 
     /// <summary>
-    /// Returns the armor rating slot modifier according to the settings.
+    /// Returns armor slot factor value according to the settings.
     /// </summary>
-    /// <param name="armor">The armor record as IArmorGetter.</param>
-    /// <returns>Armor rating slot modifier as <see cref="float"/>, or null if the armor has no slot keyword.</returns>
-    private static float? GetSlotFactor(IArmorGetter armor)
+    /// <param name="armor">Processed armor record.</param>
+    /// <returns>Armor rating slot factor as float, or 0 if no slot keyword was found.</returns>
+    private static float GetSlotFactor(IArmorGetter armor)
     {
-        if (armor.Keywords!.Contains(GetFormKey("ArmorSlotBoots"))) return Settings.Armor.SlotBoots;
-        if (armor.Keywords!.Contains(GetFormKey("ArmorSlotCuirass"))) return Settings.Armor.SlotCuirass;
-        if (armor.Keywords!.Contains(GetFormKey("ArmorSlotGauntlets"))) return Settings.Armor.SlotGauntlets;
-        if (armor.Keywords!.Contains(GetFormKey("ArmorSlotHelmet"))) return Settings.Armor.SlotHelmet;
-        if (armor.Keywords!.Contains(GetFormKey("ArmorShield"))) return Settings.Armor.SlotShield;
+        if (armor.Keywords!.Contains("ArmorSlotBoots".GetFormKey())) 
+            return Settings.Armor.SlotBoots;
+        if (armor.Keywords!.Contains("ArmorSlotCuirass".GetFormKey())) 
+            return Settings.Armor.SlotCuirass;
+        if (armor.Keywords!.Contains("ArmorSlotGauntlets".GetFormKey())) 
+            return Settings.Armor.SlotGauntlets;
+        if (armor.Keywords!.Contains("ArmorSlotHelmet".GetFormKey())) 
+            return Settings.Armor.SlotHelmet;
+        if (armor.Keywords!.Contains("ArmorShield".GetFormKey())) 
+            return Settings.Armor.SlotShield;
 
         Logger.Error("Unable to determine the equip slot for the record");
-        return null;
+        return default;
     }
 
     /// <summary>
-    /// Returns the armor rating material modifier according to the rules.
+    /// Returns material factor value for armor rating according to the rules.
     /// </summary>
-    /// <param name="armor">The armor record as IArmorGetter.</param>
-    /// <returns>Armor rating material modifier as <see cref="int"/>, or null if there's no rule or value has incorrect type.</returns>
-    private static int? GetMaterialFactor(IArmorGetter armor)
+    /// <param name="armor">Processed armor record.</param>
+    /// <returns>Armor material factor as int, or 0 if there's no rule or value has incorrect type.</returns>
+    private static int GetMaterialFactor(IArmorGetter armor)
     {
-        if (RecordData.Overridden) armor = armor.AsOverride();
+        if (PatchingData.Overridden) armor = armor.AsOverride();
 
         string? materialId = null;
         foreach (var entry in Statics.AllMaterials)
         {
             FormKey kwda = entry.Kwda!;
-            if (kwda != DataMap.NullRef && armor.Keywords!.Contains(kwda))
+            if (kwda != StaticsData.NullRef && armor.Keywords!.Contains(kwda))
             {
                 materialId = entry.Id;
                 break;
@@ -376,33 +381,33 @@ public static class ArmorPatcher
         if (factorInt is not null)
         {
             if (materialId is null) Logger.Caution("Has a \"materials\" patching rule for its name, but no material keyword");
-            return factorInt;
+            return (int)factorInt;
         }
 
         Logger.Error("Unable to determine the material");
-        return null;
+        return default;
     }
 
     /// <summary>
-    /// Returns the armor rating multipier according to the rules.
+    /// Returns armor rating multiplier according to the rules.
     /// </summary>
-    /// <param name="armor">The armor record as IArmorGetter.</param>
-    /// <returns>Armor rating multipier as <see cref="float"/>.</returns>
+    /// <param name="armor">Processed armor record.</param>
+    /// <returns>Armor rating multipier as float, or 1 if value is incorrect or <= 0.</returns>
     private static float GetExtraArmorMod(IArmorGetter armor)
     {
         JsonNode? modifierNode = Helpers.RuleByName(armor.Name!.ToString()!, Rules["armorModifiers"]!.AsArray(), data1: "names", data2: "multiplier");
-        float? modifierFloat = modifierNode?.AsType<float>();
+        float? modifierData = modifierNode?.AsType<float>();
 
-        if (modifierFloat is not null)
-            return (float)(modifierFloat > 0.0f ? modifierFloat : 1.0f);
+        if (modifierData is not null)
+            return (float)(modifierData > 0.0f ? modifierData : 1.0f);
 
         return 1.0f;
     }
 
     /// <summary>
-    /// Adds faction keywords for the Masquerade perk to clothing according to the rules.
+    /// Distributes Masquerade perk related faction keywords according to the rules.
     /// </summary>
-    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <param name="armor">Processed armor record.</param>
     private static void PatchMasqueradeKeywords(IArmorGetter armor)
     {
         JsonArray rules = Rules["masquerade"]!.AsArray();
@@ -414,7 +419,7 @@ public static class ArmorPatcher
             if (!namesArr.Any(word => armor.Name!.ToString()!.Contains(word))) continue;
 
             string[] filterArr = rule!["filter"]?.ToString().Replace(" ", "").Split(',') ?? [];
-            if (filterArr.Length != 0 && !filterArr.Any(type => type == RecordData.ArmorType.ToString())) continue;
+            if (filterArr.Length != 0 && !filterArr.Any(type => type == PatchingData.ArmorType.ToString())) continue;
 
             string factions = rule!["faction"]!.ToString();
             foreach (var entry in Statics.FactionBinds)
@@ -430,18 +435,18 @@ public static class ArmorPatcher
     }
 
     /// <summary>
-    /// Recipes processor.
+    /// Initiates recipes processing.
     /// </summary>
-    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <param name="armor">Processed armor record.</param>
     /// <param name="excludedNames">The list of excluded strings.</param>
     private static void ProcessRecipes(IArmorGetter armor, List<string> excludedNames)
     {
-        if (RecordData.Modified) armor = armor.AsOverride();
+        if (PatchingData.Modified) armor = armor.AsOverride();
 
         if (armor.Name!.ToString()!.IsExcluded(excludedNames))
         {
             if (Settings.Debug.ShowExcluded)
-                Logger.Info($"Found in the \"No recipe modifications\" list");
+                Logger.Info($"Found in the \"No recipe modifications\" list", false, true);
 
             return;
         }
@@ -450,25 +455,25 @@ public static class ArmorPatcher
         {
             if (recipe.CreatedObject.FormKey == armor.FormKey)
             {
-                if (Settings.Armor.FixCraftRecipes && recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingForge"))
+                if (Settings.Armor.FixCraftRecipes && recipe.WorkbenchKeyword.FormKey == "CraftingSmithingForge".GetFormKey())
                     ModCraftingRecipe(recipe, armor);
 
-                if (recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingArmorTable"))
+                if (recipe.WorkbenchKeyword.FormKey == "CraftingSmithingArmorTable".GetFormKey())
                     ModTemperingRecipe(recipe, armor);
             }
         }
 
-        AddBreakdownRecipe(armor);
+        AddBreakdownRecipe(armor, Logger);
     }
 
     /// <summary>
-    /// Modifies crafting recipes for the armor.<br/><br/>
-    /// The method adds the HasPerk-type condition with the Leathercraft perk to the crafting recipe<br/>
-    /// if the armor have keywords with this perk associated with them (see the materials map below).<br/> 
-    /// Only crafting recipes with no HasPerk-type conditions with other smithing perks will be modified. 
+    /// Modifies crafting recipe.<br/><br/>
+    /// The method adds a HasPerk-type condition with the Leathercraft perk to the crafting recipe
+    /// if the armor have keywords associated with this perk (see the materials map).<br/> 
+    /// Only crafting recipes with no HasPerk-type conditions for other smithing perks will be modified. 
     /// </summary>
-    /// <param name="recipe">The tempering recipe record as IConstructibleObjectGetter.</param>
-    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <param name="recipe">Constructible object record (a crafting recipe).</param>
+    /// <param name="armor">Processed armor record.</param>
     private static void ModCraftingRecipe(IConstructibleObjectGetter recipe, IArmorGetter armor)
     {
         foreach (var material in Statics.LightMaterials)
@@ -487,11 +492,11 @@ public static class ArmorPatcher
         foreach (var material in Statics.LightMaterials)
         {
             if (material.Perks is not null
-                && material.Perks[0] == GetFormKey("skyre_SMTLeathercraft")
+                && material.Perks[0] == "skyre_SMTLeathercraft".GetFormKey()
                 && armor.Keywords!.Contains(material.Kwda!))
             {
                 ConstructibleObject craftingRecipe = Executor.State!.PatchMod.ConstructibleObjects.GetOrAddAsOverride(recipe);
-                craftingRecipe.AddHasPerkCondition(GetFormKey("skyre_SMTLeathercraft"));
+                craftingRecipe.AddHasPerkCondition("skyre_SMTLeathercraft".GetFormKey());
 
                 break;
             }
@@ -499,13 +504,13 @@ public static class ArmorPatcher
     }
 
     /// <summary>
-    /// Modifies tempering recipes for the armor.<br/><br/>
-    /// The method removes existing HasPerk-type conditions, where perk is a smithing perk, and adds<br/>
-    /// new ones corresponding to the armor's keywords. If more than 1 perk is associated with a keyword,<br/>
-    /// all but the last HasPerk-type conditions will have the OR flag.
+    /// Modifies tempering recipe.<br/><br/>
+    /// The method removes existing HasPerk-type conditions with smithing perks, and adds new ones
+    /// corresponding to the armor keywords.<br/>
+    /// If more than 1 perk is associated with a keyword, all but the last HasPerk-type conditions will have the OR flag.
     /// </summary>
-    /// <param name="recipe">The tempering recipe record as IConstructibleObjectGetter.</param>
-    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <param name="recipe">Constructible object record (a tempering recipe).</param>
+    /// <param name="armor">Processed armor record.</param>
     private static void ModTemperingRecipe(IConstructibleObjectGetter recipe, IArmorGetter armor)
     {
         if (recipe.Conditions.Count != 0 && recipe.Conditions.Any(condition => condition.Data is EPTemperingItemIsEnchantedConditionData))
@@ -525,11 +530,11 @@ public static class ArmorPatcher
                 .Distinct()];
 
 
-            int index = materialItems.IndexOf(GetFormKey("LeatherStrips"));
+            int index = materialItems.IndexOf("LeatherStrips".GetFormKey());
             if (index != -1)
             {
                 materialItems.RemoveAt(index);
-                materialItems.Insert(index, GetFormKey("Leather01"));
+                materialItems.Insert(index, "Leather01".GetFormKey());
             }
 
             ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.GetOrAddAsOverride(recipe);
@@ -541,7 +546,7 @@ public static class ArmorPatcher
                 }
             }
 
-            if (RecordData.Overridden)
+            if (PatchingData.Overridden)
             {
                 newRecipe.Items?.Clear();
                 foreach (var item in materialItems)
@@ -571,15 +576,16 @@ public static class ArmorPatcher
     }
 
     /// <summary>
-    /// Generates a breakdown recipe for the armor.
+    /// Generates a breakdown recipe.
     /// </summary>
-    /// <param name="armor">The armor record as IArmorGetter.</param>
-    /// <param name="noRecipes">True for armor-type records with no material keywords.</param>
-    private static void AddBreakdownRecipe(IArmorGetter armor, bool noRecipes = false)
+    /// <param name="armor">Processed armor record.</param>
+    /// <param name="log">Logger instance for cases when armor record is created by the patcher.</param>
+    /// <param name="noRecipes">True to omit crafting recipes lookup.</param>
+    private static void AddBreakdownRecipe(IArmorGetter armor, Logger log, bool noRecipes = false)
     {
-        if (RecordData.Unique)
+        if (PatchingData.Unique)
         {
-            Logger.Info($"The breakdown recipe was not generated due to the \"No breakdown\" keyword", true);
+            log.Info($"The breakdown recipe was not generated due to the \"No breakdown\" keyword", true);
             return;
         }
 
@@ -590,26 +596,27 @@ public static class ArmorPatcher
             {
                 if (Settings.General.SkipExisting
                     && recipe.Items?.FirstOrDefault()?.Item == armor
-                    && (recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingTanningRack")
-                    || recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmelter")))
+                    && (recipe.WorkbenchKeyword.FormKey == "CraftingTanningRack".GetFormKey()
+                    || recipe.WorkbenchKeyword.FormKey == "CraftingSmelter".GetFormKey()))
                 {
-                    Logger.Info($"Already has a breakdown recipe in the {recipe.FormKey.ModKey.FileName}");
+                    log.Info($"Already has a breakdown recipe in the {recipe.FormKey.ModKey.FileName}");
                     return;
                 }
 
                 if (craftingRecipe is null
                     && recipe.CreatedObject.FormKey == armor.FormKey
-                    && (recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingTanningRack")
-                    || recipe.WorkbenchKeyword.FormKey == GetFormKey("CraftingSmithingForge")))
+                    && (recipe.WorkbenchKeyword.FormKey == "CraftingTanningRack".GetFormKey()
+                    || recipe.WorkbenchKeyword.FormKey == "CraftingSmithingForge".GetFormKey()))
                 {
                     craftingRecipe = recipe;
                 }
             }
         }
 
-        bool isBig = armor.BodyTemplate!.FirstPersonFlags.HasFlag(BipedObjectFlag.Body) || armor.BodyTemplate!.FirstPersonFlags.HasFlag(BipedObjectFlag.Shield);
-        bool isDreamcloth = armor.Keywords!.Contains(GetFormKey("skyre__ArmorDreamcloth"));
-        bool isClothing = RecordData.ArmorType == ArmorType.Clothing && !isDreamcloth;
+        bool isBig = armor.BodyTemplate!.FirstPersonFlags.HasFlag(BipedObjectFlag.Body) 
+            || armor.BodyTemplate!.FirstPersonFlags.HasFlag(BipedObjectFlag.Shield);
+        bool isDreamcloth = armor.Keywords!.Contains("skyre__ArmorDreamcloth".GetFormKey());
+        bool isClothing = PatchingData.ArmorType == ArmorType.Clothing && !isDreamcloth;
 
         List<FormKey> armorPerks = !isClothing && !isDreamcloth ? [.. Statics.AllMaterials
             .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
@@ -619,29 +626,29 @@ public static class ArmorPatcher
         List<FormKey> armorItems = !isClothing && !isDreamcloth ? [.. Statics.AllMaterials
             .Where(entry => armor.Keywords!.Any(keyword => keyword.FormKey == entry.Kwda))
             .Select(entry => entry.Items[0])
-            .Distinct()] : [GetFormKey("LeatherStrips")];
+            .Distinct()] : ["LeatherStrips".GetFormKey()];
 
         if (!isClothing && !isDreamcloth && armorItems.Count == 0)
         {
-            Logger.Error($"Unable to determine the breakdown recipe resulting item");
+            log.Error($"Unable to determine the breakdown recipe resulting item");
             return;
         }
 
-        if (armorItems.IndexOf(GetFormKey("LeatherStrips")) is int index && index != -1)
+        if (armorItems.IndexOf("LeatherStrips".GetFormKey()) is int index && index != -1)
         {
             if (isDreamcloth)
             {
                 armorItems.RemoveAt(index);
-                armorItems.Insert(index, GetFormKey("WispWrappings"));
+                armorItems.Insert(index, "WispWrappings".GetFormKey());
             }
             else if (isBig)
             {
                 armorItems.RemoveAt(index);
-                armorItems.Insert(index, GetFormKey("Leather01"));
+                armorItems.Insert(index, "Leather01".GetFormKey());
             }
         }
 
-        bool isLeather = armorItems.Contains(GetFormKey("Leather01")) || armorItems.Contains(GetFormKey("LeatherStrips"));
+        bool isLeather = armorItems.Contains("Leather01".GetFormKey()) || armorItems.Contains("LeatherStrips".GetFormKey());
 
         bool fromRecipe = false;
         int qty = 1;
@@ -680,7 +687,7 @@ public static class ArmorPatcher
         newEntry.Item.Count = inputQty;
         cobj.Items.Add(newEntry);
 
-        cobj.AddHasPerkCondition(GetFormKey("skyre_SMTBreakdown"));
+        cobj.AddHasPerkCondition("skyre_SMTBreakdown".GetFormKey());
         if (armorPerks.Count > 0)
         {
             Condition.Flag flag = Condition.Flag.OR;
@@ -697,316 +704,343 @@ public static class ArmorPatcher
                            : Executor.State!.LinkCache.Resolve<IIngredientGetter>(ingr).ToNullableLink();
 
         cobj.WorkbenchKeyword = Executor.State!.LinkCache.Resolve<IKeywordGetter>
-            (isLeather || isClothing ? GetFormKey("CraftingTanningRack") : GetFormKey("CraftingSmelter"))
+            (isLeather || isClothing ? "CraftingTanningRack".GetFormKey() : "CraftingSmelter".GetFormKey())
             .ToNullableLink();
         cobj.CreatedObjectCount = (ushort)Math.Clamp(Math.Floor(outputQty), 1, qty + (fromRecipe ? 0 : mod));
     }
 
     /// <summary>
-    /// Clothing processor.<br/>
+    /// Clothing processor.
     /// </summary>
+    /// <param name="armor">Processed armor record.</param>
+    /// <param name="excludedNames">The list of excluded strings.</param>
     private static void ProcessClothing(IArmorGetter armor, List<string> excludedNames)
     {
-        if (!Settings.Armor.NoClothingBreak) AddBreakdownRecipe(armor, true);
+        if (!Settings.Armor.NoClothingBreak) AddBreakdownRecipe(armor, Logger, true);
 
         CreateDreamcloth(armor, excludedNames);
     }
 
     /// <summary>
-    /// Generates the Dreamcloth variant for the armor.<br/>
+    /// Creates the armor record for Dreamcloth variety.<br/>
     /// </summary>
-    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <param name="armor">Original armor record.</param>
     /// <param name="excludedNames">The list of excluded strings.</param>
+    /// <param name="localLog">Additional logger entry to display info on the new record.</param>
     private static void CreateDreamcloth(IArmorGetter armor, List<string> excludedNames)
     {
         if (armor.Name!.ToString()!.IsExcluded(excludedNames))
         {
             if (Settings.Debug.ShowExcluded)
             {
-                Logger.Info($"Found in the \"No Dreamcloth variant\" list");
+                Logger.Info($"Found in the \"No Dreamcloth\" list");
                 return;
             }
         }
 
-        if (!armor.TemplateArmor.IsNull || RecordData.Unique)
+        if (!armor.TemplateArmor.IsNull || PatchingData.Unique)
         {
-            Logger.Info($"The Dreamcloth variant was not generated due to having a template or \"No breakdown\" keyword", true);
+            Logger.Info($"The clothing is templated or has \"No breakdown\" keyword, and cannot have Dreamcloth variety", true);
             return;
         }
+
+        Logger localLog = new();
 
         string label = Settings.Armor.DreamclothLabel == "" ? $" [{"name_dcloth".GetT9n()}]" : Settings.Armor.DreamclothLabel;
         string newName = armor.AsOverride().Name!.ToString() + label;
         string newEditorID = "RP_ARMO_" + armor.EditorID;
 
         Armor newArmor = Executor.State!.PatchMod.Armors.DuplicateInAsNewRecord(armor.AsOverride());
-        if (!RecordData.Modified) Executor.State!.PatchMod.Armors.Remove(armor);
+        if (!PatchingData.Modified) Executor.State!.PatchMod.Armors.Remove(armor);
 
         newArmor.Name = newName;
         newArmor.EditorID = EditorIDs.Unique(newEditorID);
         newArmor.VirtualMachineAdapter = null;
         newArmor.Description = null;
-        newArmor.Keywords!.Add(GetFormKey("skyre__ArmorDreamcloth"));
+        newArmor.Keywords!.Add("skyre__ArmorDreamcloth".GetFormKey());
 
         float priceMult = Settings.Armor.DreamclothPrice / 100f;
         newArmor.Value = (uint)(priceMult * newArmor.Value);
 
-        List<DataMap> ingredients = [
-            new DataMap{Items = [ GetFormKey("SoulGemPettyFilled") ], Qty = 2, Id = "SLGM"},
-            new DataMap{Items = [ GetFormKey("LeatherStrips") ],      Qty = 1, Id = "MISC"},
-            new DataMap{Items = [ GetFormKey("WispWrappings") ],      Qty = 1, Id = "INGR"}
+        List<RecipeData> ingredients = [
+            new RecipeData{ Items = [ "SoulGemPettyFilled".GetFormKey() ], Qty = 2 },
+            new RecipeData{ Items = [ "LeatherStrips".GetFormKey()      ], Qty = 1 },
+            new RecipeData{ Items = [ "WispWrappings".GetFormKey()      ], Qty = 1 }
         ];
 
-        if (newArmor.Keywords!.Contains(GetFormKey("ClothingBody")))
+        if (newArmor.Keywords!.Contains("ClothingBody".GetFormKey()))
         {
-            ingredients[0] = ingredients[0] with { Items = [ GetFormKey("SoulGemCommonFilled") ], Qty = 1 };
+            ingredients[0] = ingredients[0] with { Items = [ "SoulGemCommonFilled".GetFormKey() ], Qty = 1 };
             ingredients[1] = ingredients[1] with { Qty = 3 };
             ingredients[2] = ingredients[2] with { Qty = 2 };
 
-            newArmor.Keywords!.Add(GetFormKey("skyre__DreamclothBody"));
+            newArmor.Keywords!.Add("skyre__DreamclothBody".GetFormKey());
         }
-        else if (newArmor.Keywords!.Contains(GetFormKey("ClothingHead")))
+        else if (newArmor.Keywords!.Contains("ClothingHead".GetFormKey()))
         {
-            ingredients[0] = ingredients[0] with { Items = [ GetFormKey("SoulGemLesserFilled") ], Qty = 1 };
+            ingredients[0] = ingredients[0] with { Items = [ "SoulGemLesserFilled".GetFormKey() ], Qty = 1 };
             ingredients[1] = ingredients[1] with { Qty = 2 };
         }
 
-        AddCraftingRecipe(newArmor, armor, ingredients);
-        AddBreakdownRecipe(newArmor, true);
+        // logger entry for this particular record
+        localLog.Info($"New value: {newArmor.Value} (original value: {armor.Value}, Dreamcloth mult: x{priceMult})", true);
+        AllReports.Add(new Report { Record = newArmor, Log = localLog });
+
+        AddCraftingRecipe(newArmor, armor, ingredients, localLog);
+        AddBreakdownRecipe(newArmor, localLog, true);
     }
 
     /// <summary>
-    /// Generates the crafting recipe for the Dreamcloth variant (newArmor).<br/>
+    /// Generates a crafting recipe for the Dreamcloth variety.<br/>
     /// </summary>
-    /// <param name="newArmor">The Dreamcloth variant of the oldArmor as IArmorGetter.</param>
-    /// <param name="oldArmor">The armor record as IArmorGetter.</param>
+    /// <param name="newArmor">Dreamcloth variety.</param>
+    /// <param name="oldArmor">Original armor record.</param>
     /// <param name="ingredients">List of ingredients and their quantity.</param>
-    private static void AddCraftingRecipe(IArmorGetter newArmor, IArmorGetter oldArmor, List<DataMap> ingredients)
+    /// <param name="log">Logger instance for the new record.</param>
+    private static void AddCraftingRecipe(IArmorGetter newArmor, IArmorGetter oldArmor, List<RecipeData> ingredients, Logger log)
     {
         string newEditorID = "RP_ARMO_CRAFT_" + oldArmor.EditorID;
-        ConstructibleObject cobj = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
+        ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
 
-        cobj.EditorID = EditorIDs.Unique(newEditorID);
-        cobj.Items = [];
+        newRecipe.EditorID = EditorIDs.Unique(newEditorID);
+        newRecipe.Items = [];
 
         ContainerItem baseItem = new();
         baseItem.Item = oldArmor.ToNullableLink();
         ContainerEntry baseEntry = new();
         baseEntry.Item = baseItem;
         baseEntry.Item.Count = 1;
-        cobj.Items.Add(baseEntry);
+        newRecipe.Items.Add(baseEntry);
 
         foreach (var entry in ingredients)
         {
             ContainerItem newItem = new();
 
-            switch (entry.Id)
+            if (Executor.State!.LinkCache.TryResolve<IMiscItemGetter>(entry.Items[0], out var miscItem))
             {
-                case "SLGM":
-                    newItem.Item = Executor.State!.LinkCache.Resolve<ISoulGemGetter>(entry.Items[0]).ToNullableLink();
-                    break;
-
-                case "MISC":
-                    newItem.Item = Executor.State!.LinkCache.Resolve<IMiscItemGetter>(entry.Items[0]).ToNullableLink();
-                    break;
-
-                case "INGR":
-                    newItem.Item = Executor.State!.LinkCache.Resolve<IIngredientGetter>(entry.Items[0]).ToNullableLink();
-                    break;
+                newItem.Item = miscItem.ToNullableLink();
+            }
+            else if (Executor.State!.LinkCache.TryResolve<IIngredientGetter>(entry.Items[0], out var ingrItem))
+            {
+                newItem.Item = ingrItem.ToNullableLink();
+            }
+            else if (Executor.State!.LinkCache.TryResolve<ISoulGemGetter>(entry.Items[0], out var slgmItem))
+            {
+                newItem.Item = slgmItem.ToNullableLink();
+            }
+            else
+            {
+                log.Error($"Ingredient {entry.Items[0]} has unexpected record type!");
+                Executor.State!.PatchMod.ConstructibleObjects.Remove(newRecipe);
+                return;
             }
 
             ContainerEntry newEntry = new();
             newEntry.Item = newItem;
             newEntry.Item.Count = entry.Qty;
-            cobj.Items.Add(newEntry);
+            newRecipe.Items.Add(newEntry);
         }
 
-        cobj.AddHasPerkCondition(GetFormKey("skyre_SMTWeavingMill"));
-        if (!Settings.Armor.AllArmorRecipes) 
-            cobj.AddGetItemCountCondition(oldArmor.FormKey, CompareOperator.GreaterThanOrEqualTo);
+        newRecipe.AddHasPerkCondition("skyre_SMTWeavingMill".GetFormKey());
+        if (!Settings.Armor.AllArmorRecipes)
+            newRecipe.AddGetItemCountCondition(oldArmor.FormKey, CompareOperator.GreaterThanOrEqualTo);
 
-        cobj.AddGetEquippedCondition(oldArmor.FormKey, CompareOperator.NotEqualTo);
+        newRecipe.AddGetEquippedCondition(oldArmor.FormKey, CompareOperator.NotEqualTo);
 
-        cobj.CreatedObject = newArmor.ToNullableLink();
-        cobj.WorkbenchKeyword = Executor.State!.LinkCache.Resolve<IKeywordGetter>(GetFormKey("CraftingTanningRack")).ToNullableLink();
-        cobj.CreatedObjectCount = 1;
+        newRecipe.CreatedObject = newArmor.ToNullableLink();
+        newRecipe.WorkbenchKeyword = Executor.State!.LinkCache.Resolve<IKeywordGetter>("CraftingTanningRack".GetFormKey()).ToNullableLink();
+        newRecipe.CreatedObjectCount = 1;
     }
+
 
     // patcher specific helpers
 
     /// <summary>
-    /// Returns the FormKey with id from the statics record.<br/>
+    /// Returns a winning override for this-parameter, and copies it to the patch file.<br/>
     /// </summary>
-    /// <param name="id">The id in the elements with the FormKey to return.</param>
-    /// <returns>A FormKey from the statics list.</returns>
-    private static FormKey GetFormKey(string stringId) => Executor.Statics!.First(elem => elem.Id == stringId).FormKey;
-
-    /// <summary>
-    /// Returns the winning override for this-parameter, and copies it to the patch file.<br/>
-    /// </summary>
-    /// <param name="armor">The armor record as IArmorGetter.</param>
+    /// <param name="armor">Processed armor record.</param>
     /// <param name="markModified">True to mark as modified in the patching data.</param>
-    /// <returns>The winning override as Armor.</returns>
-    private static Armor AsOverride(this IArmorGetter armor, bool markModified = false)
+    /// <returns>The winning override for processed armor record.</returns>
+    private static Armor AsOverride(this IArmorGetter armor, bool isModified = false)
     {
-        if (markModified) RecordData.Modified = true;
+        if (isModified) PatchingData.Modified = true;
         return Executor.State!.PatchMod.Armors.GetOrAddAsOverride(armor);
     }
 
     /// <summary>
     /// Displays info.<br/>
     /// </summary>
-    /// <param name="armor">The armor record as IArmorGetter.</param>
-    private static void ShowReport(this IArmorGetter armor) => 
-        Logger.ShowReport($"{armor.Name}", $"{armor.FormKey}", $"{armor.EditorID}", RecordData.NonPlayable, !armor.TemplateArmor.IsNull);
+    /// <param name="armor">Processed armor record.</param>
+    private static void ShowReport(IArmorGetter armor)
+    {
+        if (AllReports.Count == 0)
+        {
+            Logger.ShowReport($"{armor.Name}", $"{armor.FormKey}", $"{armor.EditorID}", PatchingData.NonPlayable, !armor.TemplateArmor.IsNull);
+        }
+        else
+        {
+            foreach (var report in AllReports)
+            {
+                IArmorGetter newArmor = (IArmorGetter)report.Record!;
+                Logger newLog = (Logger)report.Log!;
+                newLog.ShowReport($"{newArmor.Name}", $"{newArmor.FormKey}", $"{newArmor.EditorID}", PatchingData.NonPlayable, !newArmor.TemplateArmor.IsNull);
+            }
+        }
+    }
 
     // patcher specific statics
-    private static (List<DataMap>, List<DataMap>, List<DataMap>) BuildStaticsMap()
+
+    /// <summary>
+    /// Appends patcher-specific records to the shared statics list, generates patcher-specific collections of statics.<br/>
+    /// </summary>
+    /// <returns>A tuple of statics collections for armor records: all materials, light materials only, faction keywords data.</returns>
+    private static (List<StaticsData>, List<StaticsData>, List<StaticsData>) ListStatics()
     {
         Executor.Statics!.AddRange(
         [
-            new DataMap{Id = "MaterialShieldLight",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x016978|KWDA", true)            },
-            new DataMap{Id = "MaterialShieldHeavy",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x016979|KWDA", true)            },
-            new DataMap{Id = "WPNBashShieldLightImpactSet",            FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0183fb|KWDA", true)            },
-            new DataMap{Id = "WPNBashShieldHeavyImpactSet",            FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0183fe|KWDA", true)            },
-            new DataMap{Id = "ArmorHeavy",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd2|KWDA")                  },
-            new DataMap{Id = "ArmorLight",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd3|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialDaedric",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd4|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialDragonplate",               FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd5|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialDragonscale",               FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd6|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialDwarven",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd7|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialEbony",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd8|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialElven",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd9|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialElvenGilded",               FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbda|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialLeather",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbdb|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialGlass",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbdc|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialHide",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbdd|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialScaled",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbde|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialStudded",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbdf|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialImperialLight",             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe0|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialImperialStudded",           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe1|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialImperialHeavy",             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe2|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialIron",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe3|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialIronBanded",                FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe4|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialOrcish",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe5|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialSteel",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe6|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialSteelPlate",                FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe7|KWDA")                  },
-            new DataMap{Id = "ArmorClothing",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe8|KWDA")                  },
-            new DataMap{Id = "ArmorJewelry",                           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe9|KWDA")                  },
-            new DataMap{Id = "ArmorSlotCuirass",                       FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06c0ec|KWDA")                  },
-            new DataMap{Id = "ArmorSlotBoots",                         FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06c0ed|KWDA")                  },
-            new DataMap{Id = "ArmorSlotHelmet",                        FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06c0ee|KWDA")                  },
-            new DataMap{Id = "ArmorSlotGauntlets",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06c0ef|KWDA")                  },
-            new DataMap{Id = "CraftingTanningRack",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x07866a|KWDA")                  },
-            new DataMap{Id = "VendorItemArmor",                        FormKey = Helpers.ParseFormKey("Skyrim.esm|0x08f959|KWDA")                  },
-            new DataMap{Id = "VendorItemJewelry",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x08f95a|KWDA")                  },
-            new DataMap{Id = "VendorItemClothing",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x08f95b|KWDA")                  },
-            new DataMap{Id = "ArmorShield",                            FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0965b2|KWDA")                  },
-            new DataMap{Id = "ClothingBody",                           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0a8657|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialStormcloak",                FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0ac13a|KWDA")                  },
-            new DataMap{Id = "CraftingSmithingArmorTable",             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0adb78|KWDA")                  },
-            new DataMap{Id = "ClothingHead",                           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x10cd11|KWDA")                  },
-            new DataMap{Id = "ArmorNightingale",                       FormKey = Helpers.ParseFormKey("Skyrim.esm|0x10fd61|KWDA")                  },
-            new DataMap{Id = "ArmorDarkBrotherhood",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x10fd62|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialBlades",                    FormKey = Helpers.ParseFormKey("Update.esm|0x0009c0|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialForsworn",                  FormKey = Helpers.ParseFormKey("Update.esm|0x0009b9|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialThievesGuild",              FormKey = Helpers.ParseFormKey("Update.esm|0x0009bc|KWDA")                  },
-            new DataMap{Id = "ArmorMaterialBearStormcloak",            FormKey = Helpers.ParseFormKey("Update.esm|0x0009be|KWDA")                  },
-            new DataMap{Id = "WAF_ArmorWolf",                          FormKey = Helpers.ParseFormKey("Update.esm|0xaf0107|KWDA")                  },
-            new DataMap{Id = "WAF_ArmorMaterialGuard",                 FormKey = Helpers.ParseFormKey("Update.esm|0xaf0112|KWDA")                  },
-            new DataMap{Id = "WAF_DLC1ArmorDawnguardHeavy",            FormKey = Helpers.ParseFormKey("Update.esm|0xaf0117|KWDA")                  },
-            new DataMap{Id = "WAF_DLC1ArmorDawnguardLight",            FormKey = Helpers.ParseFormKey("Update.esm|0xaf0118|KWDA")                  },
-            new DataMap{Id = "WAF_ArmorMaterialDraugr",                FormKey = Helpers.ParseFormKey("Update.esm|0xaf0135|KWDA")                  },
-            new DataMap{Id = "WAF_ArmorMaterialThalmor",               FormKey = Helpers.ParseFormKey("Update.esm|0xaf0222|KWDA")                  },
-            new DataMap{Id = "DLC1ArmorMaterialHunter",                FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x0050c4|KWDA")               },
-            new DataMap{Id = "DLC1ArmorMaterialDawnguard",             FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012ccd|KWDA")               },
-            new DataMap{Id = "DLC1ArmorMaterialFalmerHardened",        FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012cce|KWDA")               },
-            new DataMap{Id = "DLC1ArmorMaterialFalmerHeavy",           FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012ccf|KWDA")               },
-            new DataMap{Id = "DLC1ArmorMaterialFalmerHeavyOriginal",   FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012cd0|KWDA")               },
-            new DataMap{Id = "DLC1ArmorMaterialVampire",               FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x01463e|KWDA")               },
-            new DataMap{Id = "DLC2ArmorMaterialBonemoldHeavy",         FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024101|KWDA")              },
-            new DataMap{Id = "DLC2ArmorMaterialChitinLight",           FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024102|KWDA")              },
-            new DataMap{Id = "DLC2ArmorMaterialChitinHeavy",           FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024103|KWDA")              },
-            new DataMap{Id = "DLC2ArmorMaterialNordicLight",           FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024104|KWDA")              },
-            new DataMap{Id = "DLC2ArmorMaterialNordicHeavy",           FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024105|KWDA")              },
-            new DataMap{Id = "DLC2ArmorMaterialStalhrimHeavy",         FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024106|KWDA")              },
-            new DataMap{Id = "DLC2ArmorMaterialStalhrimLight",         FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024107|KWDA")              },
-            new DataMap{Id = "cc_ArmorMaterialGolden",                 FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd63|KWDA")     },
-            new DataMap{Id = "cc_ArmorMaterialDark",                   FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd64|KWDA")     },
-            new DataMap{Id = "cc_ArmorMaterialMadness",                FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd65|KWDA")     },
-            new DataMap{Id = "cc_ArmorMaterialAmber",                  FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd66|KWDA")     },
-            new DataMap{Id = "skyre__ArmorShieldHeavy",                FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00080f|KWDA") },
-            new DataMap{Id = "skyre__ArmorShieldLight",                FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000810|KWDA") },
-            new DataMap{Id = "skyre__ArmorDreamcloth",                 FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000811|KWDA") },
-            new DataMap{Id = "skyre__DreamclothBody",                  FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00098d|KWDA") },
-            new DataMap{Id = "skyre_SPCMasqueradeBandit",              FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f44|KWDA") },
-            new DataMap{Id = "skyre_SPCMasqueradeForsworn",            FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f45|KWDA") },
-            new DataMap{Id = "skyre_SPCMasqueradeImperial",            FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f46|KWDA") },
-            new DataMap{Id = "skyre_SPCMasqueradeStormcloak",          FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f47|KWDA") },
-            new DataMap{Id = "skyre_SPCMasqueradeThalmor",             FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f48|KWDA") },
-            new DataMap{Id = "skyre_SMTLeathercraft",                  FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ec4|PERK") },
-            new DataMap{Id = "skyre_SMTWeavingMill",                   FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee1|PERK") }
+            new StaticsData{Id = "MaterialShieldLight",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x016978|KWDA", true)            },
+            new StaticsData{Id = "MaterialShieldHeavy",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x016979|KWDA", true)            },
+            new StaticsData{Id = "WPNBashShieldLightImpactSet",            FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0183fb|KWDA", true)            },
+            new StaticsData{Id = "WPNBashShieldHeavyImpactSet",            FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0183fe|KWDA", true)            },
+            new StaticsData{Id = "ArmorHeavy",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd2|KWDA")                  },
+            new StaticsData{Id = "ArmorLight",                             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd3|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialDaedric",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd4|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialDragonplate",               FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd5|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialDragonscale",               FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd6|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialDwarven",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd7|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialEbony",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd8|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialElven",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbd9|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialElvenGilded",               FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbda|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialLeather",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbdb|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialGlass",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbdc|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialHide",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbdd|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialScaled",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbde|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialStudded",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbdf|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialImperialLight",             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe0|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialImperialStudded",           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe1|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialImperialHeavy",             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe2|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialIron",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe3|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialIronBanded",                FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe4|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialOrcish",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe5|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialSteel",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe6|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialSteelPlate",                FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe7|KWDA")                  },
+            new StaticsData{Id = "ArmorClothing",                          FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe8|KWDA")                  },
+            new StaticsData{Id = "ArmorJewelry",                           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06bbe9|KWDA")                  },
+            new StaticsData{Id = "ArmorSlotCuirass",                       FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06c0ec|KWDA")                  },
+            new StaticsData{Id = "ArmorSlotBoots",                         FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06c0ed|KWDA")                  },
+            new StaticsData{Id = "ArmorSlotHelmet",                        FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06c0ee|KWDA")                  },
+            new StaticsData{Id = "ArmorSlotGauntlets",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x06c0ef|KWDA")                  },
+            new StaticsData{Id = "CraftingTanningRack",                    FormKey = Helpers.ParseFormKey("Skyrim.esm|0x07866a|KWDA")                  },
+            new StaticsData{Id = "VendorItemArmor",                        FormKey = Helpers.ParseFormKey("Skyrim.esm|0x08f959|KWDA")                  },
+            new StaticsData{Id = "VendorItemJewelry",                      FormKey = Helpers.ParseFormKey("Skyrim.esm|0x08f95a|KWDA")                  },
+            new StaticsData{Id = "VendorItemClothing",                     FormKey = Helpers.ParseFormKey("Skyrim.esm|0x08f95b|KWDA")                  },
+            new StaticsData{Id = "ArmorShield",                            FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0965b2|KWDA")                  },
+            new StaticsData{Id = "ClothingBody",                           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0a8657|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialStormcloak",                FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0ac13a|KWDA")                  },
+            new StaticsData{Id = "CraftingSmithingArmorTable",             FormKey = Helpers.ParseFormKey("Skyrim.esm|0x0adb78|KWDA")                  },
+            new StaticsData{Id = "ClothingHead",                           FormKey = Helpers.ParseFormKey("Skyrim.esm|0x10cd11|KWDA")                  },
+            new StaticsData{Id = "ArmorNightingale",                       FormKey = Helpers.ParseFormKey("Skyrim.esm|0x10fd61|KWDA")                  },
+            new StaticsData{Id = "ArmorDarkBrotherhood",                   FormKey = Helpers.ParseFormKey("Skyrim.esm|0x10fd62|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialBlades",                    FormKey = Helpers.ParseFormKey("Update.esm|0x0009c0|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialForsworn",                  FormKey = Helpers.ParseFormKey("Update.esm|0x0009b9|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialThievesGuild",              FormKey = Helpers.ParseFormKey("Update.esm|0x0009bc|KWDA")                  },
+            new StaticsData{Id = "ArmorMaterialBearStormcloak",            FormKey = Helpers.ParseFormKey("Update.esm|0x0009be|KWDA")                  },
+            new StaticsData{Id = "WAF_ArmorWolf",                          FormKey = Helpers.ParseFormKey("Update.esm|0xaf0107|KWDA")                  },
+            new StaticsData{Id = "WAF_ArmorMaterialGuard",                 FormKey = Helpers.ParseFormKey("Update.esm|0xaf0112|KWDA")                  },
+            new StaticsData{Id = "WAF_DLC1ArmorDawnguardHeavy",            FormKey = Helpers.ParseFormKey("Update.esm|0xaf0117|KWDA")                  },
+            new StaticsData{Id = "WAF_DLC1ArmorDawnguardLight",            FormKey = Helpers.ParseFormKey("Update.esm|0xaf0118|KWDA")                  },
+            new StaticsData{Id = "WAF_ArmorMaterialDraugr",                FormKey = Helpers.ParseFormKey("Update.esm|0xaf0135|KWDA")                  },
+            new StaticsData{Id = "WAF_ArmorMaterialThalmor",               FormKey = Helpers.ParseFormKey("Update.esm|0xaf0222|KWDA")                  },
+            new StaticsData{Id = "DLC1ArmorMaterialHunter",                FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x0050c4|KWDA")               },
+            new StaticsData{Id = "DLC1ArmorMaterialDawnguard",             FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012ccd|KWDA")               },
+            new StaticsData{Id = "DLC1ArmorMaterialFalmerHardened",        FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012cce|KWDA")               },
+            new StaticsData{Id = "DLC1ArmorMaterialFalmerHeavy",           FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012ccf|KWDA")               },
+            new StaticsData{Id = "DLC1ArmorMaterialFalmerHeavyOriginal",   FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x012cd0|KWDA")               },
+            new StaticsData{Id = "DLC1ArmorMaterialVampire",               FormKey = Helpers.ParseFormKey("Dawnguard.esm|0x01463e|KWDA")               },
+            new StaticsData{Id = "DLC2ArmorMaterialBonemoldHeavy",         FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024101|KWDA")              },
+            new StaticsData{Id = "DLC2ArmorMaterialChitinLight",           FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024102|KWDA")              },
+            new StaticsData{Id = "DLC2ArmorMaterialChitinHeavy",           FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024103|KWDA")              },
+            new StaticsData{Id = "DLC2ArmorMaterialNordicLight",           FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024104|KWDA")              },
+            new StaticsData{Id = "DLC2ArmorMaterialNordicHeavy",           FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024105|KWDA")              },
+            new StaticsData{Id = "DLC2ArmorMaterialStalhrimHeavy",         FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024106|KWDA")              },
+            new StaticsData{Id = "DLC2ArmorMaterialStalhrimLight",         FormKey = Helpers.ParseFormKey("Dragonborn.esm|0x024107|KWDA")              },
+            new StaticsData{Id = "cc_ArmorMaterialGolden",                 FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd63|KWDA")     },
+            new StaticsData{Id = "cc_ArmorMaterialDark",                   FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd64|KWDA")     },
+            new StaticsData{Id = "cc_ArmorMaterialMadness",                FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd65|KWDA")     },
+            new StaticsData{Id = "cc_ArmorMaterialAmber",                  FormKey = Helpers.ParseFormKey("ccBGSSSE025-AdvDSGS.esm|0x21bd66|KWDA")     },
+            new StaticsData{Id = "skyre__ArmorShieldHeavy",                FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00080f|KWDA") },
+            new StaticsData{Id = "skyre__ArmorShieldLight",                FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000810|KWDA") },
+            new StaticsData{Id = "skyre__ArmorDreamcloth",                 FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000811|KWDA") },
+            new StaticsData{Id = "skyre__DreamclothBody",                  FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x00098d|KWDA") },
+            new StaticsData{Id = "skyre_SPCMasqueradeBandit",              FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f44|KWDA") },
+            new StaticsData{Id = "skyre_SPCMasqueradeForsworn",            FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f45|KWDA") },
+            new StaticsData{Id = "skyre_SPCMasqueradeImperial",            FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f46|KWDA") },
+            new StaticsData{Id = "skyre_SPCMasqueradeStormcloak",          FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f47|KWDA") },
+            new StaticsData{Id = "skyre_SPCMasqueradeThalmor",             FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000f48|KWDA") },
+            new StaticsData{Id = "skyre_SMTLeathercraft",                  FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ec4|PERK") },
+            new StaticsData{Id = "skyre_SMTWeavingMill",                   FormKey = Helpers.ParseFormKey("Skyrim AE Redone - Core.esm|0x000ee1|PERK") }
         ]);
 
-        List<DataMap> allMaterials = [
-            new DataMap{Id = "mat_ancientnord", Kwda = GetFormKey("WAF_ArmorMaterialDraugr"),              Items = [ GetFormKey("IngotCorundum") ],    Perks = [ GetFormKey("AdvancedArmors") ]                             },
-            new DataMap{Id = "mat_blades",      Kwda = GetFormKey("ArmorMaterialBlades"),                  Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("SteelSmithing") ]                              },
-            new DataMap{Id = "mat_bonemoldh",   Kwda = GetFormKey("DLC2ArmorMaterialBonemoldHeavy"),       Items = [ GetFormKey("DLC2NetchLeather") ], Perks = [ GetFormKey("AdvancedArmors") ]                             },
-            new DataMap{Id = "mat_chitinh",     Kwda = GetFormKey("DLC2ArmorMaterialChitinHeavy"),         Items = [ GetFormKey("DLC2ChitinPlate") ],  Perks = [ GetFormKey("ElvenSmithing") ]                              },
-            new DataMap{Id = "mat_daedric",     Kwda = GetFormKey("ArmorMaterialDaedric"),                 Items = [ GetFormKey("IngotEbony") ],       Perks = [ GetFormKey("DaedricSmithing") ]                            },
-            new DataMap{Id = "mat_dawnguard",   Kwda = GetFormKey("DLC1ArmorMaterialDawnguard"),           Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("SteelSmithing") ]                              },
-            new DataMap{Id = "mat_dawnguardh",  Kwda = GetFormKey("DLC1ArmorMaterialHunter"),              Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("SteelSmithing") ]                              },
-            new DataMap{Id = "mat_dragonplate", Kwda = GetFormKey("ArmorMaterialDragonplate"),             Items = [ GetFormKey("DragonBone") ],       Perks = [ GetFormKey("DragonArmor") ]                                },
-            new DataMap{Id = "mat_dwarven",     Kwda = GetFormKey("ArmorMaterialDwarven"),                 Items = [ GetFormKey("IngotDwarven") ],     Perks = [ GetFormKey("DwarvenSmithing") ]                            },
-            new DataMap{Id = "mat_ebony",       Kwda = GetFormKey("ArmorMaterialEbony"),                   Items = [ GetFormKey("IngotEbony") ],       Perks = [ GetFormKey("EbonySmithing") ]                              },
-            new DataMap{Id = "mat_falmerhr",    Kwda = GetFormKey("DLC1ArmorMaterialFalmerHardened"),      Items = [ GetFormKey("ChaurusChitin") ],    Perks = [ GetFormKey("ElvenSmithing") ]                              },
-            new DataMap{Id = "mat_falmerhv",    Kwda = GetFormKey("DLC1ArmorMaterialFalmerHeavy"),         Items = [ GetFormKey("ChaurusChitin") ],    Perks = [ GetFormKey("ElvenSmithing") ]                              },
-            new DataMap{Id = "mat_falmer",      Kwda = GetFormKey("DLC1ArmorMaterialFalmerHeavyOriginal"), Items = [ GetFormKey("ChaurusChitin") ],    Perks = [ GetFormKey("ElvenSmithing") ]                              },
-            new DataMap{Id = "mat_golden",      Kwda = GetFormKey("cc_ArmorMaterialGolden"),               Items = [ GetFormKey("IngotGold") ],        Perks = [ GetFormKey("DaedricSmithing") ]                            },
-            new DataMap{Id = "mat_imperialh",   Kwda = GetFormKey("ArmorMaterialImperialHeavy"),           Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("SteelSmithing") ]                              },
-            new DataMap{Id = "mat_iron",        Kwda = GetFormKey("ArmorMaterialIron"),                    Items = [ GetFormKey("IngotIron") ]                                                                             },
-            new DataMap{Id = "mat_ironb",       Kwda = GetFormKey("ArmorMaterialIronBanded"),              Items = [ GetFormKey("IngotIron") ]                                                                             },
-            new DataMap{Id = "mat_madness",     Kwda = GetFormKey("cc_ArmorMaterialMadness"),              Items = [ GetFormKey("cc_IngotMadness") ],  Perks = [ GetFormKey("EbonySmithing") ]                              },
-            new DataMap{Id = "mat_nordic",      Kwda = GetFormKey("DLC2ArmorMaterialNordicHeavy"),         Items = [ GetFormKey("IngotQuicksilver") ], Perks = [ GetFormKey("AdvancedArmors") ]                             },
-            new DataMap{Id = "mat_orcish",      Kwda = GetFormKey("ArmorMaterialOrcish"),                  Items = [ GetFormKey("IngotOrichalcum") ],  Perks = [ GetFormKey("OrcishSmithing") ]                             },
-            new DataMap{Id = "mat_stalhrimh",   Kwda = GetFormKey("DLC2ArmorMaterialStalhrimHeavy"),       Items = [ GetFormKey("DLC2OreStalhrim") ],  Perks = [ GetFormKey("GlassSmithing"), GetFormKey("EbonySmithing") ] },
-            new DataMap{Id = "mat_steel",       Kwda = GetFormKey("ArmorMaterialSteel"),                   Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("SteelSmithing") ]                              },
-            new DataMap{Id = "mat_steelp",      Kwda = GetFormKey("ArmorMaterialSteelPlate"),              Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("AdvancedArmors") ]                             },
-            new DataMap{Id = "mat_wolf",        Kwda = GetFormKey("WAF_ArmorWolf"),                        Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("SteelSmithing") ]                              }
+        List<StaticsData> allMaterials = [
+            new StaticsData{Id = "mat_ancientnord", Kwda = "WAF_ArmorMaterialDraugr".GetFormKey(),              Items = [ "IngotCorundum".GetFormKey() ],    Perks = [ "AdvancedArmors".GetFormKey() ]                              },
+            new StaticsData{Id = "mat_blades",      Kwda = "ArmorMaterialBlades".GetFormKey(),                  Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                               },
+            new StaticsData{Id = "mat_bonemoldh",   Kwda = "DLC2ArmorMaterialBonemoldHeavy".GetFormKey(),       Items = [ "DLC2NetchLeather".GetFormKey() ], Perks = [ "AdvancedArmors".GetFormKey() ]                              },
+            new StaticsData{Id = "mat_chitinh",     Kwda = "DLC2ArmorMaterialChitinHeavy".GetFormKey(),         Items = [ "DLC2ChitinPlate".GetFormKey() ],  Perks = [ "ElvenSmithing".GetFormKey() ]                               },
+            new StaticsData{Id = "mat_daedric",     Kwda = "ArmorMaterialDaedric".GetFormKey(),                 Items = [ "IngotEbony".GetFormKey() ],       Perks = [ "DaedricSmithing".GetFormKey() ]                             },
+            new StaticsData{Id = "mat_dawnguard",   Kwda = "DLC1ArmorMaterialDawnguard".GetFormKey(),           Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                               },
+            new StaticsData{Id = "mat_dawnguardh",  Kwda = "DLC1ArmorMaterialHunter".GetFormKey(),              Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                               },
+            new StaticsData{Id = "mat_dragonplate", Kwda = "ArmorMaterialDragonplate".GetFormKey(),             Items = [ "DragonBone".GetFormKey() ],       Perks = [ "DragonArmor".GetFormKey() ]                                 },
+            new StaticsData{Id = "mat_dwarven",     Kwda = "ArmorMaterialDwarven".GetFormKey(),                 Items = [ "IngotDwarven".GetFormKey() ],     Perks = [ "DwarvenSmithing".GetFormKey() ]                             },
+            new StaticsData{Id = "mat_ebony",       Kwda = "ArmorMaterialEbony".GetFormKey(),                   Items = [ "IngotEbony".GetFormKey() ],       Perks = [ "EbonySmithing".GetFormKey() ]                               },
+            new StaticsData{Id = "mat_falmerhr",    Kwda = "DLC1ArmorMaterialFalmerHardened".GetFormKey(),      Items = [ "ChaurusChitin".GetFormKey() ],    Perks = [ "ElvenSmithing".GetFormKey() ]                               },
+            new StaticsData{Id = "mat_falmerhv",    Kwda = "DLC1ArmorMaterialFalmerHeavy".GetFormKey(),         Items = [ "ChaurusChitin".GetFormKey() ],    Perks = [ "ElvenSmithing".GetFormKey() ]                               },
+            new StaticsData{Id = "mat_falmer",      Kwda = "DLC1ArmorMaterialFalmerHeavyOriginal".GetFormKey(), Items = [ "ChaurusChitin".GetFormKey() ],    Perks = [ "ElvenSmithing".GetFormKey() ]                               },
+            new StaticsData{Id = "mat_golden",      Kwda = "cc_ArmorMaterialGolden".GetFormKey(),               Items = [ "IngotGold".GetFormKey() ],        Perks = [ "DaedricSmithing".GetFormKey() ]                             },
+            new StaticsData{Id = "mat_imperialh",   Kwda = "ArmorMaterialImperialHeavy".GetFormKey(),           Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                               },
+            new StaticsData{Id = "mat_iron",        Kwda = "ArmorMaterialIron".GetFormKey(),                    Items = [ "IngotIron".GetFormKey() ]                                                                                },
+            new StaticsData{Id = "mat_ironb",       Kwda = "ArmorMaterialIronBanded".GetFormKey(),              Items = [ "IngotIron".GetFormKey() ]                                                                                },
+            new StaticsData{Id = "mat_madness",     Kwda = "cc_ArmorMaterialMadness".GetFormKey(),              Items = [ "cc_IngotMadness".GetFormKey() ],  Perks = [ "EbonySmithing".GetFormKey() ]                               },
+            new StaticsData{Id = "mat_nordic",      Kwda = "DLC2ArmorMaterialNordicHeavy".GetFormKey(),         Items = [ "IngotQuicksilver".GetFormKey() ], Perks = [ "AdvancedArmors".GetFormKey() ]                              },
+            new StaticsData{Id = "mat_orcish",      Kwda = "ArmorMaterialOrcish".GetFormKey(),                  Items = [ "IngotOrichalcum".GetFormKey() ],  Perks = [ "OrcishSmithing".GetFormKey() ]                              },
+            new StaticsData{Id = "mat_stalhrimh",   Kwda = "DLC2ArmorMaterialStalhrimHeavy".GetFormKey(),       Items = [ "DLC2OreStalhrim".GetFormKey() ],  Perks = [ "GlassSmithing".GetFormKey(), "EbonySmithing".GetFormKey() ] },
+            new StaticsData{Id = "mat_steel",       Kwda = "ArmorMaterialSteel".GetFormKey(),                   Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                               },
+            new StaticsData{Id = "mat_steelp",      Kwda = "ArmorMaterialSteelPlate".GetFormKey(),              Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "AdvancedArmors".GetFormKey() ]                              },
+            new StaticsData{Id = "mat_wolf",        Kwda = "WAF_ArmorWolf".GetFormKey(),                        Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                               }
         ];
 
-        List<DataMap> lightMaterials = [
-            new DataMap{Id = "mat_amber",       Kwda = GetFormKey("cc_ArmorMaterialAmber"),          Items = [ GetFormKey("cc_IngotAmber") ],    Perks = [ GetFormKey("GlassSmithing"), GetFormKey("EbonySmithing") ]         },
-            new DataMap{Id = "mat_bonemold",    Kwda = GetFormKey("DLC2ArmorMaterialBonemoldLight"), Items = [ GetFormKey("DLC2NetchLeather") ], Perks = [ GetFormKey("AdvancedArmors") ]                                     },
-            new DataMap{Id = "mat_chitin",      Kwda = GetFormKey("DLC2ArmorMaterialChitinLight"),   Items = [ GetFormKey("DLC2ChitinPlate") ],  Perks = [ GetFormKey("ElvenSmithing") ]                                      },
-            new DataMap{Id = "mat_dark",        Kwda = GetFormKey("cc_ArmorMaterialDark"),           Items = [ GetFormKey("IngotQuicksilver") ], Perks = [ GetFormKey("DaedricSmithing") ]                                    },
-            new DataMap{Id = "mat_dragonscale", Kwda = GetFormKey("ArmorMaterialDragonscale"),       Items = [ GetFormKey("DragonScales") ],     Perks = [ GetFormKey("DragonArmor") ]                                        },
-            new DataMap{Id = "mat_elven",       Kwda = GetFormKey("ArmorMaterialElven"),             Items = [ GetFormKey("IngotMoonstone") ],   Perks = [ GetFormKey("ElvenSmithing") ]                                      },
-            new DataMap{Id = "mat_elveng",      Kwda = GetFormKey("ArmorMaterialElvenGilded"),       Items = [ GetFormKey("IngotMoonstone") ],   Perks = [ GetFormKey("ElvenSmithing") ]                                      },
-            new DataMap{Id = "mat_forsworn",    Kwda = GetFormKey("ArmorMaterialForsworn"),          Items = [ GetFormKey("LeatherStrips") ]                                                                                 },
-            new DataMap{Id = "mat_glass",       Kwda = GetFormKey("ArmorMaterialGlass"),             Items = [ GetFormKey("IngotMalachite") ],   Perks = [ GetFormKey("GlassSmithing") ]                                      },
-            new DataMap{Id = "mat_guard",       Kwda = GetFormKey("WAF_ArmorMaterialGuard"),         Items = [ GetFormKey("IngotIron") ],        Perks = [ GetFormKey("skyre_SMTLeathercraft"), GetFormKey("SteelSmithing") ] },
-            new DataMap{Id = "mat_hide",        Kwda = GetFormKey("ArmorMaterialHide"),              Items = [ GetFormKey("LeatherStrips") ]                                                                                 },
-            new DataMap{Id = "mat_imperial",    Kwda = GetFormKey("ArmorMaterialImperialLight"),     Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("skyre_SMTLeathercraft"), GetFormKey("SteelSmithing") ] },
-            new DataMap{Id = "mat_imperials",   Kwda = GetFormKey("ArmorMaterialImperialStudded"),   Items = [ GetFormKey("LeatherStrips") ],    Perks = [ GetFormKey("skyre_SMTLeathercraft") ]                              },
-            new DataMap{Id = "mat_leather",     Kwda = GetFormKey("ArmorMaterialLeather"),           Items = [ GetFormKey("LeatherStrips") ],    Perks = [ GetFormKey("skyre_SMTLeathercraft") ]                              },
-            new DataMap{Id = "mat_nightingale", Kwda = GetFormKey("ArmorNightingale"),               Items = [ GetFormKey("LeatherStrips") ],    Perks = [ GetFormKey("skyre_SMTLeathercraft") ]                              },
-            new DataMap{Id = "mat_scaled",      Kwda = GetFormKey("ArmorMaterialScaled"),            Items = [ GetFormKey("IngotCorundum") ],    Perks = [ GetFormKey("AdvancedArmors") ]                                     },
-            new DataMap{Id = "mat_shrouded",    Kwda = GetFormKey("ArmorDarkBrotherhood"),           Items = [ GetFormKey("LeatherStrips") ],    Perks = [ GetFormKey("skyre_SMTLeathercraft") ]                              },
-            new DataMap{Id = "mat_stalhrim",    Kwda = GetFormKey("DLC2ArmorMaterialStalhrimLight"), Items = [ GetFormKey("DLC2OreStalhrim") ],  Perks = [ GetFormKey("GlassSmithing"), GetFormKey("EbonySmithing") ]         },
-            new DataMap{Id = "mat_stormcloak",  Kwda = GetFormKey("ArmorMaterialStormcloak"),        Items = [ GetFormKey("IngotIron") ],        Perks = [ GetFormKey("skyre_SMTLeathercraft"), GetFormKey("SteelSmithing") ] },
-            new DataMap{Id = "mat_stormcloakh", Kwda = GetFormKey("ArmorMaterialBearStormcloak"),    Items = [ GetFormKey("IngotSteel") ],       Perks = [ GetFormKey("skyre_SMTLeathercraft"), GetFormKey("SteelSmithing") ] },
-            new DataMap{Id = "mat_studded",     Kwda = GetFormKey("ArmorMaterialStudded"),           Items = [ GetFormKey("LeatherStrips") ],    Perks = [ GetFormKey("skyre_SMTLeathercraft") ]                              },
-            new DataMap{Id = "mat_thievesgl",   Kwda = GetFormKey("ArmorMaterialThievesGuild"),      Items = [ GetFormKey("LeatherStrips") ],    Perks = [ GetFormKey("skyre_SMTLeathercraft") ]                              },
-            new DataMap{Id = "mat_vampire",     Kwda = GetFormKey("DLC1ArmorMaterialVampire"),       Items = [ GetFormKey("LeatherStrips") ],    Perks = [ GetFormKey("skyre_SMTLeathercraft") ]                              }
+        List<StaticsData> lightMaterials = [
+            new StaticsData{Id = "mat_amber",       Kwda = "cc_ArmorMaterialAmber".GetFormKey(),          Items = [ "cc_IngotAmber".GetFormKey() ],    Perks = [ "GlassSmithing".GetFormKey(), "EbonySmithing".GetFormKey() ]         },
+            new StaticsData{Id = "mat_bonemold",    Kwda = "DLC2ArmorMaterialBonemoldLight".GetFormKey(), Items = [ "DLC2NetchLeather".GetFormKey() ], Perks = [ "AdvancedArmors".GetFormKey() ]                                      },
+            new StaticsData{Id = "mat_chitin",      Kwda = "DLC2ArmorMaterialChitinLight".GetFormKey(),   Items = [ "DLC2ChitinPlate".GetFormKey() ],  Perks = [ "ElvenSmithing".GetFormKey() ]                                       },
+            new StaticsData{Id = "mat_dark",        Kwda = "cc_ArmorMaterialDark".GetFormKey(),           Items = [ "IngotQuicksilver".GetFormKey() ], Perks = [ "DaedricSmithing".GetFormKey() ]                                     },
+            new StaticsData{Id = "mat_dragonscale", Kwda = "ArmorMaterialDragonscale".GetFormKey(),       Items = [ "DragonScales".GetFormKey() ],     Perks = [ "DragonArmor".GetFormKey() ]                                         },
+            new StaticsData{Id = "mat_elven",       Kwda = "ArmorMaterialElven".GetFormKey(),             Items = [ "IngotMoonstone".GetFormKey() ],   Perks = [ "ElvenSmithing".GetFormKey() ]                                       },
+            new StaticsData{Id = "mat_elveng",      Kwda = "ArmorMaterialElvenGilded".GetFormKey(),       Items = [ "IngotMoonstone".GetFormKey() ],   Perks = [ "ElvenSmithing".GetFormKey() ]                                       },
+            new StaticsData{Id = "mat_forsworn",    Kwda = "ArmorMaterialForsworn".GetFormKey(),          Items = [ "LeatherStrips".GetFormKey() ]                                                                                    },
+            new StaticsData{Id = "mat_glass",       Kwda = "ArmorMaterialGlass".GetFormKey(),             Items = [ "IngotMalachite".GetFormKey() ],   Perks = [ "GlassSmithing".GetFormKey() ]                                       },
+            new StaticsData{Id = "mat_guard",       Kwda = "WAF_ArmorMaterialGuard".GetFormKey(),         Items = [ "IngotIron".GetFormKey() ],        Perks = [ "skyre_SMTLeathercraft".GetFormKey(), "SteelSmithing".GetFormKey() ] },
+            new StaticsData{Id = "mat_hide",        Kwda = "ArmorMaterialHide".GetFormKey(),              Items = [ "LeatherStrips".GetFormKey() ]                                                                                    },
+            new StaticsData{Id = "mat_imperial",    Kwda = "ArmorMaterialImperialLight".GetFormKey(),     Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "skyre_SMTLeathercraft".GetFormKey(), "SteelSmithing".GetFormKey() ] },
+            new StaticsData{Id = "mat_imperials",   Kwda = "ArmorMaterialImperialStudded".GetFormKey(),   Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               },
+            new StaticsData{Id = "mat_leather",     Kwda = "ArmorMaterialLeather".GetFormKey(),           Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               },
+            new StaticsData{Id = "mat_nightingale", Kwda = "ArmorNightingale".GetFormKey(),               Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               },
+            new StaticsData{Id = "mat_scaled",      Kwda = "ArmorMaterialScaled".GetFormKey(),            Items = [ "IngotCorundum".GetFormKey() ],    Perks = [ "AdvancedArmors".GetFormKey() ]                                      },
+            new StaticsData{Id = "mat_shrouded",    Kwda = "ArmorDarkBrotherhood".GetFormKey(),           Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               },
+            new StaticsData{Id = "mat_stalhrim",    Kwda = "DLC2ArmorMaterialStalhrimLight".GetFormKey(), Items = [ "DLC2OreStalhrim".GetFormKey() ],  Perks = [ "GlassSmithing".GetFormKey(), "EbonySmithing".GetFormKey() ]         },
+            new StaticsData{Id = "mat_stormcloak",  Kwda = "ArmorMaterialStormcloak".GetFormKey(),        Items = [ "IngotIron".GetFormKey() ],        Perks = [ "skyre_SMTLeathercraft".GetFormKey(), "SteelSmithing".GetFormKey() ] },
+            new StaticsData{Id = "mat_stormcloakh", Kwda = "ArmorMaterialBearStormcloak".GetFormKey(),    Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "skyre_SMTLeathercraft".GetFormKey(), "SteelSmithing".GetFormKey() ] },
+            new StaticsData{Id = "mat_studded",     Kwda = "ArmorMaterialStudded".GetFormKey(),           Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               },
+            new StaticsData{Id = "mat_thievesgl",   Kwda = "ArmorMaterialThievesGuild".GetFormKey(),      Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               },
+            new StaticsData{Id = "mat_vampire",     Kwda = "DLC1ArmorMaterialVampire".GetFormKey(),       Items = [ "LeatherStrips".GetFormKey() ],    Perks = [ "skyre_SMTLeathercraft".GetFormKey() ]                               }
         ];
 
         allMaterials.AddRange(lightMaterials);
-        List<DataMap> factionBinds = [
-            new DataMap{Id = "fact_bandit",     Kwda = GetFormKey("skyre_SPCMasqueradeBandit")     },
-            new DataMap{Id = "fact_forsworn",   Kwda = GetFormKey("skyre_SPCMasqueradeForsworn")   },
-            new DataMap{Id = "fact_imperial",   Kwda = GetFormKey("skyre_SPCMasqueradeImperial")   },
-            new DataMap{Id = "fact_stormcloak", Kwda = GetFormKey("skyre_SPCMasqueradeStormcloak") },
-            new DataMap{Id = "fact_thalmor",    Kwda = GetFormKey("skyre_SPCMasqueradeThalmor")    }
+        List<StaticsData> factionBinds = [
+            new StaticsData{Id = "fact_bandit",     Kwda = "skyre_SPCMasqueradeBandit".GetFormKey()     },
+            new StaticsData{Id = "fact_forsworn",   Kwda = "skyre_SPCMasqueradeForsworn".GetFormKey()   },
+            new StaticsData{Id = "fact_imperial",   Kwda = "skyre_SPCMasqueradeImperial".GetFormKey()   },
+            new StaticsData{Id = "fact_stormcloak", Kwda = "skyre_SPCMasqueradeStormcloak".GetFormKey() },
+            new StaticsData{Id = "fact_thalmor",    Kwda = "skyre_SPCMasqueradeThalmor".GetFormKey()    }
         ];
 
         return (allMaterials, lightMaterials, factionBinds);
