@@ -284,6 +284,13 @@ public static class Helpers
     };
 
     /// <summary>
+    /// Returns a FormKey for stringId from the statics collection.<br/>
+    /// </summary>
+    /// <param name="stringId">The id by which the search is performed.</param>
+    /// <returns>A FormKey from the statics list.</returns>
+    public static FormKey GetFormKey(this string stringId) => Executor.Statics!.First(elem => elem.Id == stringId).FormKey;
+
+    /// <summary>
     /// Searches the string in the record name and replaces it with another string.<br/>
     /// </summary>
     /// <param name="name">A string to search in (record name).</param>
