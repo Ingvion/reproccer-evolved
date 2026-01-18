@@ -104,43 +104,83 @@ public class ArmorSettings
     [SettingName("Damage reduction per point of armor")]
     [Tooltip("Physical damage blocked per 1 point of armor, in %.\n"
         + "E.g. the value of 0.25 means you need 4 armor for 1% of physical damage reduction (0.25 * 4).")]
-    public float ArmorScalingFactor { get; set; } = 0.1f;
+    public float ArmorScalingFactor
+    {
+        get => _armorScalingFactor;
+        set => _armorScalingFactor = value <= 0f ? 0.1f : value;
+    }
+    private float _armorScalingFactor = 0.1f;
 
     [SettingName("Maximum damage reduction")]
     [Tooltip("Maximum possible physical damage reduction, in %.")]
-    public int MaxArmorRating { get; set; } = 95;
+    public ushort MaxArmorRating
+    {
+        get => _maxArmorRating;
+        set => _maxArmorRating = value == 0 ? (ushort)95 : value;
+    }
+    private ushort _maxArmorRating = 95;
 
     [SettingName("Boots armor factor")]
     [Tooltip("For boots material protection value will be multiplied by this value.")]
-    public float SlotBoots { get; set; } = 1.0f;
+    public float SlotBoots
+    {
+        get => _slotBoots;
+        set => _slotBoots = value <= 0 ? 1f : value;
+    }
+    private float _slotBoots = 1.0f;
 
     [SettingName("Cuirass armor factor")]
     [Tooltip("For cuirasses material protection value will be multiplied by this value.")]
-    public float SlotCuirass { get; set; } = 3.0f;
+    public float SlotCuirass
+    {
+        get => _slotCuirass;
+        set => _slotCuirass = value <= 0 ? 3f : value;
+    }
+    private float _slotCuirass = 3.0f;
 
     [SettingName("Gauntlets armor factor")]
     [Tooltip("For gauntlets material protection value will be multiplied by this value.")]
-    public float SlotGauntlets { get; set; } = 1.0f;
+    public float SlotGauntlets
+    {
+        get => _slotGauntlets;
+        set => _slotGauntlets = value <= 0 ? 1f : value;
+    }
+    private float _slotGauntlets = 1.0f;
 
     [SettingName("Helmet armor factor")]
     [Tooltip("For helmets material protection value will be multiplied by this value.")]
-    public float SlotHelmet { get; set; } = 1.5f;
+    public float SlotHelmet
+    {
+        get => _slotHelmet;
+        set => _slotHelmet = value <= 0 ? 1.5f : value;
+    }
+    private float _slotHelmet = 1.5f;
 
     [SettingName("Shield armor factor")]
     [Tooltip("For shields material protection value will be multiplied by this value.")]
-    public float SlotShield { get; set; } = 1.5f;
+    public float SlotShield
+    {
+        get => _slotShield;
+        set => _slotShield = value <= 0 ? 1.5f : value;
+    }
+    private float _slotShield = 1.5f;
 
     [SettingName("Price of Dreamcloth items")]
     [Tooltip("This percentage of a regular clothing price will be assigned to its Dreamcloth variant.\n"
         + "E.g., the value of 120 means any Dreamcloth clothing item will cost 20% more than its original.")]
-    public int DreamclothPrice { get; set; } = 120;
+    public ushort DreamclothPrice { get; set; } = 120;
 
     [SettingName("Amount of material to be refunded on breakdown")]
     [Tooltip("This percentage of the armor material will be refunded on breakdown (based on the crafting recipe if possible).")]
-    public int RefundAmount { get; set; } = 50;
+    public ushort RefundAmount
+    {
+        get => _refundAmount;
+        set => _refundAmount = value == 0 ? (ushort)50 : value;
+    }
+    public ushort _refundAmount = 50;
 
     [SettingName("Dreamcloth gear label")]
-    [Tooltip("Dreamcloth items will have this string added to their names; leave empty to use the default \"[Dreamcloth]\" label.\n")]
+    [Tooltip("Dreamcloth items will have this string appended to their names; leave empty to use the default \"[Dreamcloth]\" label.")]
     public string DreamclothLabel { get; set; } = " [Dreamcloth]";
 
     [SettingName("Leather armors recipes require the Leathercraft perk")]
@@ -162,71 +202,71 @@ public class WeaponsSettings
 {
     [SettingName("Base damage for one-handed weapons")]
     [Tooltip("Base damage for any one-handed weapon.")]
-    public int OneHandedBase { get; set; } = 12;
+    public ushort OneHandedBase { get; set; } = 12;
 
     [SettingName("Base damage for two-handed weapons")]
     [Tooltip("Base damage for any two-handed weapon.")]
-    public int TwoHandedBase { get; set; } = 23;
+    public ushort TwoHandedBase { get; set; } = 23;
 
     [SettingName("Base damage for bows")]
     [Tooltip("Base damage for two-handed weapons.")]
-    public int BowBase { get; set; } = 22;
+    public ushort BowBase { get; set; } = 22;
 
     [SettingName("Base damage for crossbows")]
     [Tooltip("Base damage for crossbows.")]
-    public int CrossbowBase { get; set; } = 30;
+    public ushort CrossbowBase { get; set; } = 30;
 
     [SettingName("Amount of material to be refunded on breakdown")]
     [Tooltip("This percentage of the weapon material will be refunded on breakdown (based on the crafting recipe if possible).")]
-    public int RefundAmount { get; set; } = 50;
+    public ushort RefundAmount { get; set; } = 50;
 
     [SettingName("Price of Refined Silver weapons")]
     [Tooltip("This percentage of a Silver weapon price will be assigned to its Refined Silver version.\n"
         + "E.g., the value of 125 means any Refined Silver weapon will cost 25% more than its original.")]
-    public int RefinedSilverPrice { get; set; } = 125;
+    public ushort RefinedSilverPrice { get; set; } = 125;
 
     [SettingName("Price of SkyRe crossbows")]
     [Tooltip("This percentage of a regular crossbow price will be assigned to its SkyRe enhanced version.\n"
         + "E.g., the value of 140 means any enhanced SkyRe crossbow will cost 40% more than its original.\n"
         + "Regardless of this value, double-enhanced crossbows (via the Engineer perk) additionally cost 20% more.")]
-    public int EnhancedCrossbowsPrice { get; set; } = 140;
+    public ushort EnhancedCrossbowsPrice { get; set; } = 140;
 
     // SkyRe enhanced crossbows
     [Ignore]
-    public int RecurveDamage { get; set; } = 105;
+    public ushort RecurveDamage { get; set; } = 105;
 
     [Ignore]
-    public int SiegeDamage { get; set; } = 115;
+    public ushort SiegeDamage { get; set; } = 115;
 
     [Ignore]
-    public int LightDamage { get; set; } = 85;
+    public ushort LightDamage { get; set; } = 85;
 
     [Ignore]
-    public int MuffledDamage { get; set; } = 95;
+    public ushort MuffledDamage { get; set; } = 95;
 
     [Ignore]
-    public int RecurveSpeed { get; set; } = 90;
+    public ushort RecurveSpeed { get; set; } = 90;
 
     [Ignore]
-    public int SiegeSpeed { get; set; } = 80;
+    public ushort SiegeSpeed { get; set; } = 80;
 
     [Ignore]
-    public int LightSpeed { get; set; } = 125;
+    public ushort LightSpeed { get; set; } = 125;
 
     [Ignore]
-    public int MuffledSpeed { get; set; } = 110;
+    public ushort MuffledSpeed { get; set; } = 110;
 
     [Ignore]
-    public int RecurveWeight { get; set; } = 110;
+    public ushort RecurveWeight { get; set; } = 110;
 
     [Ignore]
-    public int SiegeWeight { get; set; } = 125;
+    public ushort SiegeWeight { get; set; } = 125;
 
     [Ignore]
-    public int LightWeight { get; set; } = 75;
+    public ushort LightWeight { get; set; } = 75;
 
     [Ignore]
-    public int MuffledWeight { get; set; } = 90;
+    public ushort MuffledWeight { get; set; } = 90;
 
     [SettingName("Remove weapon type tags")]
     [Tooltip("Removes type tags ReProccer uses to mark weapons with overridden types from weapon names (weapon_name [type_tag] -> weapon_name).")]
