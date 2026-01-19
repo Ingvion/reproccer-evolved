@@ -32,7 +32,7 @@ public struct StaticsData
 
 public struct RecordData
 {
-    public bool NonPlayable{ get; set; }
+    public bool NonPlayable { get; set; }
     public bool Modified { get; set; }
     public bool Overridden { get; set; }
     public bool Unique { get; set; }
@@ -40,12 +40,13 @@ public struct RecordData
     public ArmorType ArmorType { get; set; }
     public WeaponAnimationType AnimType { get; set; }
     public IMajorRecordGetter? ThisRecord { get; set; }
-
+    public Logger Log;
     public bool IsArrow
     {
         get => BoundWeapon;
         set => BoundWeapon = value;
     }
+
 }
 
 public struct RecipeData
@@ -73,7 +74,7 @@ public struct EditorIDs()
 public struct Report()
 {
     public IMajorRecordGetter? Record;
-    public Logger? Log;
+    public Logger? Entry;
 }
 
 public readonly struct Logger()
@@ -81,7 +82,8 @@ public readonly struct Logger()
     private readonly List<string> InfoMsg = [];
     private readonly List<string> CautionMsg = [];
     private readonly List<string> ErrorMsg = [];
-    private static readonly string[] Filter = Executor.Settings!.Debug.ReportFilter.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    private static readonly string[] Filter = Executor.Settings!.Debug.ReportFilter
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     public readonly void Info(string msg, bool verboseInfo = false, bool onTop = false)
     {
@@ -91,7 +93,7 @@ public readonly struct Logger()
     public readonly void Caution(string msg) => CautionMsg.Add(msg);
     public readonly void Error(string msg) => ErrorMsg.Add(msg);
 
-    public readonly void ShowReport(string name, string formkey, string editorid, bool nonPlayable, bool isTemplated)
+    public readonly void Report(string name, string formkey, string editorid, bool nonPlayable, bool isTemplated)
     {
         if (Filter.Length > 0 && !Filter.Any(name.Contains)) return;
 
