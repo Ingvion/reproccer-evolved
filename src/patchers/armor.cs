@@ -14,9 +14,9 @@ public static class ArmorPatcher
                              List<StaticsData> LightMaterials,
                              List<StaticsData> FactionBinds) Statics = ListStatics();
 
-    private static EditorIDs EditorIDs;              // tracker to ensure editorIDs uniqueness for new records
-    private static RecordData PatchingData;          // frequently requested data for current record
-    private static readonly List<Report> Logs = [];  // list of logs for current record and records created from it
+    private static EditorIDs EditorIDs;             // tracker to ensure editorIDs uniqueness for new records
+    private static RecordData PatchingData;         // frequently requested data for current record
+    private static readonly List<Report> Logs = []; // list of logs for current record and records created from it
 
     public static void Run()
     {
@@ -138,15 +138,15 @@ public static class ArmorPatcher
     /// <returns>Check result as bool.</returns>
     private static bool IsValid(IArmorGetter armor, List<string> excludedNames, List<FormKey> mustHave)
     {
-        Logger Log = new();
-        Logs.Add(new Report { Record = armor, Entry = Log });
+        Logger log = new();
+        Logs.Add(new Report { Record = armor, Entry = log });
 
         // found in the excluded records list by edID
         if (Settings.General.ExclByEdID && armor.EditorID!.IsExcluded(excludedNames, true))
         {
             if (Settings.Debug.ShowExcluded)
             {
-                Log.Info("Found in the \"No patching\" list by EditorID");
+                log.Info("Found in the \"No patching\" list by EditorID");
                 ShowReport();
             }
             return false;
@@ -160,7 +160,7 @@ public static class ArmorPatcher
         {
             if (Settings.Debug.ShowExcluded)
             {
-                Log.Info($"Found in the \"No patching\" list by name");
+                log.Info("Found in the \"No patching\" list by name");
                 ShowReport();
             }
             return false;
@@ -190,7 +190,7 @@ public static class ArmorPatcher
     {
         if (armor.Name!.ToString()!.IsExcluded(excludedNames))
         {
-            if (Settings.Debug.ShowExcluded) PatchingData.Log.Info($"Found in the \"No renaming\" list");
+            if (Settings.Debug.ShowExcluded) PatchingData.Log.Info("Found in the \"No renaming\" list");
             return;
         }
 
