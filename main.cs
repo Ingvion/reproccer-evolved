@@ -37,49 +37,15 @@ static class Executor
         Settings = AllSettings.Value;
         State = patcherState;
 
-        // constructing strings	
-        JsonNode stringsJson = Helpers.LoadJson($"{AppContext.BaseDirectory}locales", "english.jsonc", true);
+        Console.Write("");
 
-        string[] jsonFiles = [.. Directory.GetFiles($"{AppContext.BaseDirectory}locales", "*.json*")
-        .Where(name => !name.Contains("english.jsonc"))
-        .Select(file => Path.GetFileName(file))];
+        string userPath = $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}\\{Settings.General.UserDir}\\";
 
-        if (jsonFiles.Length > 0)
-        {
-            foreach (var file in jsonFiles)
-            {
-                JsonNode locStrings = Helpers.LoadJson($"{AppContext.BaseDirectory}locales", file);
-                stringsJson = Helpers.DeepMerge(stringsJson, locStrings);
-            }
-        }
+        // merging strings
+        Strings = MergeStrings(userPath);
 
-        Strings = stringsJson!.AsObject();
-
-        // constructing rules
-        var loadOrder = State.LoadOrder;
-
-        if (!loadOrder.Any(file => file.Key.FileName.Equals("Skyrim AE Redone - Core.esm")))
-            throw new Exception("\n--> Skyrim AE Redone - Core.esm should be active in the load order!\n");
-
-        if (!loadOrder.Any(file => file.Key.FileName.Equals("Skyrim AE Redone - Main.esp")))
-            throw new Exception("\n--> The patching is only required if the Main Module is installed\n");
-
-        JsonNode rulesJson = Helpers.LoadJson($"{AppContext.BaseDirectory}rules", "_rules-basic.jsonc");
-
-        foreach (var file in loadOrder)
-        {
-            if (!file.Value.Enabled || Settings.General.IgnoredFiles.Any(name => name == file.Key.FileName)) continue;
-
-            string[] match = Directory.GetFiles($"{AppContext.BaseDirectory}rules", $"{file.Key.Name}.json*");
-            if (match.Length == 0) continue;
-
-            JsonNode pluginRules = Helpers.LoadJson($"{AppContext.BaseDirectory}rules", $"{Path.GetFileName(match[0])}", true);
-            rulesJson = Helpers.DeepMerge(rulesJson, pluginRules);
-        }
-
-        JsonNode userRules = Helpers.LoadJson($"{AppContext.BaseDirectory}rules", "_rules-user.jsonc", true);
-        rulesJson = Helpers.DeepMerge(rulesJson, userRules);
-        Rules = rulesJson!.AsObject();
+        // merging rules
+        Rules = MergeRules(userPath);
 
         // records required for patching
         Statics = ListStatics();
@@ -95,13 +61,99 @@ static class Executor
         if (Settings.General.WeaponsPatcher) Patchers.WeaponsPatcher.Run();
         if (Settings.General.ProjectilesPatcher) Patchers.ProjectilesPatcher.Run();
         if (Settings.General.IngredientsPatcher) Patchers.IngredientsPatcher.Run();
-        Console.WriteLine("");
+
+        Console.Write("====================\n\n");
+    }
+
+    /// <summary>
+    /// Merges JSON files contents in the "locales" dir into one JsonObject.<br/>
+    /// </summary>
+    /// <param name="userPath">User specified directory with "locales" dir.</param>
+    /// <returns>JsonObject with strings data.</returns>
+    private static JsonObject MergeStrings(string userPath)
+    {
+        JsonNode stringsJson = Helpers.LoadJson(userPath, "locales", "english.jsonc", true);
+
+        string[] userLocales = [.. Directory.GetFiles($"{userPath}locales", "*.json*")
+        .Where(name => !name.Contains("english.jsonc"))
+        .Select(file => Path.GetFileName(file))];
+
+        string[] baseLocales = [.. Directory.GetFiles($"{AppContext.BaseDirectory}locales", "*.json*")
+        .Where(name => !name.Contains("english.jsonc"))
+        .Select(file => Path.GetFileName(file))];
+
+        if (userLocales.Length > 0)
+        {
+            foreach (var file in userLocales)
+            {
+                JsonNode locStrings = Helpers.LoadJson(userPath, "locales", file);
+                stringsJson = Helpers.DeepMerge(stringsJson, locStrings, $"locales file {file}");
+            }
+        }
+
+        if (baseLocales.Length > 0)
+        {
+            foreach (var file in baseLocales)
+            {
+                if (userLocales.Length > 0 && userLocales.Contains(file)) continue;
+
+                JsonNode locStrings = Helpers.LoadJson($"{AppContext.BaseDirectory}", "locales", file);
+                stringsJson = Helpers.DeepMerge(stringsJson, locStrings, $"locales file {file}");
+            }
+        }
+
+        return stringsJson.AsObject();
+    }
+
+    /// <summary>
+    /// Merges JSON files contents in the "rules" dir into one JsonObject.<br/>
+    /// </summary>
+    /// <param name="userPath">User specified directory with "rules" dir.</param>
+    /// <returns>JsonObject with rules data.</returns>
+    /// <exception cref="InvalidLOException">No Core or Main Module found in the load order.</exception>
+    private static JsonObject MergeRules(string userPath)
+    {
+        var loadOrder = State!.LoadOrder;
+
+        if (!loadOrder.Any(file => file.Key.FileName.Equals("Skyrim AE Redone - Core.esm")))
+            throw new InvalidLOException("\n\n--> Skyrim AE Redone - Core.esm should be active in the load order!\n");
+
+        if (!loadOrder.Any(file => file.Key.FileName.Equals("Skyrim AE Redone - Main.esp")))
+            throw new InvalidLOException("\n\n--> Records patching is only necessary if the Main Module is installed.\n");
+
+        JsonNode rulesJson =  Helpers.LoadJson(userPath, "rules", "_rules-basic.jsonc", true);
+
+        foreach (var file in loadOrder)
+        {
+            if (!file.Value.Enabled || Settings!.General.IgnoredFiles.Any(name => name == file.Key.FileName)) continue;
+            JsonNode pluginRules = JsonNode.Parse("{}")!;
+
+            string[] match = Directory.GetFiles($"{userPath}rules", $"{file.Key.Name}.json*");
+            if (match.Length > 0)
+            {
+                pluginRules = Helpers.LoadJson(userPath, "rules", $"{Path.GetFileName(match[0])}");
+            }
+            else
+            {
+                match = Directory.GetFiles($"{AppContext.BaseDirectory}rules", $"{file.Key.Name}.json*");
+                if (match.Length == 0) continue;
+
+                pluginRules = Helpers.LoadJson($"{AppContext.BaseDirectory}", "rules", $"{Path.GetFileName(match[0])}");
+            }
+
+            rulesJson = Helpers.DeepMerge(rulesJson, pluginRules, $"rules file for {file.Key.FileName}");
+        }
+
+        JsonNode userRules = Helpers.LoadJson(userPath, "rules", "_rules-user.jsonc");
+        rulesJson = Helpers.DeepMerge(rulesJson, userRules, "user-defined rules file");
+
+        return rulesJson.AsObject();
     }
 
     /// <summary>
     /// Generates the shared statics list.<br/>
     /// </summary>
-    /// <returns>A list of statics that could be used by 2+ patchers.</returns>
+    /// <returns>A list of shared statics (records used by 2+ patchers).</returns>
     private static List<StaticsData> ListStatics() => [
             new StaticsData{Id = "Charcoal",                               FormKey = Helpers.ParseFormKey("Skyrim.esm|0x033760|MISC")                  },
             new StaticsData{Id = "RuinsLinenPile01",                       FormKey = Helpers.ParseFormKey("Skyrim.esm|0x034cd6|MISC")                  },
