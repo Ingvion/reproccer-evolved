@@ -52,6 +52,14 @@ public class GeneralSettings
         "ShowRaceMenuAlternative.esp"
     ];
 
+    [SettingName("Custom data folder")]
+    [Tooltip("If ReProccer Evolved is installed from the Git repository updating overwrites all changes in rules and locales files.\n"
+        + "To keep your changes store changed files separately in the specified folder in your Documents directory (C:\\Users\\USERNAME\\Documents);\n"
+        + "the patcher will prefer data from this folder.\n\n"
+        + "Full path is not required, only end folder name should be specified (e.g. RE_Data, not C:\\Users\\USERNAME\\Documents\\RE_Data),\n"
+        + "rules should be placed in the \"rules\" subfolder (e.g. RE_Data\\rules), locales - in the \"locales\" subfolder (e.g. RE_Data\\locales).")]
+    public string UserDir { get; set; } = "";
+
     [SettingName("Armor patcher")]
     [Tooltip("Toggles the armor patcher.")]
     public bool ArmorPatcher { get; set; } = true;
@@ -165,10 +173,15 @@ public class ArmorSettings
     }
     private float _slotShield = 1.5f;
 
-    [SettingName("Price of Dreamcloth items")]
-    [Tooltip("This percentage of a regular clothing price will be assigned to its Dreamcloth variant.\n"
+    [SettingName("Gold value of Dreamcloth items")]
+    [Tooltip("This percentage of a regular clothing gold value will be assigned to its Dreamcloth variant.\n"
         + "E.g., the value of 120 means any Dreamcloth clothing item will cost 20% more than its original.")]
-    public ushort DreamclothPrice { get; set; } = 120;
+    public ushort DreamclothPrice
+    {
+        get => _dreamclothPrice;
+        set => _dreamclothPrice = value == 0 ? (ushort)120 : value;
+    }
+    private ushort _dreamclothPrice = 120;
 
     [SettingName("Amount of material to be refunded on breakdown")]
     [Tooltip("This percentage of the armor material will be refunded on breakdown (based on the crafting recipe if possible).")]
@@ -177,7 +190,7 @@ public class ArmorSettings
         get => _refundAmount;
         set => _refundAmount = value == 0 ? (ushort)50 : value;
     }
-    public ushort _refundAmount = 50;
+    private ushort _refundAmount = 50;
 
     [SettingName("Dreamcloth gear label")]
     [Tooltip("Dreamcloth items will have this string appended to their names; leave empty to use the default \"[Dreamcloth]\" label.")]
@@ -202,71 +215,166 @@ public class WeaponsSettings
 {
     [SettingName("Base damage for one-handed weapons")]
     [Tooltip("Base damage for any one-handed weapon.")]
-    public ushort OneHandedBase { get; set; } = 12;
+    public ushort OneHandedBase
+    {
+        get => _oneHandedBase;
+        set => _oneHandedBase = value == 0 ? (ushort)12 : value;
+    }
+    private ushort _oneHandedBase = 12;
 
     [SettingName("Base damage for two-handed weapons")]
     [Tooltip("Base damage for any two-handed weapon.")]
-    public ushort TwoHandedBase { get; set; } = 23;
+    public ushort TwoHandedBase
+    {
+        get => _twoHandedBase;
+        set => _twoHandedBase = value == 0 ? (ushort)23 : value;
+    }
+    private ushort _twoHandedBase = 23;
 
     [SettingName("Base damage for bows")]
     [Tooltip("Base damage for two-handed weapons.")]
-    public ushort BowBase { get; set; } = 22;
+    public ushort BowBase
+    {
+        get => _bowBase;
+        set => _bowBase = value == 0 ? (ushort)22 : value;
+    }
+    private ushort _bowBase = 22;
 
     [SettingName("Base damage for crossbows")]
     [Tooltip("Base damage for crossbows.")]
-    public ushort CrossbowBase { get; set; } = 30;
+    public ushort CrossbowBase
+    {
+        get => _crossbowBase;
+        set => _crossbowBase = value == 0 ? (ushort)30 : value;
+    }
+    private ushort _crossbowBase = 30;
 
     [SettingName("Amount of material to be refunded on breakdown")]
     [Tooltip("This percentage of the weapon material will be refunded on breakdown (based on the crafting recipe if possible).")]
-    public ushort RefundAmount { get; set; } = 50;
+    public ushort RefundAmount
+    {
+        get => _refundAmount;
+        set => _refundAmount = value == 0 ? (ushort)50 : value;
+    }
+    private ushort _refundAmount = 50;
 
-    [SettingName("Price of Refined Silver weapons")]
-    [Tooltip("This percentage of a Silver weapon price will be assigned to its Refined Silver version.\n"
+    [SettingName("Gold value of Refined Silver weapons")]
+    [Tooltip("This percentage of a Silver weapon gold value will be assigned to its Refined Silver version.\n"
         + "E.g., the value of 125 means any Refined Silver weapon will cost 25% more than its original.")]
-    public ushort RefinedSilverPrice { get; set; } = 125;
+    public ushort RefinedSilverPrice
+    {
+        get => _refinedSilverPrice;
+        set => _refinedSilverPrice = value == 0 ? (ushort)125 : value;
+    }
+    private ushort _refinedSilverPrice = 125;
 
-    [SettingName("Price of SkyRe crossbows")]
-    [Tooltip("This percentage of a regular crossbow price will be assigned to its SkyRe enhanced version.\n"
+    [SettingName("Gold value of SkyRe crossbows")]
+    [Tooltip("This percentage of a regular crossbow gold value will be assigned to its SkyRe enhanced version.\n"
         + "E.g., the value of 140 means any enhanced SkyRe crossbow will cost 40% more than its original.\n"
         + "Regardless of this value, double-enhanced crossbows (via the Engineer perk) additionally cost 20% more.")]
-    public ushort EnhancedCrossbowsPrice { get; set; } = 140;
+    public ushort EnhancedCrossbowsPrice
+    {
+        get => _enhancedCrossbowsPrice;
+        set => _enhancedCrossbowsPrice = value == 0 ? (ushort)140 : value;
+    }
+    private ushort _enhancedCrossbowsPrice = 140;
 
     // SkyRe enhanced crossbows
     [Ignore]
-    public ushort RecurveDamage { get; set; } = 105;
+    public ushort RecurveDamage
+    {
+        get => _recurveDamage;
+        set => _recurveDamage = value == 0 ? (ushort)105 : value;
+    }
+    private ushort _recurveDamage = 105;
 
     [Ignore]
-    public ushort SiegeDamage { get; set; } = 115;
+    public ushort SiegeDamage
+    {
+        get => _siegeDamage;
+        set => _siegeDamage = value == 0 ? (ushort)115 : value;
+    }
+    private ushort _siegeDamage = 115;
 
     [Ignore]
-    public ushort LightDamage { get; set; } = 85;
+    public ushort LightDamage
+    {
+        get => _lightDamage;
+        set => _lightDamage = value == 0 ? (ushort)85 : value;
+    }
+    private ushort _lightDamage = 85;
 
     [Ignore]
-    public ushort MuffledDamage { get; set; } = 95;
+    public ushort MuffledDamage
+    {
+        get => _muffledDamage;
+        set => _muffledDamage = value == 0 ? (ushort)95 : value;
+    }
+    private ushort _muffledDamage = 95;
 
     [Ignore]
-    public ushort RecurveSpeed { get; set; } = 90;
+    public ushort RecurveSpeed
+    {
+        get => _recurveSpeed;
+        set => _recurveSpeed = value == 0 ? (ushort)90 : value;
+    }
+    private ushort _recurveSpeed = 90;
 
     [Ignore]
-    public ushort SiegeSpeed { get; set; } = 80;
+    public ushort SiegeSpeed
+    {
+        get => _siegeSpeed;
+        set => _siegeSpeed = value == 0 ? (ushort)80 : value;
+    }
+    private ushort _siegeSpeed = 80;
 
     [Ignore]
-    public ushort LightSpeed { get; set; } = 125;
+    public ushort LightSpeed
+    {
+        get => _lightSpeed;
+        set => _lightSpeed = value == 0 ? (ushort)125 : value;
+    }
+    private ushort _lightSpeed = 125;
 
     [Ignore]
-    public ushort MuffledSpeed { get; set; } = 110;
+    public ushort MuffledSpeed
+    {
+        get => _muffledSpeed;
+        set => _muffledSpeed = value == 0 ? (ushort)110 : value;
+    }
+    private ushort _muffledSpeed = 110;
 
     [Ignore]
-    public ushort RecurveWeight { get; set; } = 110;
+    public ushort RecurveWeight
+    {
+        get => _recurveWeight;
+        set => _recurveWeight = value == 0 ? (ushort)110 : value;
+    }
+    private ushort _recurveWeight = 110;
 
     [Ignore]
-    public ushort SiegeWeight { get; set; } = 125;
+    public ushort SiegeWeight
+    {
+        get => _siegeWeight;
+        set => _siegeWeight = value == 0 ? (ushort)125 : value;
+    }
+    private ushort _siegeWeight = 125;
 
     [Ignore]
-    public ushort LightWeight { get; set; } = 75;
+    public ushort LightWeight
+    {
+        get => _lightWeight;
+        set => _lightWeight = value == 0 ? (ushort)75 : value;
+    }
+    private ushort _lightWeight = 75;
 
     [Ignore]
-    public ushort MuffledWeight { get; set; } = 90;
+    public ushort MuffledWeight
+    {
+        get => _muffledWeight;
+        set => _muffledWeight = value == 0 ? (ushort)90 : value;
+    }
+    private ushort _muffledWeight = 90;
 
     [SettingName("Remove weapon type tags")]
     [Tooltip("Removes type tags ReProccer uses to mark weapons with overridden types from weapon names (weapon_name [type_tag] -> weapon_name).")]
@@ -330,11 +438,11 @@ public class IngredientsSettings
     [Tooltip("Toggle price caps for alchemy ingredients.")]
     public bool PriceLimits { get; set; } = true;
 
-    [SettingName("Minimum price of an ingredient")]
-    [Tooltip("Minimum possible price of an ingredient; gold value lower than specified will be changed to this value.")]
+    [SettingName("Minimum gold value of an ingredient")]
+    [Tooltip("Gold value lower than specified will be changed to this value. This option only affects gold value if \"Limit prices\" option is active.")]
     public int MinValue { get; set; } = 5;
 
-    [SettingName("Maximum price of an ingredient")]
-    [Tooltip("Maximum possible price of an ingredient; gold value higher than specified will be changed to this value.")]
+    [SettingName("Maximum gold value of an ingredient")]
+    [Tooltip("Gold value higher than specified will be changed to this value. This option only affects gold value if \"Limit prices\" option is active.")]
     public int MaxValue { get; set; } = 150;
 }
