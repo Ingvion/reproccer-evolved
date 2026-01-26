@@ -51,24 +51,33 @@ public static class ArmorPatcher
             }
 
             SetOverriddenData(armor);
+            // from this point we're checking if the weapon is already patched,
+            // to ensure we're working with its override copy in the patch
 
             if (PatchingData.ArmorType != ArmorType.Clothing)
             {
-                PatchShieldWeight(armor, PatchingData.ArmorType);
-                PatchArmorRating(armor);
+                PatchShieldWeight(PatchingData.Modified ? 
+                    armor.AsOverride() : armor, PatchingData.ArmorType);
+                PatchArmorRating(PatchingData.Modified ? 
+                    armor.AsOverride() : armor);
             }
 
             if (!PatchingData.NonPlayable)
             {
-                PatchRecordNames(armor, blacklists[0]);
-                PatchMasqueradeKeywords(armor);
+                PatchRecordNames(PatchingData.Modified ? 
+                    armor.AsOverride() : armor, blacklists[0]);
+                PatchMasqueradeKeywords(PatchingData.Modified ? 
+                    armor.AsOverride() : armor);
                 if (PatchingData.ArmorType == ArmorType.Clothing)
                 {
-                    ProcessClothing(armor, blacklists[1]);
+                    ProcessClothing(PatchingData.Modified ? 
+                        armor.AsOverride() : armor, blacklists[1]);
                     ShowReport();
                     continue;
                 }
-                ProcessRecipes(armor, blacklists[2]);
+
+                ProcessRecipes(PatchingData.Modified ? 
+                    armor.AsOverride() : armor, blacklists[2]);
             }
 
 
@@ -243,7 +252,7 @@ public static class ArmorPatcher
         if (name != armor.Name.ToString())
         {
             PatchingData.Log.Info($"Was renamed to {name} in accordance with patching rules", true);
-            armor.AsOverride(true).Name = name;
+            armor.AsOverride().Name = name;
         }
     }
 
@@ -276,7 +285,7 @@ public static class ArmorPatcher
                         armor.AsOverride().Keywords!.Remove(entry2.Kwda);
                 }
 
-                armor.AsOverride(true).Keywords!.Add(entry1.Kwda!);
+                armor.AsOverride().Keywords!.Add(entry1.Kwda!);
                 PatchingData.Log.Info($"The material was forced to {overrideString} in accordance with patching rules", true);
                 PatchingData.Overridden = true;
                 break;
@@ -295,13 +304,13 @@ public static class ArmorPatcher
 
         if (armorType == ArmorType.HeavyArmor && !armor.Keywords!.Contains("skyre__ArmorShieldHeavy".GetFormKey()))
         {
-            armor.AsOverride(true).Keywords!.Add("skyre__ArmorShieldHeavy".GetFormKey());
+            armor.AsOverride().Keywords!.Add("skyre__ArmorShieldHeavy".GetFormKey());
             armor.AsOverride().BashImpactDataSet = new FormLinkNullable<IImpactDataSetGetter>("WPNBashShieldHeavyImpactSet".GetFormKey());
             armor.AsOverride().AlternateBlockMaterial = new FormLinkNullable<IMaterialTypeGetter>("MaterialShieldHeavy".GetFormKey());
         }
         else if (armorType == ArmorType.LightArmor && !armor.Keywords!.Contains("skyre__ArmorShieldLight".GetFormKey()))
         {
-            armor.AsOverride(true).Keywords!.Add("skyre__ArmorShieldLight".GetFormKey());
+            armor.AsOverride().Keywords!.Add("skyre__ArmorShieldLight".GetFormKey());
             armor.AsOverride().BashImpactDataSet = new FormLinkNullable<IImpactDataSetGetter>("WPNBashShieldLightImpactSet".GetFormKey());
             armor.AsOverride().AlternateBlockMaterial = new FormLinkNullable<IMaterialTypeGetter>("MaterialShieldLight".GetFormKey());
         }
@@ -324,7 +333,7 @@ public static class ArmorPatcher
 
         if (newArmorRating != armor.ArmorRating)
         {
-            armor.AsOverride(true).ArmorRating = newArmorRating;
+            armor.AsOverride().ArmorRating = newArmorRating;
             PatchingData.Log.Info($"Armor rating: {armor.ArmorRating} -> {armor.AsOverride().ArmorRating} " +
                 $"(material: {materialFactor}, slot: x{slotFactor}, mult: x{extraMod})", true);
         }
@@ -359,8 +368,6 @@ public static class ArmorPatcher
     /// <returns>Armor material factor as int, or 0 if there's no rule or value has incorrect type.</returns>
     private static int GetMaterialFactor(IArmorGetter armor)
     {
-        if (PatchingData.Overridden) armor = armor.AsOverride();
-
         string? materialId = null;
         foreach (var entry in Statics.AllMaterials)
         {
@@ -425,7 +432,7 @@ public static class ArmorPatcher
             {
                 if (factions.Contains(entry.Id.GetT9n()) && !armor.Keywords!.Contains(entry.Kwda!))
                 {
-                    armor.AsOverride(true).Keywords!.Add(entry.Kwda);
+                    armor.AsOverride().Keywords!.Add(entry.Kwda);
                     addedFactions.Add($"{entry.Id.GetT9n()}");
                 }
             }
@@ -440,8 +447,6 @@ public static class ArmorPatcher
     /// <param name="excludedNames">The list of excluded strings.</param>
     private static void ProcessRecipes(IArmorGetter armor, List<string> excludedNames)
     {
-        if (PatchingData.Modified) armor = armor.AsOverride();
-
         if (armor.Name!.ToString()!.IsExcluded(excludedNames))
         {
             if (Settings.Debug.ShowExcluded)
@@ -746,10 +751,10 @@ public static class ArmorPatcher
         Logger localLog = new();
 
         string label = Settings.Armor.DreamclothLabel == "" ? $" [{"name_dcloth".GetT9n()}]" : Settings.Armor.DreamclothLabel;
-        string newName = armor.AsOverride().Name!.ToString() + label;
+        string newName = armor.Name!.ToString() + label;
         string newEditorID = "RP_ARMO_" + armor.EditorID;
 
-        Armor newArmor = Executor.State!.PatchMod.Armors.DuplicateInAsNewRecord(armor.AsOverride());
+        Armor newArmor = Executor.State!.PatchMod.Armors.DuplicateInAsNewRecord(armor);
         if (!PatchingData.Modified) Executor.State!.PatchMod.Armors.Remove(armor);
 
         newArmor.Name = newName;
@@ -860,9 +865,9 @@ public static class ArmorPatcher
     /// <param name="armor">Processed armor record.</param>
     /// <param name="isModified">True to mark as modified in the patching data.</param>
     /// <returns>The winning override for processed armor record.</returns>
-    private static Armor AsOverride(this IArmorGetter armor, bool isModified = false)
+    private static Armor AsOverride(this IArmorGetter armor)
     {
-        if (isModified) PatchingData.Modified = true;
+        if (!PatchingData.Modified) PatchingData.Modified = true;
         return Executor.State!.PatchMod.Armors.GetOrAddAsOverride(armor);
     }
 
