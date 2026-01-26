@@ -1,16 +1,33 @@
 # Reproccer Evolved
 Reproccer Reborn, rewritten on C# with Mutagen, to be used with Synthesis patching framework.
 
-# Installation
+# Installation from Git repository
 * Download and install [Synthesis](https://github.com/Mutagen-Modding/Synthesis/releases)
-* In Synthesis, on the top left row of icons press "Git Repository", find ReProccer Evolved in the list, and click "Add patcher".
+* In Synthesis, on the top left row of icons press "Git Repository".
+* Find ReProccer Evolved in the list, and click "Add patcher" and then "Confirm".
 
-<b>IMPORTANT</b></br>
-Due to the nature of this installation method, all patcher files will be overwritten when update take place - <b>including rules files</b>.</br>
-To prevent losing changes in rule files keep them in the user data directory - you can set one on the patcher settings page:
+ <b>KEEP IN MIND</b></br>
+ Due to the nature of this installation method, all patcher files will be overwritten when update take place - <b>including rules files</b>.</br>
+ To prevent losing changes in rule files keep them in the user data directory - you can set one on the patcher settings page:
 * root directory for the user data dir is your Documents (DRIVE_LETTER:\Users\USER_NAME\Documents), you only need to specify the user data dir name in the field
 * user data dir must exist, the patcher does not create it for you
 * user data dir must contain the "rules" folder (for modified rule files), and "locales" folder (for modified language strings files)
+
+# Installation from a package
+* Download and install [Synthesis](https://github.com/Mutagen-Modding/Synthesis/releases)
+* Download the latest release of [ReProccer Evolved](https://github.com/Ingvion/reproccer-evolved/releases) (source files)
+* Unzip it to a directory of your choice.
+* In Synthesis, on the top left row of icons press "Local Solution".
+* Press "Existing", and specify path to the ReProccerEvolved.sln file in the directory with unzipped package.
+* Set the patcher name (any) on top left, and press "Confirm" (if "Confirm" is not active click on the "Patcher Projects" field).
+
+<b>Note</b>, that package-based installation does not track the patcher version and can only be updated manually.
+
+# Important
+* Do not group ReProccer Evolved with other patchers.
+* Always run ReProccer Evolved last.
+* If result file's name is something other than ReProccer.esp, the MCM menu will report that patch is not installed; it's safe to ignore the report (will be fixed soon).
+
 
 # ReProccer Evolved and legacy rules/strings
 ReProccer Reborn rules and strings files are fully compatible with ReProccer Evolved. No modifications required.
