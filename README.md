@@ -1,5 +1,5 @@
-# Reproccer Evolved
-Reproccer Reborn, rewritten on C# with Mutagen for Synthesis patching framework.
+# ReProccer Evolved
+ReProccer Reborn, rewritten on C# with Mutagen for Synthesis patching framework.
 
 # Installation from Git repository
 * Download and install [Synthesis](https://github.com/Mutagen-Modding/Synthesis/releases)
