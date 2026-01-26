@@ -473,7 +473,8 @@ public static class WeaponsPatcher
             Helpers.RuleByName(materialEntry.Id, Rules["materials"]!.AsArray(), data1: "id", data2: "critMult");
         float? critMultData = critNode?.AsType<float>();
 
-        return (damageData ?? default, speedModData ?? default, critMultData ?? 1f);
+        return (damageData ?? default, speedModData ?? default, 
+            critMultData is null || critMultData <= 0 ? 0.5f : (float)critMultData);
     }
 
     /// <summary>
