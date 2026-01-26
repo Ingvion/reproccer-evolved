@@ -75,23 +75,23 @@ public static class WeaponsPatcher
             // from this point we're checking if the weapon is already patched,
             // to ensure we're working with its override copy in the patch
 
-            PatchRecordNames(
-                PatchingData.Modified ? weapon.AsOverride() : weapon, blacklists[0]);
-            PatchWeaponData(
-                PatchingData.Modified ? weapon.AsOverride() : weapon);
+            PatchRecordNames(PatchingData.Modified ? 
+                weapon.AsOverride() : weapon, blacklists[0]);
+            PatchWeaponData(PatchingData.Modified ? 
+                weapon.AsOverride() : weapon);
 
             if (!PatchingData.NonPlayable && !PatchingData.BoundWeapon)
             {
-                ProcessCrossbows(
-                    PatchingData.Modified ? weapon.AsOverride() : weapon, blacklists[1]);
-                ProcessSilverWeapons(
-                    PatchingData.Modified ? weapon.AsOverride() : weapon, blacklists[2]);
-                ProcessRecipes(
-                    PatchingData.Modified ? weapon.AsOverride() : weapon, blacklists[3]);
+                ProcessCrossbows(PatchingData.Modified ? 
+                    weapon.AsOverride() : weapon, blacklists[1]);
+                ProcessSilverWeapons(PatchingData.Modified ? 
+                    weapon.AsOverride() : weapon, blacklists[2]);
+                ProcessRecipes(PatchingData.Modified ? 
+                    weapon.AsOverride() : weapon, blacklists[3]);
             }
 
-            Finalizer(
-                PatchingData.Modified ? weapon.AsOverride() : weapon);
+            Finalizer(PatchingData.Modified ? 
+                weapon.AsOverride() : weapon);
             ShowReport();
         }
     }
