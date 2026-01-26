@@ -1,5 +1,5 @@
 # Reproccer Evolved
-Reproccer Reborn, rewritten on C# with Mutagen, to be used with Synthesis patching framework.
+Reproccer Reborn, rewritten on C# with Mutagen for Synthesis patching framework.
 
 # Installation from Git repository
 * Download and install [Synthesis](https://github.com/Mutagen-Modding/Synthesis/releases)
@@ -42,4 +42,5 @@ Keep in mind, that zEdit/UPF and Synthesis each have their own records cache - w
   * Dreamcloth gear
   * Custom ammo (Tempered, Hardened, Barbed and Heavyweight bolts, Fire, Frost, Shock and Siphoning bolts, Ashen and Explosive arrows)
     
-Drop everything in a container, open the console, click the container and print <b>resetinv</b>).
+  Drop everything in a container, open the console, click the container and print <b>resetinv</b>).</br>
+
