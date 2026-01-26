@@ -124,64 +124,86 @@ public readonly struct Logger()
     }
 }
 
+public class InvalidLOException(string? message) : Exception(message) {}
+
 public static class Helpers
 {
     /// <summary>
     /// Returns JSON file as JsonNode.<br/>
     /// Only JSON/JSONC files are allowed.
     /// </summary>
-    /// <param name="dir">The directory in which to look for the file (use AppContext.BaseDirectory + folder name)</param>
+    /// <param name="path">User specified folder with locales and rules</param>
+    /// <param name="folder">The directory in which to look for the file (use AppContext.BaseDirectory + folder name)</param>
     /// <param name="file">The file to look for</param>
-    /// <param name="noSkip">True to throw exception if the file is not a parseable JSON or does not exist</param>
-    /// <returns>A specified JSON file as <see cref="JsonNode"/>.</returns>
+    /// <param name="noSkip">True to throw exception if the file does not exist or cannot be parsed</param>
+    /// <returns>Specified JSON file as JsonNode.</returns>
     /// <exception cref="FileNotFoundException"><paramref name="dir" /> contains no specified file.</exception>
-    /// <exception cref="JsonException"><paramref name="file" /> cannot be parsed due to sytax errors.</exception>
-    public static JsonNode LoadJson(string dir, string file, bool noSkip = false)
+    /// <exception cref="DirectoryNotFoundException"><paramref name="dir" /> does not exist.</exception>
+    public static JsonNode LoadJson(string path, string folder, string file, bool noSkip = false)
     {
-        if (!Directory.Exists($"{dir}"))
+        if (path == "" || !Directory.Exists($"{path}{folder}") || !File.Exists($"{path}{folder}/{file}"))
+            path = $"{AppContext.BaseDirectory}";
+
+        if (!Directory.Exists($"{path}{folder}"))
+            throw new DirectoryNotFoundException($"\n--> Unable to find the \"{folder}\" directory.\n\n");
+
+        if (!File.Exists($"{path}{folder}/{file}"))
         {
-            throw new Exception($"--> Unable to find the \"{dir}\" directory.\n");
+            if (noSkip) return JsonNode.Parse("{}")!;
+            throw new FileNotFoundException($"\n--> Unable to find the \"{file}\" file in the \"{folder}\".\n\n");
         }
 
-        string jsonString;
+        return
+            file.AsJsonNode($"{path}", $"{folder}", noSkip, path == $"{AppContext.BaseDirectory}") ??
+            file.AsJsonNode($"{AppContext.BaseDirectory}", $"{folder}", noSkip, true)!;
+    }
+
+    /// <summary>
+    /// Parses file at path/folder as JSON.<br/>
+    /// The method will use the fallback path if initial path is user-defined and the file results in JsonException.
+    /// </summary>
+    /// <param name="file">The file to look for</param>
+    /// <param name="path">User specified or fallback directory</param>
+    /// <param name="folder">The directory in which to look for the file ("locales" or "rules")</param>
+    /// <param name="noSkip">True to throw exception if the file cannot be parsed</param>
+    /// <param name="isFallback">True if path is the fallback directory</param>
+    /// <returns>Specified JSON file as JsonNode, or null if the file cannot be parsed but there's another one in the fallback dir.</returns>
+    /// <exception cref="JsonException"><paramref name="file" /> cannot be parsed as JSON.</exception>
+    private static JsonNode? AsJsonNode(this string file, string path, string folder, bool noSkip = false, bool isFallback = false)
+    {
+        string jsonString = File.ReadAllText($"{path}{folder}/{file}");
+        jsonString = SanitizeString(jsonString);
 
         try
         {
-            jsonString = File.ReadAllText($"{dir}/{file}");
-        }
-        catch (FileNotFoundException)
-        {
-            return noSkip ? throw new FileNotFoundException($"--> Unable to find \"{file}\" in the \"\\{dir}\" directory.\n") : JsonNode.Parse("{}")!;
-        }
-
-        JsonNode? jsonFile;
-
-        try
-        {
-            jsonString = SanitizeString(jsonString);
-            jsonFile = JsonNode.Parse(jsonString);
+            return JsonNode.Parse(jsonString);
         }
         catch (JsonException)
         {
-            if (noSkip)
-            {
-                throw new JsonException($"--> Unable to parse \"{file}\" in the \"\\{dir}\" directory.\n");
-            }
-            else
-            {
-                Console.WriteLine($"---> WARNING: \"{file}\" in the \"\\{dir}\" directory has syntax errors and will be skipped.");
-                return JsonNode.Parse("{}")!;
-            }
-        }
+            if (noSkip && isFallback)
+                throw new JsonException($"\n--> Unable to parse \"{file}\" in the \"{path}{folder}\" due to syntax errors.\n");
 
-        return jsonFile!;
+            if (!isFallback && File.Exists($"{AppContext.BaseDirectory}{folder}/{file}"))
+            {
+                Console.Write("====================\n\n");
+                Console.WriteLine($"---> WARNING: \"{file}\" in the \"{path}{folder}\" has syntax errors and cannot be parsed;"
+                    + $" default version of the file will be used instead.\n");
+
+                return null;
+            }
+
+            Console.WriteLine($"====================\n\n" +
+                $"---> WARNING: \"{file}\" in the \"{path}{folder}\" has syntax errors and cannot be parsed.\n");
+
+            return JsonNode.Parse("{}")!;
+        }
     }
 
     /// <summary>
     /// Removes all single- and multiline comments from the string.<br/>
     /// </summary>
     /// <param name="jsonString">A string to sanitize.</param>
-    /// <returns>Passed <see cref="string"/> with no single- and multiline comments.</returns>
+    /// <returns>The string with no single- and multiline comments.</returns>
     private static string SanitizeString(string jsonString)
     {
         // single line comments up to the end of the line
@@ -201,34 +223,39 @@ public static class Helpers
     /// </summary>
     /// <param name="targetJson">Target JsonNode.</param>
     /// <param name="sourceJson">Source JsonNode.</param>
-    /// <returns>Target <see cref="JsonNode"/> with appended source JsonNode values to it.</returns>
-    public static JsonNode DeepMerge(JsonNode targetJson, JsonNode sourceJson)
+    /// <returns>Target JsonNode with appended source JsonNode values to it.</returns>
+    public static JsonNode DeepMerge(JsonNode targetJson, JsonNode sourceJson, string msg)
     {
-        if (targetJson is JsonObject target0 && sourceJson is JsonObject source0)
+        // return targetJson as is if sourceJson is empty/has unexpected type
+        if (sourceJson is not JsonObject source0) return targetJson;
+
+        // 1st level keys (patchers (armor, weapons, etc.), or languages (english, french, etc.))
+        JsonObject patchers = targetJson.AsObject();
+        foreach (var prop0 in source0)
         {
-            foreach (var prop0 in source0)
+            // 2nd level keys (procedures (materialOverride, types, etc.), or string keys)
+            if (patchers[prop0.Key] is JsonObject procedures && prop0.Value is JsonObject source1)
             {
-                if (target0[prop0.Key] is JsonObject target1 && prop0.Value is JsonObject source1)
+                foreach (var prop1 in source1)
                 {
-                    foreach (var prop1 in source1)
+                    // merging arrays with rules
+                    if (procedures[prop1.Key] is JsonArray rules && prop1.Value is JsonArray source2)
                     {
-                        if (target1[prop1.Key] is JsonArray target2 && prop1.Value is JsonArray source2)
+                        foreach (var element in source2)
                         {
-                            foreach (var element in source2)
-                            {
-                                target2.Add(element!.DeepClone());
-                            }
-                        }
-                        else
-                        {
-                            target1[prop1.Key] = prop1.Value!.DeepClone();
+                            rules.Add(element!.DeepClone());
                         }
                     }
+                    // prop1.Value is not JsonArray (for locales where it's a JsonValue in most cases)
+                    else
+                    {
+                        procedures[prop1.Key] = prop1.Value!.DeepClone();
+                    }
                 }
-                else
-                {
-                    target0[prop0.Key] = prop0.Value!.DeepClone();
-                }
+            }
+            else
+            {
+                patchers[prop0.Key] = prop0.Value!.DeepClone();
             }
         }
 
@@ -262,7 +289,7 @@ public static class Helpers
         }
         else if (!isResolved)
         {
-            throw new Exception($"--> Unable to resolve {formKey} (no such record?)\n");
+            throw new Exception($"\n\n--> Unable to resolve {formKey} (no such record?)\n");
         }
 
         return formKey;
