@@ -1080,6 +1080,8 @@ public static class WeaponsPatcher
             .Select(entry => entry.Items[0])
             .Distinct()];
 
+        if (weaponItems.Count == 0) return;
+
         bool isWeak = weaponPerks.Count == 0 || weapon.Keywords!.Contains("WeapMaterialDraugrHoned".GetFormKey()) ||
             weapon.Keywords!.Contains("WAF_WeapMaterialForsworn".GetFormKey());
 
