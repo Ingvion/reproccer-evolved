@@ -128,17 +128,17 @@ public static class ProjectilesPatcher
     /// <returns>StaticsData with ammo material data, or empty StaticsData if no material was detected.</returns>
     private static StaticsData TryGetMaterial(IAmmunitionGetter ammo)
     {
-        StaticsData material = Statics.AllMaterials.FirstOrDefault(material => ammo.Keywords!.Contains(material.Kwda!));
-        if (material.Id is null)
+        StaticsData? material = Statics.AllMaterials.FirstOrDefault(material => ammo.Keywords!.Contains(material.Kwda!));
+        if (material is null)
             material = Statics.AllMaterials.FirstOrDefault(material => material.Id.GetT9n().RegexMatch(ammo.Name!.ToString()!, true));
-        if (material.Id is null)
+        if (material is null)
         {
             Executor.State!.LinkCache.TryResolve<IProjectileGetter>(ammo.Projectile.FormKey, out var proj);
             if (proj is not null && proj.Name is not null)
                 material = Statics.AllMaterials.FirstOrDefault(material => material.Id.GetT9n().RegexMatch(proj.Name!.ToString()!, true));
         }
 
-        return material.Id is not null ? material : new StaticsData { Perks = [] };
+        return material ?? new StaticsData { Perks = [] };
     }
 
     /// <summary>
