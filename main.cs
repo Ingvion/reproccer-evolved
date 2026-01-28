@@ -42,10 +42,12 @@ static class Executor
         string userPath = $"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}\\{Settings.General.UserDir}\\";
 
         // merging strings
-        Strings = MergeStrings(userPath);
+        Strings = MergeStrings(
+            Settings!.General.UserDir == "" ? $"{AppContext.BaseDirectory}" : userPath);
 
         // merging rules
-        Rules = MergeRules(userPath);
+        Rules = MergeRules(
+            Settings!.General.UserDir == "" ? $"{AppContext.BaseDirectory}" : userPath);
 
         // records required for patching
         Statics = ListStatics();
@@ -76,8 +78,6 @@ static class Executor
     private static JsonObject MergeStrings(string userPath)
     {
         JsonNode stringsJson = Helpers.LoadJson(userPath, "locales", "english.jsonc", true);
-
-        //if (Settings!.General.UserDir != "") 
 
         string[] userLocales = [.. Directory.GetFiles($"{userPath}locales", "*.json*")
         .Where(name => !name.Contains("english.jsonc"))
