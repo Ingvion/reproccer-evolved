@@ -77,6 +77,8 @@ static class Executor
     {
         JsonNode stringsJson = Helpers.LoadJson(userPath, "locales", "english.jsonc", true);
 
+        //if (Settings!.General.UserDir != "") 
+
         string[] userLocales = [.. Directory.GetFiles($"{userPath}locales", "*.json*")
         .Where(name => !name.Contains("english.jsonc"))
         .Select(file => Path.GetFileName(file))];
