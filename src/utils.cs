@@ -46,7 +46,6 @@ public struct RecordData
         get => BoundWeapon;
         set => BoundWeapon = value;
     }
-
 }
 
 public struct RecipeData

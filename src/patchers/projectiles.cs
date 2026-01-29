@@ -40,7 +40,8 @@ public static class ProjectilesPatcher
             {
                 Log = new Logger(),
                 IsArrow = ammo.Flags.HasFlag(Ammunition.Flag.NonBolt),
-                NonPlayable = ammo.MajorFlags.HasFlag(Ammunition.MajorFlag.NonPlayable) || ammo.Flags.HasFlag(Ammunition.Flag.NonPlayable)
+                NonPlayable = ammo.MajorFlags.HasFlag(Ammunition.MajorFlag.NonPlayable) || ammo.Flags.HasFlag(Ammunition.Flag.NonPlayable),
+                Unique = true
             };
 
             Logs.Add(new Report { Record = ammo, Entry = PatchingData.Log });
@@ -49,7 +50,8 @@ public static class ProjectilesPatcher
 
             if (!PatchingData.NonPlayable) ProcessRecipes(ammo);
             PatchAmmunition(ammo, PatchingData.Log);
-            if (!PatchingData.NonPlayable) GenerateAmmunition(ammo, blacklist);
+            if (!PatchingData.NonPlayable && !PatchingData.Unique) 
+                GenerateAmmunition(ammo, blacklist);
 
             ShowReport();
         }
@@ -160,7 +162,10 @@ public static class ProjectilesPatcher
     /// <param name="recipe">Processed recipe record.</param>
     private static void ModCraftingRecipe(IConstructibleObjectGetter recipe)
     {
-        bool isModified = false;
+        // ammo without crafting recipes (unique) cannot have special ammo variaties
+        PatchingData.Unique = false;
+        PatchingData.Modified = false;
+
         ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.GetOrAddAsOverride(recipe);
 
         // AmmoMaterial.Perks is used later, making a copy to keep original perks list intact
@@ -213,7 +218,7 @@ public static class ProjectilesPatcher
             {
                 Condition.Flag flag = perks.IndexOf(perk) == perks.Count - 1 ? 0 : Condition.Flag.OR;
                 newRecipe.AddHasPerkCondition(perk, flag);
-                isModified = true;
+                PatchingData.Modified = true;
             }
         }
 
@@ -223,10 +228,10 @@ public static class ProjectilesPatcher
             hasPerk.Perk.Link.FormKey != "skyre_MARBallistics".GetFormKey()))
         {
             newRecipe.AddHasPerkCondition("skyre_MARBallistics".GetFormKey(), 0, 0);
-            isModified = true;
+            PatchingData.Modified = true;
         }
 
-        if (!isModified)
+        if (!PatchingData.Modified)
             Executor.State!.PatchMod.ConstructibleObjects.Remove(newRecipe);
     }
 
@@ -714,20 +719,20 @@ public static class ProjectilesPatcher
                 Id = "ammo_barbed",
                 Kwda = "skyre_MARAmmoBarbedKeyword".GetFormKey(),
                 Items = [ "IngotCorundum".GetFormKey(), "DragonScales".GetFormKey() ],
-                Desc = "desc_ashen",
+                Desc = "desc_barbed",
                 Perks = [ "skyre_MARAdvancedFletching1".GetFormKey() ]
             },
             new StaticsData{
                 Id = "ammo_flame",
                 Items = [ "SoulGemPettyFilled".GetFormKey(), "TrollFat".GetFormKey() ],
-                Desc = "desc_explosive",
+                Desc = "desc_flame",
                 Expl = "DLC1BoltExplosionFire02".GetFormKey(),
                 Perks = [ "skyre_ENCElementalBombard0".GetFormKey() ]
             },
             new StaticsData{
                 Id = "ammo_frost",
                 Items = [ "SoulGemPettyFilled".GetFormKey(), "FrostSalt".GetFormKey() ],
-                Desc = "desc_ashen",
+                Desc = "desc_frost",
                 Expl = "DLC1BoltExplosionFrost02".GetFormKey(),
                 Perks = [ "skyre_ENCElementalBombard0".GetFormKey() ]
             },
@@ -735,13 +740,13 @@ public static class ProjectilesPatcher
                 Id = "ammo_hweight",
                 Kwda = "skyre_MARAmmoHeavyKeyword".GetFormKey(),
                 Items = [ "IngotCorundum".GetFormKey(), "DragonBone".GetFormKey() ],
-                Desc = "desc_explosive",
+                Desc = "desc_hweight",
                 Perks = [ "skyre_MARAdvancedFletching2".GetFormKey() ]
             },
             new StaticsData{
                 Id = "ammo_shock",
                 Items = [ "SoulGemPettyFilled".GetFormKey(), "VoidSalt".GetFormKey() ],
-                Desc = "desc_ashen",
+                Desc = "desc_shock",
                 Expl = "DLC1BoltExplosionShock02".GetFormKey(),
                 Perks = [ "skyre_ENCElementalBombard0".GetFormKey() ]
             },
@@ -749,7 +754,7 @@ public static class ProjectilesPatcher
                 Id = "ammo_siphon",
                 Kwda = "skyre_ENCAmmoSiphoningKeyword".GetFormKey(),
                 Items = [ "SoulGemPettyFilled".GetFormKey(), "glowDust".GetFormKey() ],
-                Desc = "desc_explosive",
+                Desc = "desc_siphon",
                 Perks = [ "skyre_ENCElementalBombard1".GetFormKey() ]
             }
         ];
