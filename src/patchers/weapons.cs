@@ -523,8 +523,8 @@ public static class WeaponsPatcher
             return;
         }
 
-        StaticsData? materialEntry = Statics.AllMaterials.FirstOrDefault(type => weapon.AsOverride().Keywords!.Contains(type.Kwda!));
-        if (materialEntry is null) return;
+        StaticsData material = Statics.AllMaterials.FirstOrDefault(type => weapon.AsOverride().Keywords!.Contains(type.Kwda!));
+        if (material.Id is null) return;
 
         int i = 0;
         foreach (var subtypeA in Statics.CrossbowSubtypes)
@@ -551,7 +551,8 @@ public static class WeaponsPatcher
                     );
                 }
 
-                CreateCrossbowVariant(weapon.AsOverride(), (StaticsData)materialEntry, newSubtype, i, j);
+                CreateCrossbowVariant(
+                    PatchingData.Modified ? weapon.AsOverride() : weapon, material, newSubtype, i, j);
             }
 
             i++;
@@ -566,7 +567,7 @@ public static class WeaponsPatcher
     /// <param name="subtype">Crossbow subtype data struct.</param>
     /// <param name="pIndex">Primary subtype index.</param>
     /// <param name="sIndex">Secondary subtype index (crossbow considered double-reforged if pIndex != sIndex).</param>
-    private static void CreateCrossbowVariant(Weapon weapon, StaticsData material, CrossbowSubtype subtype, int pIndex, int sIndex)
+    private static void CreateCrossbowVariant(IWeaponGetter weapon, StaticsData material, CrossbowSubtype subtype, int pIndex, int sIndex)
     {
         Weapon newCrossbow = Executor.State!.PatchMod.Weapons.DuplicateInAsNewRecord(weapon);
 
