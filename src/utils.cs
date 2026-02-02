@@ -140,7 +140,7 @@ public static class Helpers
     /// <exception cref="DirectoryNotFoundException"><paramref name="dir" /> does not exist.</exception>
     public static JsonNode LoadJson(string path, string folder, string file, bool noSkip = false)
     {
-        if (path == "" || !Directory.Exists($"{path}{folder}") || !File.Exists($"{path}{folder}/{file}"))
+        if (!Directory.Exists($"{path}{folder}") || !File.Exists($"{path}{folder}/{file}"))
             path = $"{AppContext.BaseDirectory}";
 
         if (!Directory.Exists($"{path}{folder}"))
@@ -184,15 +184,15 @@ public static class Helpers
 
             if (!isFallback && File.Exists($"{AppContext.BaseDirectory}{folder}/{file}"))
             {
-                Console.Write("====================\n\n");
-                Console.WriteLine($"---> WARNING: \"{file}\" in the \"{path}{folder}\" has syntax errors and cannot be parsed;"
-                    + $" default version of the file will be used instead.\n");
+                Console.WriteLine($"\n---> WARNING: \"{file}\" in the \"{path}{folder}\" has syntax errors and cannot be parsed;" +
+                    $" default version of the file will be used instead.\n\n" +
+                    $"====================\n");
 
                 return null;
             }
 
-            Console.WriteLine($"====================\n\n" +
-                $"---> WARNING: \"{file}\" in the \"{path}{folder}\" has syntax errors and cannot be parsed.\n");
+            Console.WriteLine($"\n---> WARNING: \"{file}\" in the \"{path}{folder}\" has syntax errors and cannot be parsed.\n\n" +
+                $"====================\n");
 
             return JsonNode.Parse("{}")!;
         }

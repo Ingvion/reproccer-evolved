@@ -679,11 +679,11 @@ public static class ArmorPatcher
         int inputQty = (int)(outputQty < 1 && fromRecipe ? Math.Round(1 / outputQty) : 1);
 
         string newEditorID = "RP_ARMO_BREAK_" + (isDreamcloth ? armor.EditorID!.Replace("RP_ARMO_", "") : armor.EditorID);
-        ConstructibleObject cobj = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
+        newEditorID = EditorIDs.Unique(newEditorID);
 
-        cobj.EditorID = EditorIDs.Unique(newEditorID);
+        ConstructibleObject cobj = Executor.State!.PatchMod.ConstructibleObjects.AddNew(newEditorID);
+
         cobj.Items = [];
-
         ContainerItem newItem = new();
         newItem.Item = armor.ToNullableLink();
         ContainerEntry newEntry = new();
@@ -752,13 +752,12 @@ public static class ArmorPatcher
 
         string label = Settings.Armor.DreamclothLabel == "" ? $" [{"name_dcloth".GetT9n()}]" : Settings.Armor.DreamclothLabel;
         string newName = armor.Name!.ToString() + label;
-        string newEditorID = "RP_ARMO_" + armor.EditorID;
+        string newEditorID = EditorIDs.Unique("RP_ARMO_" + armor.EditorID);
 
-        Armor newArmor = Executor.State!.PatchMod.Armors.DuplicateInAsNewRecord(armor);
+        Armor newArmor = Executor.State!.PatchMod.Armors.DuplicateInAsNewRecord(armor, newEditorID);
         if (!PatchingData.Modified) Executor.State!.PatchMod.Armors.Remove(armor);
 
         newArmor.Name = newName;
-        newArmor.EditorID = EditorIDs.Unique(newEditorID);
         newArmor.VirtualMachineAdapter = null;
         newArmor.Description = null;
         newArmor.Keywords!.Add("skyre__ArmorDreamcloth".GetFormKey());
@@ -803,12 +802,11 @@ public static class ArmorPatcher
     /// <param name="log">Log instance for the new record.</param>
     private static void AddCraftingRecipe(IArmorGetter newArmor, IArmorGetter oldArmor, List<RecipeData> ingredients, Logger log)
     {
-        string newEditorID = "RP_ARMO_CRAFT_" + oldArmor.EditorID;
-        ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
+        string newEditorID = EditorIDs.Unique("RP_ARMO_CRAFT_" + oldArmor.EditorID);
 
-        newRecipe.EditorID = EditorIDs.Unique(newEditorID);
+        ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.AddNew(newEditorID);
+
         newRecipe.Items = [];
-
         ContainerItem baseItem = new();
         baseItem.Item = oldArmor.ToNullableLink();
         ContainerEntry baseEntry = new();

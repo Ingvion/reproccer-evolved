@@ -545,21 +545,22 @@ public static class ProjectilesPatcher
         Executor.State!.LinkCache.TryResolve<IProjectileGetter>(ammo.Projectile.FormKey, out var baseProj);
         if (baseProj is null) return null;
 
-        Ammunition newAmmo = Executor.State!.PatchMod.Ammunitions.DuplicateInAsNewRecord(ammo);
+        string newEditorID = (ammo.EditorID!.Contains("RP_AMMO_") ? "" : "RP_AMMO_") + ammo.EditorID! + $"_{typeId.GetT9n("english")}";
+        newEditorID = EditorIDs.Unique(newEditorID);
+
+        Ammunition newAmmo = Executor.State!.PatchMod.Ammunitions.DuplicateInAsNewRecord(ammo, newEditorID);
 
         newAmmo.Name = ammo.Name! + $" - {typeId.GetT9n()}";
-        string newEditorID = (ammo.EditorID!.Contains("RP_AMMO_") ? "" : "RP_AMMO_") + ammo.EditorID! + $"_{typeId.GetT9n("english")}";
-        newAmmo.EditorID = EditorIDs.Unique(newEditorID);
-
         if (desc is not null) newAmmo.Description = desc.GetT9n();
         if (kwda is not null) newAmmo.Keywords!.Add(kwda);
 
-        Projectile newProj = Executor.State!.PatchMod.Projectiles.DuplicateInAsNewRecord(baseProj);
-        newAmmo.Projectile = newProj.ToLink();
-
-        newProj.Name = newAmmo.Name;
         newEditorID = newEditorID.Replace("AMMO", "PROJ");
-        newProj.EditorID = EditorIDs.Unique(newEditorID);
+        newEditorID = EditorIDs.Unique(newEditorID);
+
+        Projectile newProj = Executor.State!.PatchMod.Projectiles.DuplicateInAsNewRecord(baseProj, newEditorID);
+
+        newAmmo.Projectile = newProj.ToLink();
+        newProj.Name = newAmmo.Name;
 
         Logger log = new();
         Logs.Add(new Report { Record = newAmmo, Entry = log });
@@ -577,11 +578,12 @@ public static class ProjectilesPatcher
     /// <param name="ingredients">List of other recipe ingredients, and their quantity.</param>
     private static void AddCraftingRecipe(IAmmunitionGetter newAmmo, IAmmunitionGetter oldAmmo, List<FormKey> perks, List<RecipeData> ingredients)
     {
-        ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
         string newEditorID = "RP_AMMO_CRAFT_" + newAmmo.EditorID!.Replace("RP_AMMO_", "");
-        newRecipe.EditorID = EditorIDs.Unique(newEditorID);
-        newRecipe.Items = [];
+        newEditorID = EditorIDs.Unique(newEditorID);
 
+        ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.AddNew(newEditorID);
+
+        newRecipe.Items = [];
         ContainerItem baseItem = new();
         baseItem.Item = oldAmmo.ToNullableLink();
         ContainerEntry baseEntry = new();

@@ -52,14 +52,6 @@ public class GeneralSettings
         "ShowRaceMenuAlternative.esp"
     ];
 
-    [SettingName("Custom data folder")]
-    [Tooltip("If ReProccer Evolved is installed from the Git repository updating overwrites all changes in rules and locales files.\n"
-        + "To keep your changes store changed files separately in the specified folder in your Documents directory (C:\\Users\\USERNAME\\Documents);\n"
-        + "the patcher will prefer data from this folder.\n\n"
-        + "Full path is not required, only end folder name should be specified (e.g. RE_Data, not C:\\Users\\USERNAME\\Documents\\RE_Data),\n"
-        + "rules should be placed in the \"rules\" subfolder (e.g. RE_Data\\rules), locales - in the \"locales\" subfolder (e.g. RE_Data\\locales).")]
-    public string UserDir { get; set; } = "";
-
     [SettingName("Armor patcher")]
     [Tooltip("Toggles the armor patcher.")]
     public bool ArmorPatcher { get; set; } = true;
