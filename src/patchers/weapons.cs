@@ -569,14 +569,14 @@ public static class WeaponsPatcher
     /// <param name="sIndex">Secondary subtype index (crossbow considered double-reforged if pIndex != sIndex).</param>
     private static void CreateCrossbowVariant(IWeaponGetter weapon, StaticsData material, CrossbowSubtype subtype, int pIndex, int sIndex)
     {
-        Weapon newCrossbow = Executor.State!.PatchMod.Weapons.DuplicateInAsNewRecord(weapon);
+        string newEditorID = "RP_WEAP_" + subtype.EdId + "_" + weapon.EditorID;
+        newEditorID = EditorIDs.Unique(newEditorID);
+
+        Weapon newCrossbow = Executor.State!.PatchMod.Weapons.DuplicateInAsNewRecord(weapon, newEditorID);
 
         newCrossbow.Name = Settings.Weapons.SuffixedNames ?
             weapon.Name! + ", " + subtype.Id.ToLower() :
             subtype.Id + " " + weapon.Name!;
-
-        string newEditorID = "RP_WEAP_" + subtype.EdId + "_" + weapon.EditorID;
-        newCrossbow.EditorID = EditorIDs.Unique(newEditorID);
         newCrossbow.Description = subtype.Desc;
 
         // setting script
@@ -695,16 +695,15 @@ public static class WeaponsPatcher
             return;
         }
 
-        Weapon newWeapon = Executor.State!.PatchMod.Weapons.DuplicateInAsNewRecord(weapon);
-        StaticsData material = Statics.AllMaterials.First(type => type.Kwda == "skyre__WeapMaterialSilverRefined".GetFormKey());
+        string prefix = "name_refined".GetT9n(Settings.General.GameLanguage.ToString(), weapon.Name!.ToString()!);
+        string newEditorID = "RP_WEAP_" + prefix + "_" + weapon.EditorID;
+        newEditorID = EditorIDs.Unique(newEditorID);
 
-        string prefix = "name_refined".GetT9n(Settings.General.GameLanguage.ToString(), newWeapon.Name!.ToString());
+        Weapon newWeapon = Executor.State!.PatchMod.Weapons.DuplicateInAsNewRecord(weapon, newEditorID);
+
         newWeapon.Name = Settings.Weapons.SuffixedNames ?
             weapon.Name! + ", " + prefix.ToLower() :
             prefix + " " + weapon.Name!;
-
-        string newEditorID = "RP_WEAP_" + prefix + "_" + weapon.EditorID;
-        newWeapon.EditorID = EditorIDs.Unique(newEditorID);
         newWeapon.Description = "desc_refined".GetT9n();
 
         // setting script
@@ -757,6 +756,7 @@ public static class WeaponsPatcher
             new RecipeData{ Items = ["IngotGold".GetFormKey() ], Qty = 1 }
         ];
 
+        StaticsData material = Statics.AllMaterials.First(type => type.Kwda == "skyre__WeapMaterialSilverRefined".GetFormKey());
         AddCraftingRecipe(newWeapon, weapon, [], material, ingredients);
     }
 
@@ -771,11 +771,11 @@ public static class WeaponsPatcher
     private static void AddCraftingRecipe(IWeaponGetter newWeapon, IWeaponGetter oldWeapon, List<FormKey> perks, StaticsData material, List<RecipeData> ingredients)
     {
         string newEditorID = newWeapon.EditorID!.Replace("RP_WEAP_", "RP_WEAP_CRAFT_");
-        ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
+        newEditorID = EditorIDs.Unique(newEditorID);
 
-        newRecipe.EditorID = EditorIDs.Unique(newEditorID);
+        ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.AddNew(newEditorID);
+
         newRecipe.Items = [];
-
         ContainerItem baseItem = new();
         baseItem.Item = oldWeapon.ToNullableLink();
         ContainerEntry baseEntry = new();
@@ -868,11 +868,11 @@ public static class WeaponsPatcher
     private static void AddTemperingRecipe(IWeaponGetter newWeapon, StaticsData material)
     {
         string newEditorID = newWeapon.EditorID!.Replace("RP_WEAP_", "RP_WEAP_TEMP_");
-        ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
+        newEditorID = EditorIDs.Unique(newEditorID);
 
-        newRecipe.EditorID = EditorIDs.Unique(newEditorID);
+        ConstructibleObject newRecipe = Executor.State!.PatchMod.ConstructibleObjects.AddNew(newEditorID);
+
         newRecipe.Items = [];
-
         ContainerItem baseItem = new();
         baseItem.Item = Executor.State!.LinkCache.Resolve<IMiscItemGetter>(material.Items[0]).ToNullableLink();
         ContainerEntry baseEntry = new();
@@ -1113,11 +1113,11 @@ public static class WeaponsPatcher
         int inputQty = (int)(outputQty < 1 && fromRecipe ? Math.Round(1 / outputQty) : 1);
 
         string newEditorID = "RP_WEAP_BREAK_" + weapon.EditorID!.Replace("RP_WEAP_", "");
-        ConstructibleObject cobj = Executor.State!.PatchMod.ConstructibleObjects.AddNew();
+        newEditorID = EditorIDs.Unique(newEditorID);
 
-        cobj.EditorID = EditorIDs.Unique(newEditorID);
+        ConstructibleObject cobj = Executor.State!.PatchMod.ConstructibleObjects.AddNew(newEditorID);
+
         cobj.Items = [];
-
         ContainerItem newItem = new();
         newItem.Item = weapon.ToNullableLink();
         ContainerEntry newEntry = new();
