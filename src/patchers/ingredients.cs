@@ -19,6 +19,12 @@ public static class IngredientsPatcher
 
         foreach (var ingredient in records)
         {
+            // skip the record for now if adding its masters exceeds the masters limit
+            if (Helpers.IsOverflow(ingredient.FormKey, "INGR")) continue;
+
+            // saving this record's formkey for the next patching session
+            Executor.Session.Add(ingredient.FormKey);
+
             Logger = new Logger();
             PatchEffects(ingredient, blacklist);
 
@@ -46,7 +52,8 @@ public static class IngredientsPatcher
             if (IsValid(record, excludedNames)) validRecords.Add(record);
         }
 
-        Console.WriteLine($"\n~~~ {validRecords.Count} of {conflictWinners.Count()} ingredient records are eligible for patching ~~~\n");
+        Console.WriteLine($"\n~~~ {validRecords.Count} of {conflictWinners.Count()} ingredient records are eligible for patching ~~~\n\n"
+            + "====================");
         return validRecords;
     }
 
@@ -58,6 +65,9 @@ public static class IngredientsPatcher
     /// <returns>Check result as bool.</returns>
     private static bool IsValid(IIngredientGetter ingredient, List<string> excludedNames)
     {
+        // found in the session file (already patched)
+        if (Executor.Session.Contains(ingredient.FormKey)) return false;
+
         Logger = new Logger();
 
         // found in the excluded records list by edid

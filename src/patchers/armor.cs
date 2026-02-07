@@ -32,6 +32,12 @@ public static class ArmorPatcher
 
         foreach (var armor in records)
         {
+            // skip the record for now if adding its masters exceeds the masters limit
+            if (Helpers.IsOverflow(armor.FormKey, "ARMO")) continue;
+
+            // saving this record's formkey for the next patching session
+            Executor.Session.Add(armor.FormKey);
+
             PatchingData = new RecordData
             {
                 Log = new Logger(),
@@ -91,14 +97,19 @@ public static class ArmorPatcher
     private static void UpdateGMST()
     {
         FormKey armorScalingFactor = new("Skyrim.esm", 0x021a72);
+        FormKey maxArmorRating = new("Skyrim.esm", 0x037deb);
+
+        if (Executor.Session.Contains(armorScalingFactor) || Executor.Session.Contains(maxArmorRating))
+            return;
+
+        Executor.Session.Add(armorScalingFactor);
+        Executor.Session.Add(maxArmorRating);
 
         var conflictWinner = Executor.State!.LinkCache.Resolve<IGameSettingGetter>(armorScalingFactor);
         GameSetting record = Executor.State!.PatchMod.GameSettings.GetOrAddAsOverride(conflictWinner);
 
         if (record is GameSettingFloat gmstArmorScalingFactor)
             gmstArmorScalingFactor.Data = Settings.Armor.ArmorScalingFactor;
-
-        FormKey maxArmorRating = new("Skyrim.esm", 0x037deb);
 
         conflictWinner = Executor.State!.LinkCache.Resolve<IGameSettingGetter>(maxArmorRating);
         record = Executor.State!.PatchMod.GameSettings.GetOrAddAsOverride(conflictWinner);
@@ -113,10 +124,15 @@ public static class ArmorPatcher
     /// <returns>The list of armor records eligible for patching.</returns>
     private static List<IArmorGetter> GetRecords()
     {
+        Dictionary<ModKey, int> loadOrder = Executor.State!.LoadOrder
+            .Select((file, pos) => (file.Key, Index: pos))
+            .ToDictionary(entry => entry.Key, entry => entry.Index);
+
         IEnumerable<IArmorGetter> conflictWinners = Executor.State!.LoadOrder.PriorityOrder
             .Where(plugin => !Settings.General.IgnoredFiles.Any(name => name == plugin.ModKey.FileName))
             .Where(plugin => plugin.Enabled)
-            .WinningOverrides<IArmorGetter>();
+            .WinningOverrides<IArmorGetter>()
+            .OrderBy(plugin => loadOrder[plugin.FormKey.ModKey]);
 
         List<IArmorGetter> validRecords = [];
         List<string> excludedNames = [.. Rules["excludedArmor"]!.AsArray().Select(value => value!.GetValue<string>())];
@@ -147,6 +163,9 @@ public static class ArmorPatcher
     /// <returns>Check result as bool.</returns>
     private static bool IsValid(IArmorGetter armor, List<string> excludedNames, List<FormKey> mustHave)
     {
+        // found in the session file (already patched)
+        if (Executor.Session.Contains(armor.FormKey)) return false;
+
         Logger log = new();
         Logs.Add(new Report { Record = armor, Entry = log });
 
@@ -357,7 +376,7 @@ public static class ArmorPatcher
         if (armor.Keywords!.Contains("ArmorShield".GetFormKey())) 
             return Settings.Armor.SlotShield;
 
-        PatchingData.Log.Error("Unable to determine the equip slot for the record");
+        PatchingData.Log.Error("Unable to determine an equip slot");
         return default;
     }
 
