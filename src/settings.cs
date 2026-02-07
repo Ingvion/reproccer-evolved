@@ -51,6 +51,19 @@ public class GeneralSettings
         "Skyrim AE Redone - Enchanted Weaponry.esp",
         "ShowRaceMenuAlternative.esp"
     ];
+  
+    [SettingName("Master files limit")]
+    [Tooltip("Defines the limit of master files at which ReProccer Evolved closes current patching session.\n\n" +
+        "ReProccer Evolved will stop patching, and save the patch when the number of master files reaches the specified limit;\n" +
+        "next patching session will start from the place where it stopped, allowing you to bypass the \"TooManyMasters\" error\n" +
+        "(Creation Engine plugins 254 master-files limit).\n\n" +
+        "Min value is 100, max value is 240.")]
+    public ushort MastersLimit
+    {
+        get => _mastersLimit;
+        set => _mastersLimit = Math.Clamp(value, (ushort)100, (ushort)240);
+    }
+    private ushort _mastersLimit = 240;
 
     [SettingName("Armor patcher")]
     [Tooltip("Toggles the armor patcher.")]
