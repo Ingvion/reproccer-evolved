@@ -1,4 +1,5 @@
-﻿using Mutagen.Bethesda.Plugins;
+﻿using Mutagen.Bethesda;
+using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using System.Text.Json;
@@ -127,6 +128,8 @@ public class InvalidLOException(string? message) : Exception(message) {}
 
 public static class Helpers
 {
+    internal static List<ModKey> AllMasters = [];      // list of potential master files
+
     /// <summary>
     /// Returns JSON file as JsonNode.<br/>
     /// Only JSON/JSONC files are allowed.
@@ -262,13 +265,58 @@ public static class Helpers
     }
 
     /// <summary>
+    /// Determines approximate number of master files by resolving record's conflict chain.<br/><br/>
+    /// It seems its impossible to precisely determine the amount of master files in the patch, since Synthesis<br/>
+    /// presumably updates the master files list only once before writing the patch on disk, and there's no code<br/>
+    /// that allows to call the update by hand.<br/><br/> 
+    /// This method resolves the record conflict chain and counts all plugins in the chain as master files; a better<br/>
+    /// solution will be implemented in the future.
+    /// </summary>
+    /// <param name="formKey">Form key of a record.</param>
+    /// <param name="type">Record type.</param>
+    /// <returns>True if approximate number of masters exceeds the limit.</returns>
+    /// 
+    public static bool IsOverflow(FormKey formKey, string type)
+    {
+        HashSet<ModKey> pluginsList = [];
+
+        // resolving plugins chain
+        IEnumerable<IMajorRecordGetter> chain = type switch
+        {
+            "ARMO" => Executor.State!.LinkCache.ResolveAll<IArmorGetter>(formKey),
+            "WEAP" => Executor.State!.LinkCache.ResolveAll<IWeaponGetter>(formKey),
+            "AMMO" => Executor.State!.LinkCache.ResolveAll<IAmmunitionGetter>(formKey),
+            _ => Executor.State!.LinkCache.ResolveAll<IIngredientGetter>(formKey),
+        };
+
+        // adding plugins chain as masters
+        foreach (var plugin in chain)
+        {
+            pluginsList.Add(plugin.FormKey.ModKey);
+        }
+
+        pluginsList.UnionWith(AllMasters);
+
+        if (pluginsList.Count <= Executor.Settings!.General.MastersLimit)
+        {
+            AllMasters.Clear();
+            AllMasters.Capacity = pluginsList.Count;
+            AllMasters.AddRange(pluginsList);
+            return false;
+        }
+
+        Executor.IsSplitted = true;
+        return true;
+    }
+
+    /// <summary>
     /// Builds a FormKey from "input", and checks whether it could be resolved.<br/>
     /// The method takes into account "Saints & Seducers" CC mod, and returns nullref FormKey for related records <br/>
     /// instead of exception in case the mod is not in the load order to avoid forcing users to it.
     /// </summary>
     /// <param name="input">A string to construct a FormKey from ( Mod_name|local_id|RECORD_TYPE ).</param>
     /// <param name="skipResolve">True to skip resolving.</param>
-    /// <returns>The <see cref="FormKey"/> value.</returns>
+    /// <returns>The FormKey value.</returns>
     /// <exception cref="Exception">
     /// Constructed FormKey cannot be resolved (incorrect mod name/localId/type).<br/>
     /// </exception>
