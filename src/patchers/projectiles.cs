@@ -36,6 +36,12 @@ public static class ProjectilesPatcher
 
         foreach (var ammo in records)
         {
+            // skip the record for now if adding its masters exceeds the masters limit
+            if (Helpers.IsOverflow(ammo.FormKey, "AMMO")) continue;
+
+            // saving this record's formkey for the next patching session
+            Executor.Session.Add(ammo.FormKey);
+
             PatchingData = new RecordData
             {
                 Log = new Logger(),
@@ -89,6 +95,9 @@ public static class ProjectilesPatcher
     /// <returns>Check result as bool.</returns>
     private static bool IsValid(IAmmunitionGetter ammo, List<string> excludedNames)
     {
+        // found in the session file (already patched)
+        if (Executor.Session.Contains(ammo.FormKey)) return false;
+
         Logger log = new();
         Logs.Add(new Report { Record = ammo, Entry = log });
 

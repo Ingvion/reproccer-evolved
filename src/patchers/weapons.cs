@@ -51,6 +51,12 @@ public static class WeaponsPatcher
 
         foreach (var weapon in records)
         {
+            // skip the record for now if adding its masters exceeds the masters limit
+            if (Helpers.IsOverflow(weapon.FormKey, "WEAP")) continue;
+
+            // saving this record's formkey for the next patching session
+            Executor.Session.Add(weapon.FormKey);
+
             PatchingData = new RecordData
             {
                 Log = new Logger(),
@@ -128,6 +134,9 @@ public static class WeaponsPatcher
     /// <returns>Check result as bool.</returns>
     private static bool IsValid(IWeaponGetter weapon, List<string> excludedNames)
     {
+        // found in the session file (already patched)
+        if (Executor.Session.Contains(weapon.FormKey)) return false;
+
         Logger log = new();
         Logs.Add(new Report { Record = weapon, Entry = log });
 
