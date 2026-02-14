@@ -72,6 +72,7 @@ public static class ProjectilesPatcher
         IEnumerable<IAmmunitionGetter> conflictWinners = Executor.State!.LoadOrder.PriorityOrder
             .Where(plugin => !Settings.General.IgnoredFiles.Any(name => name == plugin.ModKey.FileName))
             .Where(plugin => plugin.Enabled)
+            .Where(plugin => plugin.Mod!.ModHeader.Author != "ReProccer Evolved")
             .WinningOverrides<IAmmunitionGetter>();
 
         List<IAmmunitionGetter> validRecords = [];
