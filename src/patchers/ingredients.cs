@@ -41,6 +41,7 @@ public static class IngredientsPatcher
         IEnumerable<IIngredientGetter> conflictWinners = Executor.State!.LoadOrder.PriorityOrder
             .Where(plugin => !Settings.General.IgnoredFiles.Any(name => name == plugin.ModKey.FileName))
             .Where(plugin => plugin.Enabled)
+            .Where(plugin => plugin.Mod!.ModHeader.Author != "ReProccer Evolved")
             .WinningOverrides<IIngredientGetter>();
 
         List<IIngredientGetter> validRecords = [];
