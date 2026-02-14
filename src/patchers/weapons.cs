@@ -165,13 +165,14 @@ public static class WeaponsPatcher
             return false;
         }
 
-        // is a staff
-        if (weapon.Data!.AnimationType == WeaponAnimationType.Staff) return false;
+        // has no weapon DNAM data (rare) or is a staff
+        if (weapon.Data is null || 
+            weapon.Data!.AnimationType == WeaponAnimationType.Staff) return false;
 
-        // has a template (to skip keyword checks below)
+        // has a template (no kws is allowed in this case)
         if (!weapon.Template.IsNull) return true;
 
-        // has no keywords or kws array is empty (rare)
+        // has no KWDA container (rare) or no keywords
         if (weapon.Keywords is null || weapon.Keywords.Count == 0) return false;
 
         return true;
