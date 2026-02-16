@@ -1106,7 +1106,7 @@ public static class WeaponsPatcher
         {
             foreach (var entry in weaponItems)
             {
-                if (craftingRecipe.Items!.Count == 0) continue;
+                if (craftingRecipe.Items is null || craftingRecipe.Items!.Count == 0) continue;
                 foreach (var elem in craftingRecipe.Items)
                 {
                     if (elem.Item.Item.FormKey == entry && elem.Item.Count > qty)
