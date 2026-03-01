@@ -8,12 +8,9 @@ ReProccer Reborn, rewritten on C# with Mutagen for Synthesis patching framework.
 
  <b>KEEP IN MIND</b></br>
  Due to the nature of this installation method, all patcher files will be overwritten when update take place - <b>including rules files</b>.</br>
- To prevent losing changes in rule files keep them in the user data directory - you can set one on the patcher settings page:
-* root directory for the user data dir is your Documents (DRIVE_LETTER:\Users\USER_NAME\Documents), you only need to specify the user data dir name in the field
-* user data dir must exist, the patcher does not create it for you
-* user data dir must contain the "rules" folder (for modified rule files), and "locales" folder (for modified language strings files)
+ To prevent losing changes in rule files keep them in the user data directory - it will be created upon the first patching session in your Documents (DRIVE_LETTER:\Users\USER_NAME\Documents).
 
-# Installation from a package
+# Installation as a solution (from a package)
 * Download and install [Synthesis](https://github.com/Mutagen-Modding/Synthesis/releases)
 * Download the latest release of [ReProccer Evolved](https://github.com/Ingvion/reproccer-evolved/releases) (source files)
 * Unzip it to a directory of your choice.
@@ -26,7 +23,6 @@ ReProccer Reborn, rewritten on C# with Mutagen for Synthesis patching framework.
 # Important
 * Do not group ReProccer Evolved with other patchers.
 * Always run ReProccer Evolved last.
-* If result file's name is something other than ReProccer.esp, the MCM menu will report that patch is not installed; it's safe to ignore the report (will be fixed soon).
 
 
 # ReProccer Evolved and legacy rules/strings
