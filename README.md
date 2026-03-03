@@ -3,22 +3,22 @@ ReProccer Reborn, rewritten on C# with Mutagen for Synthesis patching framework.
 
 # Installation from Git repository
 * Download and install [Synthesis](https://github.com/Mutagen-Modding/Synthesis/releases)
-* In Synthesis, on the top left row of icons press "Git Repository".
-* Find ReProccer Evolved in the list, and click "Add patcher" and then "Confirm".
+* In Synthesis on the top left row of icons press "Git Repository"
+* Find ReProccer Evolved in the list, and click "Add patcher" and then "Confirm"
 
  <b>KEEP IN MIND</b></br>
  Due to the nature of this installation method, all patcher files will be overwritten when update take place - <b>including rules files</b>.</br>
  To prevent losing changes in rule files keep them in the user data directory - it will be created upon the first patching session in your Documents (DRIVE_LETTER:\Users\USER_NAME\Documents).
 
-# Installation as a solution (from a package)
+# Installation as a solution (from the package)
 * Download and install [Synthesis](https://github.com/Mutagen-Modding/Synthesis/releases)
 * Download the latest release of [ReProccer Evolved](https://github.com/Ingvion/reproccer-evolved/releases) (source files)
-* Unzip it to a directory of your choice.
-* In Synthesis, on the top left row of icons press "Local Solution".
-* Press "Existing", and specify path to the ReProccerEvolved.sln file in the directory with unzipped package.
-* Set the patcher name (any) on top left, and press "Confirm" (if "Confirm" is not active click on the "Patcher Projects" field).
+* Unzip ReProccer Evolved to a directory of your choice
+* In Synthesis on the top left row of icons press "Local Solution"
+* Press "Existing", and specify path to the ReProccerEvolved.sln file in the directory with unzipped ReProccer Evolved
+* Set the patcher name (any) on the top left, and press "Confirm" (if "Confirm" is not active click on the "Patcher Projects" field).
 
-<b>Note</b>, that package-based installation does not track the patcher version and can only be updated manually.
+<b>Note</b> that package-based installation does not track the patcher version and can only be updated manually.
 
 # Important
 * Do not group ReProccer Evolved with other patchers.
