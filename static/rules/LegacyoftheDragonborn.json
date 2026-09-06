@@ -6,6 +6,16 @@
     ]
   },
 
+  "armor": {
+    "armorModifiers": [
+      { "names": "Ancient Akaviri",  "multiplier": 0.75 },
+      { "names": "Ancient Blades",   "multiplier": 0.75 },
+      { "names": "Ancient Daedric",  "multiplier": 0.85 },
+      { "names": "Ancient Falmer",   "multiplier": 0.6  },
+      { "names": "Ancient Shrouded", "multiplier": 0.7  }
+    ]
+  },
+
   "projectiles": {
     "materialStats": [
       { "names": "Ancient Falmer", "gravity": 0.02, "speed": -200, "damage": 18 }
