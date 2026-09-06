@@ -1031,7 +1031,7 @@ public static class WeaponsPatcher
             foreach (var perk in materialPerks)
             {
                 Condition.Flag flag = materialPerks.IndexOf(perk) == materialPerks.Count - 1 ? 0 : Condition.Flag.OR;
-                newRecipe.AddHasPerkCondition(perk, flag);
+                newRecipe.AddHasPerkCondition(perk, flag, 0);
             }
 
             // removing ITPOs
