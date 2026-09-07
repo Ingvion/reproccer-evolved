@@ -584,10 +584,11 @@ public static class ArmorPatcher
                 }
             }
 
+            int pos = 0;
             foreach (var perk in materialPerks)
             {
                 Condition.Flag flag = materialPerks.IndexOf(perk) == materialPerks.Count - 1 ? 0 : Condition.Flag.OR;
-                newRecipe.AddHasPerkCondition(perk, flag, 0);
+                newRecipe.AddHasPerkCondition(perk, flag, pos++);
             }
 
             // removing ITPOs
