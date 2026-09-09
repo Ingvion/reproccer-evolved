@@ -1063,7 +1063,7 @@ public static class WeaponsPatcher
             foreach (var recipe in Executor.AllRecipes!)
             {
                 if (Settings.General.SkipExisting
-                    && recipe.Items?.FirstOrDefault()?.Item == weapon
+                    && recipe.Items?.First().Item == weapon
                     && recipe.WorkbenchKeyword.FormKey == "CraftingSmelter".GetFormKey())
                 {
                     PatchingData.Log.Info($"No breakdown recipe was generated (has a breakdown recipe in the {recipe.FormKey.ModKey.FileName})");
@@ -1333,7 +1333,7 @@ public static class WeaponsPatcher
 
         List<StaticsData> allMaterials = [
             new StaticsData{ Id = "mat_amber",      Kwda = "cc_WeapMaterialAmber".GetFormKey(),             Items = [ "cc_IngotAmber".GetFormKey() ],    Perks = [ "GlassSmithing".GetFormKey(), "EbonySmithing".GetFormKey() ]       },
-            new StaticsData{ Id = "mat_blades",     Kwda = "WAF_WeapMaterialBlades".GetFormKey(),           Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                                     },
+            new StaticsData{ Id = "mat_blades",     Kwda = "WAF_WeapMaterialBlades".GetFormKey(),           Items = [ "IngotCorundum".GetFormKey() ],    Perks = [ "SteelSmithing".GetFormKey() ]                                     },
             new StaticsData{ Id = "mat_daedric",    Kwda = "WeapMaterialDaedric".GetFormKey(),              Items = [ "IngotEbony".GetFormKey() ],       Perks = [ "DaedricSmithing".GetFormKey() ]                                   },
             new StaticsData{ Id = "mat_dawnguard",  Kwda = "WAF_DLC1WeapMaterialDawnguard".GetFormKey(),    Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                                     },
             new StaticsData{ Id = "mat_dark",       Kwda = "cc_WeapMaterialDark".GetFormKey(),              Items = [ "IngotQuicksilver".GetFormKey() ], Perks = [ "DaedricSmithing".GetFormKey() ]                                   },
