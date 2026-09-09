@@ -1060,20 +1060,20 @@ public static class WeaponsPatcher
         IConstructibleObjectGetter? craftingRecipe = null;
         if (!noRecipes)
         {
+            List<FormKey> formKeys = [weapon.FormKey, "CraftingSmelter".GetFormKey(), "CraftingSmithingForge".GetFormKey()];
             foreach (var recipe in Executor.AllRecipes!)
             {
-                PatchingData.Log.Info($"Existing skipping: {Settings.General.SkipExisting}, weapon correct: {recipe.Items?.FirstOrDefault()?.Item.Item.FormKey == weapon.FormKey}, is smelter: {recipe.WorkbenchKeyword.FormKey == "CraftingSmelter".GetFormKey()} )");
                 if (Settings.General.SkipExisting
-                    && recipe.Items?.FirstOrDefault()?.Item == weapon
-                    && recipe.WorkbenchKeyword.FormKey == "CraftingSmelter".GetFormKey())
+                    && recipe.Items?.FirstOrDefault()?.Item.Item.FormKey == formKeys[0]
+                    && recipe.WorkbenchKeyword.FormKey == formKeys[1])
                 {
-                    PatchingData.Log.Info($"No breakdown recipe was generated (has a breakdown recipe in the {recipe.FormKey.ModKey.FileName})");
+                    PatchingData.Log.Info($"No breakdown recipe is generated (has a breakdown recipe in the {recipe.FormKey.ModKey.FileName})");
                     return;
                 }
 
                 if (craftingRecipe is null
-                    && recipe.CreatedObject.FormKey == weapon.FormKey
-                    && recipe.WorkbenchKeyword.FormKey == "CraftingSmithingForge".GetFormKey())
+                    && recipe.CreatedObject.FormKey == formKeys[0]
+                    && recipe.WorkbenchKeyword.FormKey == formKeys[2])
                 {
                     craftingRecipe = recipe;
                 }
