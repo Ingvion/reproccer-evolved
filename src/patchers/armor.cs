@@ -617,21 +617,22 @@ public static class ArmorPatcher
         IConstructibleObjectGetter? craftingRecipe = null;
         if (!noRecipes)
         {
+            List<FormKey> formKeys = [armor.FormKey, "CraftingSmelter".GetFormKey(), "CraftingTanningRack".GetFormKey(), "CraftingSmithingForge".GetFormKey()];
             foreach (var recipe in Executor.AllRecipes!)
             {
                 if (Settings.General.SkipExisting
-                    && recipe.Items?.FirstOrDefault()?.Item == armor
-                    && (recipe.WorkbenchKeyword.FormKey == "CraftingTanningRack".GetFormKey()
-                    || recipe.WorkbenchKeyword.FormKey == "CraftingSmelter".GetFormKey()))
+                    && recipe.Items?.FirstOrDefault()?.Item.Item.FormKey == formKeys[0]
+                    && (recipe.WorkbenchKeyword.FormKey == formKeys[1]
+                    || recipe.WorkbenchKeyword.FormKey == formKeys[2]))
                 {
-                    log.Info($"Already has a breakdown recipe in the {recipe.FormKey.ModKey.FileName}");
+                    log.Info($"There's already a breakdown recipe in the {recipe.FormKey.ModKey.FileName}");
                     return;
                 }
 
                 if (craftingRecipe is null
-                    && recipe.CreatedObject.FormKey == armor.FormKey
-                    && (recipe.WorkbenchKeyword.FormKey == "CraftingTanningRack".GetFormKey()
-                    || recipe.WorkbenchKeyword.FormKey == "CraftingSmithingForge".GetFormKey()))
+                    && recipe.CreatedObject.FormKey == formKeys[0]
+                    && (recipe.WorkbenchKeyword.FormKey == formKeys[2]
+                    || recipe.WorkbenchKeyword.FormKey == formKeys[3]))
                 {
                     craftingRecipe = recipe;
                 }
@@ -1000,7 +1001,7 @@ public static class ArmorPatcher
 
         List<StaticsData> allMaterials = [
             new StaticsData{ Id = "mat_ancientnord", Kwda = "WAF_ArmorMaterialDraugr".GetFormKey(),              Items = [ "IngotCorundum".GetFormKey() ],    Perks = [ "AdvancedArmors".GetFormKey() ]                              },
-            new StaticsData{ Id = "mat_blades",      Kwda = "ArmorMaterialBlades".GetFormKey(),                  Items = [ "IngotSteel".GetFormKey() ],       Perks = [ "SteelSmithing".GetFormKey() ]                               },
+            new StaticsData{ Id = "mat_blades",      Kwda = "ArmorMaterialBlades".GetFormKey(),                  Items = [ "IngotCorundum".GetFormKey() ],    Perks = [ "SteelSmithing".GetFormKey() ]                               },
             new StaticsData{ Id = "mat_bonemoldh",   Kwda = "DLC2ArmorMaterialBonemoldHeavy".GetFormKey(),       Items = [ "DLC2NetchLeather".GetFormKey() ], Perks = [ "AdvancedArmors".GetFormKey() ]                              },
             new StaticsData{ Id = "mat_chitinh",     Kwda = "DLC2ArmorMaterialChitinHeavy".GetFormKey(),         Items = [ "DLC2ChitinPlate".GetFormKey() ],  Perks = [ "ElvenSmithing".GetFormKey() ]                               },
             new StaticsData{ Id = "mat_daedric",     Kwda = "ArmorMaterialDaedric".GetFormKey(),                 Items = [ "IngotEbony".GetFormKey() ],       Perks = [ "DaedricSmithing".GetFormKey() ]                             },
