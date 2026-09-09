@@ -1062,8 +1062,9 @@ public static class WeaponsPatcher
         {
             foreach (var recipe in Executor.AllRecipes!)
             {
+                PatchingData.Log.Info($"Existing skipping: {Settings.General.SkipExisting}, weapon correct: {recipe.Items?.FirstOrDefault()?.Item == weapon}, is smelter: {recipe.WorkbenchKeyword.FormKey == "CraftingSmelter".GetFormKey()} )");
                 if (Settings.General.SkipExisting
-                    && recipe.Items?.First().Item == weapon
+                    && recipe.Items?.FirstOrDefault()?.Item == weapon
                     && recipe.WorkbenchKeyword.FormKey == "CraftingSmelter".GetFormKey())
                 {
                     PatchingData.Log.Info($"No breakdown recipe was generated (has a breakdown recipe in the {recipe.FormKey.ModKey.FileName})");
