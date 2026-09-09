@@ -1062,7 +1062,7 @@ public static class WeaponsPatcher
         {
             foreach (var recipe in Executor.AllRecipes!)
             {
-                PatchingData.Log.Info($"Existing skipping: {Settings.General.SkipExisting}, weapon correct: {recipe.Items?.FirstOrDefault()?.Item == weapon}, is smelter: {recipe.WorkbenchKeyword.FormKey == "CraftingSmelter".GetFormKey()} )");
+                PatchingData.Log.Info($"Existing skipping: {Settings.General.SkipExisting}, weapon correct: {recipe.Items?.FirstOrDefault()?.Item}, is smelter: {recipe.WorkbenchKeyword.FormKey == "CraftingSmelter".GetFormKey()} )");
                 if (Settings.General.SkipExisting
                     && recipe.Items?.FirstOrDefault()?.Item == weapon
                     && recipe.WorkbenchKeyword.FormKey == "CraftingSmelter".GetFormKey())
