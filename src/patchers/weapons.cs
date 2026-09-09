@@ -1067,7 +1067,7 @@ public static class WeaponsPatcher
                     && recipe.Items?.FirstOrDefault()?.Item.Item.FormKey == formKeys[0]
                     && recipe.WorkbenchKeyword.FormKey == formKeys[1])
                 {
-                    PatchingData.Log.Info($"No breakdown recipe is generated (has a breakdown recipe in the {recipe.FormKey.ModKey.FileName})");
+                    PatchingData.Log.Info($"There's already a breakdown recipe in the \"{recipe.FormKey.ModKey.FileName}\"");
                     return;
                 }
 
