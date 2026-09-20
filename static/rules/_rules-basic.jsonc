@@ -33,23 +33,24 @@
  *  Wakizashi, Waraxe, Warhammer
  */
     "typeOverrides": [
-      { "names": "Akaviri Sword",     "type": "Katana"    },
-      { "names": "Auriel's Bow",      "type": "Longbow"   },
-      { "names": "Blackjack",         "type": "Club"      },
-      { "names": "Blades Sword",      "type": "Katana"    },
-      { "names": "Bloodscythe",       "type": "Scimitar"  },
-      { "names": "Bolar's Oathblade", "type": "Katana"    },
-      { "names": "Dawnbreaker",       "type": "Longsword" },
-      { "names": "Dragonbane",        "type": "Katana"    },
-      { "names": "Dragonrend",        "type": "Longbow"   },
-      { "names": "Ebony Blade",       "type": "Nodachi"   },
-      { "names": "Harkon's Sword",    "type": "Katana"    },
-      { "names": "Saber",             "type": "Scimitar"  },
-      { "names": "Sabre",             "type": "Scimitar"  },
-      { "names": "Solonor",           "type": "Longbow"   },
-      { "names": "Soulrender",        "type": "Scimitar"  },
-      { "names": "Windshear",         "type": "Scimitar"  },
-      { "names": "Zephyr",            "type": "Longbow"   }
+      { "names": "Akaviri Sword",         "type": "Katana"     },
+      { "names": "Auriel's Bow",          "type": "Longbow"    },
+      { "names": "Alik'r Great Scimitar", "type": "Greatsword" },
+      { "names": "Blackjack",             "type": "Club"       },
+      { "names": "Blades Sword",          "type": "Katana"     },
+      { "names": "Bloodscythe",           "type": "Scimitar"   },
+      { "names": "Bolar's Oathblade",     "type": "Katana"     },
+      { "names": "Dawnbreaker",           "type": "Longsword"  },
+      { "names": "Dragonbane",            "type": "Katana"     },
+      { "names": "Dragonrend",            "type": "Longbow"    },
+      { "names": "Ebony Blade",           "type": "Nodachi"    },
+      { "names": "Harkon's Sword",        "type": "Katana"     },
+      { "names": "Saber",                 "type": "Scimitar"   },
+      { "names": "Sabre",                 "type": "Scimitar"   },
+      { "names": "Solonor",               "type": "Longbow"    },
+      { "names": "Soulrender",            "type": "Scimitar"   },
+      { "names": "Windshear",             "type": "Scimitar"   },
+      { "names": "Zephyr",                "type": "Longbow"    }
     ],
 
 
@@ -91,10 +92,11 @@
       { "names": "Wakizashi",    "reach": 0.8,  "speed": 1.15, "damage": 3,  "id": "type_wakizashi"   },
 
 	// CUSTOM TYPES ----------
-      { "names": "Zephyr",                      "speed": 0.4                },
-      { "names": "Saber",                       "speed": 0.95, "damage": 5  },
-      { "names": "Sabre",                       "speed": 0.95, "damage": 5  },
-      { "names": "Dawnbreaker",  "reach": 1.12, "speed": 1.02               }
+      { "names": "Dawnbreaker",    "reach": 1.12, "speed": 1.02               },
+      { "names": "Great Scimitar", "reach": 1.15  "speed": 0.8,  "damage": 6  },
+      { "names": "Saber",                         "speed": 0.95, "damage": 5  },
+      { "names": "Sabre",                         "speed": 0.95, "damage": 5  },
+      { "names": "Zephyr",                        "speed": 0.4                }
     ],
 
 
