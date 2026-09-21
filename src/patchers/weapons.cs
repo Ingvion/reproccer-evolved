@@ -146,7 +146,7 @@ public static class WeaponsPatcher
         {
             if (Settings.Debug.ShowExcluded)
             {
-                log.Info("Found in the \"No patching\" list by EditorID");
+                log.Info("Excluded (is blacklisted by EditorID)");
                 ShowReport();
             }
             return false;
@@ -160,7 +160,7 @@ public static class WeaponsPatcher
         {
             if (Settings.Debug.ShowExcluded)
             {
-                log.Info("Found in the \"No patching\" list by name");
+                log.Info("Excluded (is blacklisted by name)");
                 ShowReport();
             }
             return false;
@@ -188,7 +188,7 @@ public static class WeaponsPatcher
     {
         if (weapon.Name!.ToString()!.IsExcluded(excludedNames))
         {
-            if (Settings.Debug.ShowExcluded) PatchingData.Log.Info("Found in the \"No renaming\" list");
+            if (Settings.Debug.ShowExcluded) PatchingData.Log.Info("Cannot be renamed (is blacklisted)");
             return;
         }
 
@@ -287,7 +287,7 @@ public static class WeaponsPatcher
         {
             if (newMaterial.Kwda == StaticsData.NullRef)
             {
-                PatchingData.Log.Caution("A relevant \"materialOverrides\" patching rule references a material from Creation Club's \"Saints and Seducers\"");
+                PatchingData.Log.Warning("A relevant \"materialOverrides\" patching rule references a material from Creation Club's \"Saints and Seducers\"");
                 return;
             }
 
@@ -319,13 +319,13 @@ public static class WeaponsPatcher
         // these weapon type values must be above 0
         if (typeSpeed <= 0 || typeReach <= 0)
         {
-            PatchingData.Log.Error("Weapon data will not be modified.");
+            PatchingData.Log.Error("Weapon data was not modified.");
             return;
         }
 
         if ((typeSpeed + materialSpeed) <= 0)
         {
-            PatchingData.Log.Error($"Weapon speed cannot be 0 and less! The fallback value of {typeSpeed} will be used instead");
+            PatchingData.Log.Error($"Weapon speed must be greater than zero! The fallback value of {typeSpeed} will be used instead");
             materialSpeed = 0;
         }
         weapon.AsOverride().Data!.Speed = typeSpeed + materialSpeed;
@@ -334,7 +334,7 @@ public static class WeaponsPatcher
         ushort newDamage = (ushort)Math.Floor((baseDamage + typeDamage + materialDamage) * mult);
         if (newDamage == 0)
         {
-            PatchingData.Log.Error($"Weapon damage cannot be 0 and less! The fallback value of {weapon.BasicStats!.Damage} will be used instead");
+            PatchingData.Log.Error($"Weapon damage must be greater than zero! The fallback value of {weapon.BasicStats!.Damage} will be used instead");
             newDamage = weapon.BasicStats!.Damage;
         }
         weapon.AsOverride().BasicStats!.Damage = newDamage;
@@ -378,7 +378,7 @@ public static class WeaponsPatcher
         if (PatchingData.BoundWeapon && !weapon.Keywords!.Contains("skyre__WeapMaterialBound".GetFormKey()))
         {
             weapon.AsOverride().Keywords!.Add("skyre__WeapMaterialBound".GetFormKey());
-            PatchingData.Log.Info("Marked as bound weapon (has \"bound weapon\" flag)", true);
+            PatchingData.Log.Info("Weapon material was forced to \"bound\" (has the \"Bound Weapon\" flag)", true);
         }
 
         // broadsword keyword
@@ -524,13 +524,13 @@ public static class WeaponsPatcher
 
         if (weapon.Name!.ToString()!.IsExcluded(excludedNames))
         {
-            if (Settings.Debug.ShowExcluded) PatchingData.Log.Info("Found in the \"No enhanced crossbows\" list");
+            if (Settings.Debug.ShowExcluded) PatchingData.Log.Info("No enhanced version were generated (is blacklisted");
             return;
         }
 
         if (PatchingData.Unique)
         {
-            PatchingData.Log.Info("No enhanced crossbows were generated (has \"No breakdown\" keyword)", true);
+            PatchingData.Log.Info("No enhanced versions were generated (has \"No breakdown\" keyword)", true);
             return;
         }
 
@@ -689,7 +689,7 @@ public static class WeaponsPatcher
     {
         if (weapon.Name!.ToString()!.IsExcluded(excludedNames))
         {
-            if (Settings.Debug.ShowExcluded) PatchingData.Log.Info("Found in the \"No Refined Silver variety\" list");
+            if (Settings.Debug.ShowExcluded) PatchingData.Log.Info("No Refined Silver version was generated (is blacklisted)");
             return;
         }
 
@@ -702,7 +702,7 @@ public static class WeaponsPatcher
 
         if (PatchingData.Unique)
         {
-            PatchingData.Log.Info("No Refined Silver variety was generated (has \"No breakdown\" keyword)", true);
+            PatchingData.Log.Info("No Refined Silver version was generated (has \"No breakdown\" keyword)", true);
             return;
         }
 
@@ -808,7 +808,7 @@ public static class WeaponsPatcher
             }
             else
             {
-                PatchingData.Log.Error($"Ingredient {entry.Items[0]} has unexpected record type!");
+                PatchingData.Log.Error($"Unexpected record type of ingredient {entry.Items[0]}");
                 Executor.State!.PatchMod.ConstructibleObjects.Remove(newRecipe);
                 return;
             }
@@ -919,7 +919,7 @@ public static class WeaponsPatcher
         if (weapon.Name!.ToString()!.IsExcluded(excludedNames))
         {
             if (Settings.Debug.ShowExcluded)
-                PatchingData.Log.Info($"Found in the \"No recipe modifications\" list");
+                PatchingData.Log.Info($"No recipe modifications were made (is blacklisted)");
 
             return;
         }

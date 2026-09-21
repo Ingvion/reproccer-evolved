@@ -107,7 +107,7 @@ public static class ProjectilesPatcher
         {
             if (Settings.Debug.ShowExcluded)
             {
-                log.Info($"Found in the \"No patching\" list by EditorID");
+                log.Info($"Excluded (is blacklisted by EditorID)");
                 ShowReport();
             }
             return false;
@@ -121,7 +121,7 @@ public static class ProjectilesPatcher
         {
             if (Settings.Debug.ShowExcluded)
             {
-                log.Info($"Found in the \"No patching\" list by name");
+                log.Info($"Excluded (is blacklisted by name)");
                 ShowReport();
             }
             return false;
@@ -257,13 +257,13 @@ public static class ProjectilesPatcher
         Executor.State!.LinkCache.TryResolve<IProjectileGetter>(ammo.Projectile.FormKey, out var proj);
         if (proj is null)
         {
-            log.Error("No projectile attached to this ammo");
+            log.Error("No projectile is attached to this ammo");
             return;
         }
 
         if (proj.Type != Projectile.TypeEnum.Arrow && proj.Type != Projectile.TypeEnum.Missile)
         {
-            log.Error($"The projectile has unexpected type ({proj.Type})");
+            log.Error($"The projectile has unexpected type: ({proj.Type})");
             return;
         }
 
@@ -367,25 +367,25 @@ public static class ProjectilesPatcher
     {
         if (newValue <= 0)
         {
-            log.Error($"{name} cannot be 0 and less! The fallback value of {fallback} will be used instead");
+            log.Error($"{name} must be greater than zero! The fallback value of {fallback} will be used instead");
             return fallback;
         }
 
         if (name == "Gravity" && oldValue == 0)
         {
-            log.Caution("Original gravity is 0, but most likely on purpose, and will not be changed");
+            log.Warning("Original gravity is 0 and will not be changed (is likely an intentional value)");
             return oldValue;
         }
 
         if (name == "Speed" && newValue * 2 < oldValue)
         {
-            log.Caution("Original speed is very high, but most likely on purpose, and will not be changed");
+            log.Warning("Original speed is very high and will not be changed (is likely an intentional value)");
             return oldValue;
         }
 
         if (name == "Damage" && (oldValue == 0 || oldValue == 1))
         {
-            log.Caution("Original damage is 0 or 1, but most likely on purpose, and will not be changed");
+            log.Warning("Original damage is 0 or 1 and will not be changed (is likely an intentional value)");
             return oldValue;
         }
 
@@ -463,14 +463,14 @@ public static class ProjectilesPatcher
         {
             if (Settings.Debug.ShowExcluded)
             {
-                PatchingData.Log.Info($"Found in the \"No special variants\" list by EditorID", false, true);
+                PatchingData.Log.Info($"No special ammo were generated (is blacklisted by EditorID)", false, true);
                 return;
             }
         }
 
         if (ammo.Name!.ToString()!.IsExcluded(excludedNames))
         {
-            if (Settings.Debug.ShowExcluded) PatchingData.Log.Info($"Found in the \"No special variants\" list by name", false, true);
+            if (Settings.Debug.ShowExcluded) PatchingData.Log.Info($"No special ammo were generated (is blacklisted by name)", false, true);
             return;
         }
 

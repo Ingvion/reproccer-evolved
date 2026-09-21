@@ -32,7 +32,7 @@ public static class ArmorPatcher
 
         foreach (var armor in records)
         {
-            // skip the record for now if adding its masters exceeds the masters limit
+            // skip the record for now if adding associated masters exceeds the patch masters limit
             if (Helpers.IsOverflow(armor.FormKey, "ARMO")) continue;
 
             // saving this record's formkey for the next patching session
@@ -175,7 +175,7 @@ public static class ArmorPatcher
         {
             if (Settings.Debug.ShowExcluded)
             {
-                log.Info("Found in the \"No patching\" list by EditorID");
+                log.Info("Excluded (is blacklisted by EditorID)");
                 ShowReport();
             }
             return false;
@@ -189,7 +189,7 @@ public static class ArmorPatcher
         {
             if (Settings.Debug.ShowExcluded)
             {
-                log.Info("Found in the \"No patching\" list by name");
+                log.Info("Excluded (is blacklisted by name)");
                 ShowReport();
             }
             return false;
@@ -219,7 +219,7 @@ public static class ArmorPatcher
     {
         if (armor.Name!.ToString()!.IsExcluded(excludedNames))
         {
-            if (Settings.Debug.ShowExcluded) PatchingData.Log.Info("Found in the \"No renaming\" list");
+            if (Settings.Debug.ShowExcluded) PatchingData.Log.Info("Cannot be renamed (is blacklisted)");
             return;
         }
 
@@ -295,7 +295,7 @@ public static class ArmorPatcher
             {
                 if (entry1.Kwda == StaticsData.NullRef)
                 {
-                    PatchingData.Log.Caution("A \"materialOverrides\" patching rule references a material from Creation Club's \"Saints and Seducers\"");
+                    PatchingData.Log.Warning("A \"materialOverrides\" patching rule references a material from Creation Club's \"Saints and Seducers\"");
                     break;
                 }
 
@@ -377,7 +377,7 @@ public static class ArmorPatcher
         if (armor.Keywords!.Contains("ArmorShield".GetFormKey())) 
             return Settings.Armor.SlotShield;
 
-        PatchingData.Log.Error("Unable to determine an equip slot");
+        PatchingData.Log.Error("Unable to determine the equip slot");
         return default;
     }
 
@@ -406,7 +406,7 @@ public static class ArmorPatcher
 
         if (factorInt is not null)
         {
-            if (materialId is null) PatchingData.Log.Caution("Has a \"materials\" patching rule for its name, but no material keyword");
+            if (materialId is null) PatchingData.Log.Warning("Has a \"materials\" patching rule for its name, but no material keyword");
             return (int)factorInt;
         }
 
@@ -470,7 +470,7 @@ public static class ArmorPatcher
         if (armor.Name!.ToString()!.IsExcluded(excludedNames))
         {
             if (Settings.Debug.ShowExcluded)
-                PatchingData.Log.Info($"Found in the \"No recipe modifications\" list", false, true);
+                PatchingData.Log.Info($"No recipe modifications were made (is blacklisted)", false, true);
 
             return;
         }
@@ -610,7 +610,7 @@ public static class ArmorPatcher
     {
         if (PatchingData.Unique)
         {
-            log.Info($"The breakdown recipe was not generated due to the \"No breakdown\" keyword", true);
+            log.Info($"No breakdown recipe was generated (is blacklisted)", true);
             return;
         }
 
@@ -759,14 +759,14 @@ public static class ArmorPatcher
         {
             if (Settings.Debug.ShowExcluded)
             {
-                PatchingData.Log.Info("Found in the \"No Dreamcloth\" list", true);
+                PatchingData.Log.Info("No Dreamcloth version was generated (is blacklisted)", true);
                 return;
             }
         }
 
         if (!armor.TemplateArmor.IsNull || PatchingData.Unique)
         {
-            PatchingData.Log.Info($"The clothing is templated or has \"No breakdown\" keyword, and cannot have Dreamcloth variety", true);
+            PatchingData.Log.Info($"No Dreamcloth version was generated (is templated or has \"No breakdown\" keyword)", true);
             return;
         }
 
@@ -854,7 +854,7 @@ public static class ArmorPatcher
             }
             else
             {
-                log.Error($"Ingredient {entry.Items[0]} has unexpected record type!");
+                log.Error($"Unexpected record type of ingredient {entry.Items[0]}");
                 Executor.State!.PatchMod.ConstructibleObjects.Remove(newRecipe);
                 return;
             }

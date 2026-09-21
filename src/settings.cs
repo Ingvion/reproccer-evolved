@@ -39,22 +39,20 @@ public class AllSettings
 public class GeneralSettings
 {
     [SettingName("Game language")]
-    [Tooltip("Determines which language strings to use first. If there's no translated strings file for specified language\n"
+    [Tooltip("Determines which language strings to use first. If there's no translated strings file for the specified language\n"
         + "or no translated string in the file, default English strings will be used.")]
     public Language GameLanguage { get; set; } = Language.English;
 
     [SettingName("Ignored files")]
-    [Tooltip("Plugins listed here will be fully ignored - records will be ignored, rules will not be loaded,\n"
-        + "and winning overrides from these plugins will be skipped.")]
+    [Tooltip("Plugins listed here will be fully ignored - new records will not be patched, edits in existing records will be skipped.")]
     public List<string> IgnoredFiles { get; set; } = [
-        "Apocalypse - Magic of Skyrim.esp",
         "Skyrim AE Redone - Enchanted Weaponry.esp",
         "ShowRaceMenuAlternative.esp"
     ];
   
     [SettingName("Master files limit")]
-    [Tooltip("Defines the limit of master files at which ReProccer Evolved closes current patching session.\n\n" +
-        "ReProccer Evolved will stop patching, and save the patch when the number of master files reaches the specified limit;\n" +
+    [Tooltip("Defines the limit of master files at which ReProccer Evolved splits the patch into several parts.\n\n" +
+        "ReProccer Evolved will stop patching and save the patch when the number of master files reaches the specified limit;\n" +
         "next patching session will start from the place where it stopped, allowing you to bypass the \"TooManyMasters\" error\n" +
         "(Creation Engine plugins 254 master-files limit).\n\n" +
         "Min value is 100, max value is 240.")]
@@ -82,12 +80,12 @@ public class GeneralSettings
     public bool IngredientsPatcher { get; set; } = true;
 
     [SettingName("Skip existing breakdown recipes")]
-    [Tooltip("If a breakdown recipe for the record already exists in some other mod, ReProccer will not generate its own.\n"
-         + "Info on found recipes will be displayed if \"Report patching results\" is active.")]
+    [Tooltip("If a breakdown recipe for the record already exists in another mod, ReProccer will not generate its own.\n"
+         + "Info on a first found recipe will be displayed if \"Report patching results\" is active.")]
     public bool SkipExisting { get; set; } = true;
 
     [SettingName("Allow exclusion by EdID")]
-    [Tooltip("Allows the ReProccer to check for exact match in records' editor ID first when processing the exclusion list.\n"
+    [Tooltip("Allows the ReProccer to check for the exact match in records' editor ID first when processing the exclusion list.\n"
         + "With this option you can exclude specific records, because unlike names editor IDs are most often unique.")]
     public bool ExclByEdID { get; set; } = true;
 }
@@ -104,11 +102,12 @@ public class DebugSettings
 
     [SettingName("Filter patching results")]
     [Tooltip("Only info for records with these values in their names will be displayed. Separate values by commas;\n"
-        + "leave the field empty to display information on all processed records.")]
+        + "a record should have at least one of the listed words in its name to be reported. Leave the field empty to \n"
+		+ "show information on each processed record.")]
     public string ReportFilter { get; set; } = "";
 
     [SettingName("Include non-playables in reports")]
-    [Tooltip("Reports of all types will also be displayed for non-playable records.")]
+    [Tooltip("Reports will include non-playable records.")]
     public bool ShowNonPlayable { get; set; } = false;
 }
 

@@ -80,7 +80,7 @@ public struct Report()
 public readonly struct Logger()
 {
     private readonly List<string> InfoMsg = [];
-    private readonly List<string> CautionMsg = [];
+    private readonly List<string> WarningMsg = [];
     private readonly List<string> ErrorMsg = [];
     private static readonly string[] Filter = Executor.Settings!.Debug.ReportFilter
         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -90,17 +90,17 @@ public readonly struct Logger()
         if (Executor.Settings!.Debug.ShowVerboseData || !verboseInfo) 
             InfoMsg.Insert(onTop ? 0 : InfoMsg.Count, msg);
     } 
-    public readonly void Caution(string msg) => CautionMsg.Add(msg);
+    public readonly void Warning(string msg) => WarningMsg.Add(msg);
     public readonly void Error(string msg) => ErrorMsg.Add(msg);
 
     public readonly void Report(string name, string formkey, string editorid, bool nonPlayable, bool isTemplated)
     {
         if (Filter.Length > 0 && !Filter.Any(name.Contains)) return;
 
-        List<List<string>> messages = [InfoMsg, CautionMsg, ErrorMsg];
+        List<List<string>> messages = [InfoMsg, WarningMsg, ErrorMsg];
         if (messages.All(group => group.Count == 0)) return;
 
-        string[] groups = ["    > INFO:", "    > CAUTION:", "    > ERROR:"];
+        string[] groups = ["    > INFO:", "    > WARNING:", "    > ERROR:"];
         if (Executor.Settings!.Debug.ShowNonPlayable || !nonPlayable)
         {
             Console.WriteLine($"+ REPORT | {name} ({formkey} | {editorid})");
@@ -269,8 +269,8 @@ public static class Helpers
     /// It seems its impossible to precisely determine the amount of master files in the patch, since Synthesis<br/>
     /// presumably updates the master files list only once before writing the patch on disk, and there's no code<br/>
     /// that allows to call the update by hand.<br/><br/> 
-    /// This method resolves the record conflict chain and counts all plugins in the chain as master files; a better<br/>
-    /// solution will be implemented in the future.
+    /// This method resolves the record conflict chain and considers all plugins in the chain as masters; a better<br/>
+    /// solution will likely be implemented in the future.
     /// </summary>
     /// <param name="formKey">Form key of a record.</param>
     /// <param name="type">Record type.</param>
@@ -511,7 +511,7 @@ public static class Helpers
 
         JsonNode? node = Executor.Strings![lang.ToLower()]![id];
         if (node == null && lang != "English") node = Executor.Strings["english"]![id];
-        if (node == null) throw new Exception($"--> Unable to find a string for \"{id}\"\n");
+        if (node == null) throw new Exception($"--> Unable to find the string for \"{id}\"\n");
 
         if (node is JsonValue jsonVal && jsonVal.TryGetValue<string>(out var str))
         {
@@ -588,7 +588,7 @@ public static class Helpers
     }
 
     /// <summary>
-    /// Checks if this-parameter string exists in the excluded strings list.<br/>
+    /// Checks if this-parameter exists in the excluded strings list.<br/>
     /// </summary>
     /// <param name="str">A string to check.</param>
     /// <param name="excludedStrings">A List of strings.</param>

@@ -76,7 +76,7 @@ public static class IngredientsPatcher
         {
             if (Settings.Debug.ShowExcluded)
             {
-                Logger.Info("Found in the \"No patching\" list by EditorID");
+                Logger.Info("Excluded (is blacklisted by EditorID)");
                 ShowReport(ingredient);
             }
             return false;
@@ -90,7 +90,7 @@ public static class IngredientsPatcher
         {
             if (Settings.Debug.ShowExcluded)
             {
-                Logger.Info("Found in the \"No patching\" list by name");
+                Logger.Info("Excluded (is blacklisted by name)");
                 ShowReport(ingredient);
             }
             return false;
@@ -104,7 +104,7 @@ public static class IngredientsPatcher
         // just in case (it's possible to remove all effects and/or effects' container in xEdit/zEdit)
         if (ingr.Effects is null || ingr.Effects.Count == 0)
         {
-            Logger.Error($"The ingredient must have at least 1 effect, found none");
+            Logger.Error($"The ingredient has no effects");
             return;
         }
 
@@ -184,7 +184,7 @@ public static class IngredientsPatcher
         if (Settings.General.ExclByEdID && mgef.EditorID!.IsExcluded(excludedValues, true))
         {
             if (Settings.Debug.ShowExcluded)
-                Logger.Info($"Found in the excluded effects list by EditorID");
+                Logger.Info($"Effect \"{mgef.EditorID}\" was not modified (is blacklisted by EditorID)");
 
             return false;
         }
@@ -193,7 +193,7 @@ public static class IngredientsPatcher
         if (mgef.Name.ToString()!.IsExcluded(excludedValues))
         {
             if (Settings.Debug.ShowExcluded)
-                Logger.Info($"Found in the excluded effects list by name");
+                Logger.Info($"Effect \"{mgef.Name}\" was not modified (is blacklisted by name)");
 
             return false;
         }
