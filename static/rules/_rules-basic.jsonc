@@ -93,7 +93,7 @@
 
 	// CUSTOM TYPES ----------
       { "names": "Dawnbreaker",    "reach": 1.12, "speed": 1.02               },
-      { "names": "Great Scimitar", "reach": 1.15  "speed": 0.8,  "damage": 6  },
+      { "names": "Great Scimitar", "reach": 1.15, "speed": 0.8,  "damage": 6  },
       { "names": "Saber",                         "speed": 0.95, "damage": 5  },
       { "names": "Sabre",                         "speed": 0.95, "damage": 5  },
       { "names": "Zephyr",                        "speed": 0.4                }
