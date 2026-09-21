@@ -610,7 +610,7 @@ public static class ArmorPatcher
     {
         if (PatchingData.Unique)
         {
-            log.Info($"No breakdown recipe was generated (is blacklisted)", true);
+            log.Info($"No breakdown recipe was generated (has \"No breakdown\" keyword)", true);
             return;
         }
 
