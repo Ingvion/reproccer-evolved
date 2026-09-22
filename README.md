@@ -1,7 +1,7 @@
 # ReProccer Evolved
 ReProccer Reborn, rewritten on C# with Mutagen for Synthesis patching framework.
 
-# Installation from Git repository
+# Installation from the Git repository
 * Download and install [Synthesis](https://github.com/Mutagen-Modding/Synthesis/releases)
 * In Synthesis on the top left row of icons press "Git Repository"
 * Find ReProccer Evolved in the list, and click "Add patcher" and then "Confirm"
@@ -13,12 +13,12 @@ ReProccer Reborn, rewritten on C# with Mutagen for Synthesis patching framework.
 # Installation as a solution (from the package)
 * Download and install [Synthesis](https://github.com/Mutagen-Modding/Synthesis/releases)
 * Download the latest release of [ReProccer Evolved](https://github.com/Ingvion/reproccer-evolved/releases) (source files)
-* Unzip ReProccer Evolved to a directory of your choice
+* Unpack the release archive to a directory of your choice
 * In Synthesis on the top left row of icons press "Local Solution"
-* Press "Existing", and specify path to the ReProccerEvolved.sln file in the directory with unzipped ReProccer Evolved
+* Press "Existing", and specify path to the <b>ReProccerEvolved.sln</b> file in the directory with the previously unpacked release archive
 * Set the patcher name (any) on the top left, and press "Confirm" (if "Confirm" is not active click on the "Patcher Projects" field).
 
-<b>Note</b> that package-based installation does not track the patcher version and can only be updated manually.
+<b>Note</b> that package-based installation can only be updated manually.
 
 # Important
 * Do not group ReProccer Evolved with other patchers.
