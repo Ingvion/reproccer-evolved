@@ -1191,7 +1191,8 @@ public static class WeaponsPatcher
                     weapon.AsOverride().VirtualMachineAdapter!.Scripts.Insert(weapon.VirtualMachineAdapter.Scripts.Count, newScript);
                 }
             }
-            else if (hasVMAD && weapon.VirtualMachineAdapter!.Scripts.Any(script => script.Name == "SilverSwordScript"))
+            else if (hasVMAD && weapon.VirtualMachineAdapter!.Scripts.Any(script => script.Name == "SilverSwordScript" 
+                && script.Properties.Any(property => property is ScriptObjectProperty scriptProp && scriptProp.Object.FormKey == "SilverPerk".GetFormKey())))
             {
                 weapon.AsOverride().VirtualMachineAdapter!.Scripts.RemoveAll(script => script.Name == "SilverSwordScript");
             }
