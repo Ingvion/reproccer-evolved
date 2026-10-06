@@ -388,7 +388,25 @@
  */
     "renamer": [
       { "find": "Shield", "replace": "Heavy Shield", "options": "ic", "filter": "Heavy Armor", "skipIf": "Tower, Reinforced" },
-      { "find": "Shield", "replace": "Light Shield", "options": "ic", "filter": "Light Armor", "skipIf": "Small" }
+      { "find": "Shield", "replace": "Light Shield", "options": "ic", "filter": "Light Armor", "skipIf": "Small" },
+      { "find": "of Minor Smithing", "replace": "of Minor Protection", "options": "ic"       },
+      { "find": "of Smithing", "replace": "of Protection", "options": "ic"                   },
+      { "find": "of Major Smithing", "replace": "of Major Protection", "options": "ic"       },
+      { "find": "of Eminent Smithing", "replace": "of Eminent Protection", "options": "ic"   },
+      { "find": "of Extreme Smithing", "replace": "of Extreme Protection", "options": "ic"   },
+      { "find": "of Peerless Smithing", "replace": "of Peerless Protection", "options": "ic" },
+      { "find": "of Minor Alchemy", "replace": "of Minor Haste", "options": "ic"       },
+      { "find": "of Alchemy", "replace": "of Haste", "options": "ic"                   },
+      { "find": "of Major Alchemy", "replace": "of Major Haste", "options": "ic"       },
+      { "find": "of Eminent Alchemy", "replace": "of Eminent Haste", "options": "ic"   },
+      { "find": "of Extreme Alchemy", "replace": "of Extreme Haste", "options": "ic"   },
+      { "find": "of Peerless Alchemy", "replace": "of Peerless Haste", "options": "ic" },
+      { "find": "of Minor Lockpicking", "replace": "of Minor Elusiveness", "options": "ic"       },
+      { "find": "of Lockpicking", "replace": "of Elusiveness", "options": "ic"                   },
+      { "find": "of Major Lockpicking", "replace": "of Major Elusiveness", "options": "ic"       },
+      { "find": "of Eminent Lockpicking", "replace": "of Eminent Elusiveness", "options": "ic"   },
+      { "find": "of Extreme Lockpicking", "replace": "of Extreme Elusiveness", "options": "ic"   },
+      { "find": "of Peerless Lockpicking", "replace": "of Peerless Elusiveness", "options": "ic" }
     ],
 
 
