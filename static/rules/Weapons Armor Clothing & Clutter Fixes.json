@@ -3,5 +3,10 @@
     "excludedWeapons": [
       "Bonemold"
     ]
+  },
+  "armor": {
+    "materials": [
+      { "names": ["Reinforced", "Iron"],       "armor": 23 }
+    ]
   }
 }
