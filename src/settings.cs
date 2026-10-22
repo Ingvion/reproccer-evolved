@@ -396,7 +396,7 @@ public class WeaponsSettings
 
     [SettingName("Shortspears on right hip")]
     [Tooltip("Changes shortspears animation type from swords to waraxes.\n"
-        + "Requires modified shortspears models! Install these from the Extra Animations pack (look for it on the SkyRe mod page).")]
+        + "REQUIRES MODIFIED MODELS; install the Extra Models pack from the SkyRe mod page.")]
     public bool AltShortspears { get; set; } = false;
 
     [SettingName("Show all special recipes")]
