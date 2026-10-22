@@ -20,16 +20,16 @@ public class AllSettings
     [SettingName("General")]
     public GeneralSettings General { get; set; } = new();
 
-    [SettingName("Armor patcher settings")]
+    [SettingName("Armor Patcher")]
     public ArmorSettings Armor { get; set; } = new();
 
-    [SettingName("Weapons patcher settings")]
+    [SettingName("Weapons Patcher")]
     public WeaponsSettings Weapons { get; set; } = new();
 
-    [SettingName("Projectiles patcher settings")]
+    [SettingName("Projectiles Patcher")]
     public ProjectilesSettings Projectiles { get; set; } = new();
 
-    [SettingName("Ingredients patcher settings")]
+    [SettingName("Ingredients Patcher")]
     public IngredientsSettings Ingredients { get; set; } = new();
 
     [SettingName("Debug")]
@@ -79,12 +79,12 @@ public class GeneralSettings
     [Tooltip("Toggles the alchemy ingredients patcher.")]
     public bool IngredientsPatcher { get; set; } = true;
 
-    [SettingName("Skip existing breakdown recipes")]
+    [SettingName("Avoid breakdown recipes duplication")]
     [Tooltip("If a breakdown recipe for the record already exists in another mod, ReProccer will not generate its own.\n"
          + "Info on a first found recipe will be displayed if \"Report patching results\" is active.")]
     public bool SkipExisting { get; set; } = true;
 
-    [SettingName("Allow exclusion by EdID")]
+    [SettingName("Allow records exclusion by EdID")]
     [Tooltip("Allows the ReProccer to check for the exact match in records' editor ID first when processing the exclusion list.\n"
         + "With this option you can exclude specific records, because unlike names editor IDs are most often unique.")]
     public bool ExclByEdID { get; set; } = true;
@@ -101,21 +101,21 @@ public class DebugSettings
     public bool ShowVerboseData { get; set; } = false;
 
     [SettingName("Filter patching results")]
-    [Tooltip("Only info for records with these values in their names will be displayed. Separate values by commas;\n"
+    [Tooltip("Only messages for records with these values in their names will be displayed. Separate values by commas;\n"
         + "a record should have at least one of the listed words in its name to be reported. Leave the field empty to \n"
 		+ "show information on each processed record.")]
     public string ReportFilter { get; set; } = "";
 
-    [SettingName("Include non-playables in reports")]
-    [Tooltip("Reports will include non-playable records.")]
+    [SettingName("Include non-playable records")]
+    [Tooltip("Reports will also be displayed for non-playable records.")]
     public bool ShowNonPlayable { get; set; } = false;
 }
 
 public class ArmorSettings
 {
-    [SettingName("Damage reduction per point of armor")]
-    [Tooltip("Physical damage blocked per 1 point of armor, in %.\n"
-        + "E.g. the value of 0.25 means you need 4 armor for 1% of physical damage reduction (0.25 * 4).")]
+    [SettingName("Damage reduction per point of armor, %")]
+    [Tooltip("Fraction of physical damage blocked per 1 point of armor.\n"
+        + "E.g. the value of 0.25 means you need 1 point of armor to block 0.25% of physical damage.")]
     public float ArmorScalingFactor
     {
         get => _armorScalingFactor;
@@ -123,8 +123,8 @@ public class ArmorSettings
     }
     private float _armorScalingFactor = 0.1f;
 
-    [SettingName("Maximum damage reduction")]
-    [Tooltip("Maximum possible physical damage reduction, in %.")]
+    [SettingName("Maximum damage reduction, %")]
+    [Tooltip("Maximum possible percent of physical damage reduction.")]
     public ushort MaxArmorRating
     {
         get => _maxArmorRating;
@@ -133,7 +133,7 @@ public class ArmorSettings
     private ushort _maxArmorRating = 95;
 
     [SettingName("Boots armor factor")]
-    [Tooltip("For boots material protection value will be multiplied by this value.")]
+    [Tooltip("Material protection value will be multiplied by this value for boots.")]
     public float SlotBoots
     {
         get => _slotBoots;
@@ -142,7 +142,7 @@ public class ArmorSettings
     private float _slotBoots = 1.0f;
 
     [SettingName("Cuirass armor factor")]
-    [Tooltip("For cuirasses material protection value will be multiplied by this value.")]
+    [Tooltip("Material protection value will be multiplied by this value for cuirasses.")]
     public float SlotCuirass
     {
         get => _slotCuirass;
@@ -151,7 +151,7 @@ public class ArmorSettings
     private float _slotCuirass = 3.0f;
 
     [SettingName("Gauntlets armor factor")]
-    [Tooltip("For gauntlets material protection value will be multiplied by this value.")]
+    [Tooltip("Material protection value will be multiplied by this value for gauntlets.")]
     public float SlotGauntlets
     {
         get => _slotGauntlets;
@@ -160,7 +160,7 @@ public class ArmorSettings
     private float _slotGauntlets = 1.0f;
 
     [SettingName("Helmet armor factor")]
-    [Tooltip("For helmets material protection value will be multiplied by this value.")]
+    [Tooltip("Material protection value will be multiplied by this value for helmets.")]
     public float SlotHelmet
     {
         get => _slotHelmet;
@@ -169,7 +169,7 @@ public class ArmorSettings
     private float _slotHelmet = 1.5f;
 
     [SettingName("Shield armor factor")]
-    [Tooltip("For shields material protection value will be multiplied by this value.")]
+    [Tooltip("Material protection value will be multiplied by this value for shields.")]
     public float SlotShield
     {
         get => _slotShield;
@@ -177,9 +177,9 @@ public class ArmorSettings
     }
     private float _slotShield = 1.5f;
 
-    [SettingName("Gold value of Dreamcloth items")]
-    [Tooltip("This percentage of a regular clothing gold value will be assigned to its Dreamcloth variant.\n"
-        + "E.g., the value of 120 means any Dreamcloth clothing item will cost 20% more than its original.")]
+    [SettingName("Gold value of Dreamcloth items, %")]
+    [Tooltip("This percentage of a regular clothing gold value will be assigned to its Dreamcloth version.\n"
+        + "E.g., the value of 120 means a Dreamcloth clothing item will cost 120% of the original.")]
     public ushort DreamclothPrice
     {
         get => _dreamclothPrice;
@@ -187,8 +187,9 @@ public class ArmorSettings
     }
     private ushort _dreamclothPrice = 120;
 
-    [SettingName("Amount of material to be refunded on breakdown")]
-    [Tooltip("This percentage of the armor material will be refunded on breakdown (based on the crafting recipe if possible).")]
+    [SettingName("Amount of material to be refunded on breakdown, %")]
+    [Tooltip("This percentage of the armor main material will be refunded on breakdown (based on the crafting recipe if possible).\n"
+        + "The actual amount of the material will be rounded to the closest integer (but no less than 1).")]
     public ushort RefundAmount
     {
         get => _refundAmount;
@@ -197,7 +198,8 @@ public class ArmorSettings
     private ushort _refundAmount = 50;
 
     [SettingName("Dreamcloth gear label")]
-    [Tooltip("Dreamcloth items will have this string appended to their names; leave empty to use the default \"[Dreamcloth]\" label.")]
+    [Tooltip("Dreamcloth wear will have this string appended to their names; leave empty to use the default \"[Dreamcloth]\" label.\n"
+        + "Note that the label starts with a whitespace.")]
     public string DreamclothLabel { get; set; } = " [Dreamcloth]";
 
     [SettingName("Leather armors recipes require the Leathercraft perk")]
@@ -206,7 +208,7 @@ public class ArmorSettings
     public bool FixCraftRecipes { get; set; } = true;
 
     [SettingName("No breakdown recipes for clothing")]
-    [Tooltip("If active, ReProccer will not generate breakdown recipes for clothing items. This option does not apply to Dreamcloth wear.")]
+    [Tooltip("ReProccer will not generate breakdown recipes for clothing items. This option does not apply to Dreamcloth wear.")]
     public bool NoClothingBreak { get; set; } = false;
 
     [SettingName("Show all Dreamcloth recipes")]
@@ -253,8 +255,9 @@ public class WeaponsSettings
     }
     private ushort _crossbowBase = 30;
 
-    [SettingName("Amount of material to be refunded on breakdown")]
-    [Tooltip("This percentage of the weapon material will be refunded on breakdown (based on the crafting recipe if possible).")]
+    [SettingName("Amount of material to be refunded on breakdown, %")]
+    [Tooltip("This percentage of the weapon material will be refunded on breakdown (based on the crafting recipe if possible).\n"
+        + "The actual amount of the material will be rounded to the closest integer (but no less than 1).")]
     public ushort RefundAmount
     {
         get => _refundAmount;
@@ -262,9 +265,9 @@ public class WeaponsSettings
     }
     private ushort _refundAmount = 50;
 
-    [SettingName("Gold value of Refined Silver weapons")]
+    [SettingName("Gold value of Refined Silver weapons, %")]
     [Tooltip("This percentage of a Silver weapon gold value will be assigned to its Refined Silver version.\n"
-        + "E.g., the value of 125 means any Refined Silver weapon will cost 25% more than its original.")]
+        + "E.g., the value of 125 means a Refined Silver weapon will cost 125% of the original.")]
     public ushort RefinedSilverPrice
     {
         get => _refinedSilverPrice;
@@ -272,9 +275,9 @@ public class WeaponsSettings
     }
     private ushort _refinedSilverPrice = 125;
 
-    [SettingName("Gold value of SkyRe crossbows")]
+    [SettingName("Gold value of SkyRe crossbows, %")]
     [Tooltip("This percentage of a regular crossbow gold value will be assigned to its SkyRe enhanced version.\n"
-        + "E.g., the value of 140 means any enhanced SkyRe crossbow will cost 40% more than its original.\n"
+        + "E.g., the value of 140 means an enhanced SkyRe crossbow will cost 140% of the original.\n"
         + "Regardless of this value, double-enhanced crossbows (via the Engineer perk) additionally cost 20% more.")]
     public ushort EnhancedCrossbowsPrice
     {
@@ -385,48 +388,49 @@ public class WeaponsSettings
     public bool NoTypeTags { get; set; } = true;
 
     [SettingName("No vanilla Enhanced Crossbows recipes")]
-    [Tooltip("Removes the ability to craft vanilla Enhanced Crossbows (crafting recipes will not be available).\n"
-        + "If unchecked, vanilla Enhanced Crossbows recipes additionally require the Increased Tension perk.")]
+    [Tooltip("Removes the ability to craft vanilla Enhanced Crossbows.\n"
+        + "Hides vanilla Enhanced Crossbows recipes in the crafting menus. If this option is disabled, vanilla Enhanced Crossbows recipes\n"
+        + "will additionally require the Increased Tension perk.")]
     public bool NoVanillaEnhanced { get; set; } = true;
 
-    [SettingName("Preserve crossbows crafting conditions")]
-    [Tooltip("Preserves original conditions in all crossbow crafting recipes.\n"
-        + "Unchecked this to make crossbow crafting recipes available based on smithing mastery only.")]
+    [SettingName("Do not delete crossbows crafting conditions")]
+    [Tooltip("Do not delete conditions not related to materials from crossbow crafting recipes.\n"
+        + "Disable this option to make crossbow crafting recipes available based on smithing mastery only.")]
     public bool KeepConditions { get; set; } = true;
 
     [SettingName("Shortspears on right hip")]
-    [Tooltip("Changes shortspears animation type from swords to waraxes.\n"
-        + "REQUIRES MODIFIED MODELS; install the Extra Models pack from the SkyRe mod page.")]
+    [Tooltip("Changes shortspears animation from swords to waraxes.\n"
+        + "!! REQUIRES MODIFIED MODELS !! Install the Extra Models pack from the SkyRe mod page.")]
     public bool AltShortspears { get; set; } = false;
 
     [SettingName("Show all special recipes")]
-    [Tooltip("Refined Silver weapons and SkyRe crossbows crafting recipes will always be visible in the crafting menu once the relevant perk is acquired.\n"
+    [Tooltip("Refined Silver weapons and SkyRe crossbows crafting recipes will always be visible in the crafting menu once a relevant perk is acquired.\n"
         + "By default, to declutter the crafting menu, each special recipe is hidden unless you have a required base weapon in the inventory.")]
     public bool AllWeaponRecipes { get; set; } = false;
 
     [SettingName("Alternative naming")]
-    [Tooltip("Changes the position of weapon variant names from prefixed to suffixed.\n"
-        + "E.g. Siege Dwarven Crossbow -> Dwarven Crossbow, siege; Refined Silver Greatsword -> <b>Silver Greatsword, refined.")]
+    [Tooltip("Changes the position of special weapon names from prefixed to suffixed.\n"
+        + "E.g. Siege Dwarven Crossbow -> Dwarven Crossbow, siege; Refined Silver Greatsword -> Silver Greatsword, refined.")]
     public bool SuffixedNames { get; set; } = false;
 }
 
 public class ProjectilesSettings
 {
     [SettingName("Ammo qty for reforge recipes")]
-    [Tooltip("Ammunition reforge recipes will require (and result in) this amount of ammo.")]
+    [Tooltip("Ammunition reforge recipes will require this amount of ammo.")]
     public int AmmoQty { get; set; } = 10;
 
     [SettingName("Ingredients qty for reforge recipes")]
     [Tooltip("Ammunition reforge recipes will require this amount of each secondary ingredient.")]
     public int IngredsQty { get; set; } = 1;
 
-    [SettingName("Preserve ammo crafting conditions")]
-    [Tooltip("Preserves original conditions in all ammo crafting recipes.\n"
-    + "Unchecked this to make ammo crafting recipes available based on smithing mastery only.")]
+    [SettingName("Do not delete ammo crafting conditions")]
+    [Tooltip("Do not delete conditions not related to materials from ammo crafting recipes.\n"
+    + "Disable this option to make ammo crafting recipes available based on smithing mastery only.")]
     public bool KeepConditions { get; set; } = true;
 
     [SettingName("Show all special recipes")]
-    [Tooltip("Special ammo crafting recipes will always be visible in the crafting menu once the relevant perk is acquired.\n"
+    [Tooltip("Special ammo crafting recipes will always be visible in the crafting menu once a relevant perk is acquired.\n"
     + "By default, to declutter the crafting menu, each special recipe is hidden unless you have required number of base ammo in the inventory.")]
     public bool AllAmmoRecipes { get; set; } = false;
 }
