@@ -575,5 +575,27 @@
       "Practice",
       "Test Bolt"
     ]
-  }
+  },
+
+
+/***********************************************************************************************************************
+ *                                                  MAGIC EFFECTS                                                      *
+ ***********************************************************************************************************************
+ * Currently only distributes magic sneak attack informer script.
+ * The magic effect should met all the following requirements to have the script attached to it:
+ * 1. Flags:         Hostile, Detrimental
+ * 2. Archetype:     Value Modifier / Dual Value Modifier 
+ * 3. Actor Value:   Health (as either primary or secondary value if archetype is Dual Value Modifier)
+ * 4. Casting type:  Fire and Forget
+ * 5. Delivery type: Aimed
+ */
+
+/*  A magic effect with any listed value match its editorID will be processed by the patcher even if it doesn't met the
+ *  listed above requirements
+ */
+    "includedEffects": [],
+
+/*  A magic effect with any listed value match its editorID will not be processed by the patcher. 
+ */
+    "excludedEffects": []
 }
