@@ -46,7 +46,6 @@ public static class IngredientsPatcher
 
         List<IIngredientGetter> validRecords = [];
         List<string> excludedNames = [.. Rules["excludedIngredients"]!.AsArray().Select(value => value!.GetValue<string>())];
-        List<string> excludedEffects = [.. Rules["excludedEffects"]!.AsArray().Select(value => value!.GetValue<string>())];
 
         foreach (var record in conflictWinners)
         {
