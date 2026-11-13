@@ -327,7 +327,7 @@ public static class Helpers
         FormKey formKey = new(data[0], Convert.ToUInt32(data[1], 16));
 
         bool isResolved = skipResolve || TryResolveAs(formKey, data[2]);
-        if (data[0] == "ccBGSSSE025-AdvDSGS.esm")
+        if (data[0].ToLower() == "ccBGSSSE025-AdvDSGS.esm".ToLower())
         {
             var advDSGS = Executor.State!.LoadOrder
             .FirstOrDefault(plugin => plugin.Key.FileName.Equals(data[0]) && plugin.Value.Enabled);
